@@ -90,6 +90,7 @@ API 호환성·공개 패키지 피드 지원 정책은 확정되지 않았습�
 [NuGet release 워크플로](../.github/workflows/publish-nuget.yml)는 Windows Server 2025·VS 2026,
 .NET 10 SDK와 공식 `nanoframework/nanobuild`를 사용합니다. PC 회귀 시험 후
 `Prepare-Packages.ps1`로 34개 패키지와 패키지 소비 프로젝트를 검증합니다.
+PC 회귀 전에 고정 revision의 원본 OpenDNP3 피어도 CMake·Visual C++로 빌드합니다.
 보드 시험·장치 배포는 실행하지 않습니다. 외부 액션은 커밋 SHA로 고정했습니다.
 비공개 저장소의 GitHub-hosted runner 사용량은 계정의 Actions 사용량·과금 정책을 확인하십시오.
 

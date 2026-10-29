@@ -89,6 +89,9 @@ jobs:
           & nuget restore .\packages.config -PackagesDirectory .\packages -NonInteractive -Verbosity quiet
           if ($LASTEXITCODE -ne 0) { throw 'nanoFramework dependency restore failed.' }
 
+      - name: Build pinned OpenDNP3 test peer
+        run: .\Build\Build-Dnp3ValidationMaster.ps1
+
       - name: Run PC regression tests
         run: .\Build\Test-All.ps1
 
