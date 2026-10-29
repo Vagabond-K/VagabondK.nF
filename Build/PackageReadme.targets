@@ -1,0 +1,9 @@
+<Project>
+  <Import Project="PackageMetadata.props" />
+  <Target Name="PreparePackageReadme" BeforeTargets="GenerateNuspec">
+    <PropertyGroup>
+      <GeneratedPackageReadme>$(MSBuildProjectDirectory)\$(IntermediateOutputPath)package-readme\README.md</GeneratedPackageReadme>
+    </PropertyGroup>
+    <Exec Command="pwsh -NoProfile -NonInteractive -File &quot;$(MSBuildThisFileDirectory)New-PackageReadme.ps1&quot; -PackageId &quot;$(MSBuildProjectName)&quot; -Version &quot;$(PackageVersion)&quot; -OutputPath &quot;$(GeneratedPackageReadme)&quot;" />
+  </Target>
+</Project>

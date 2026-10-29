@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings><Nullable>disable</Nullable>
+    <LangVersion>7.3</LangVersion><TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\Common\Shared\SoakRunner.cs" Link="SoakRunner.cs" />
+    <PackageReference Include="MQTTnet" Version="4.3.7.1207" />
+    <PackageReference Include="Google.Protobuf" Version="3.33.0" />
+    <PackageReference Include="Grpc.Tools" Version="2.76.0" PrivateAssets="All" />
+    <Protobuf Include="SparkplugSubset.proto" GrpcServices="None" />
+    <Compile Include="..\..\..\Samples\MQTT\VagabondK.nF.MQTT.Mapping\SharingContract.cs" Link="SharingContract.cs" />
+    <Compile Include="..\..\..\Samples\MQTT\VagabondK.nF.MQTT.Mapping\SensorConnection.cs" Link="SensorConnection.cs" />
+    <ProjectReference Include="..\..\..\Source\MQTT\VagabondK.nF.MQTT\VagabondK.nF.MQTT.csproj" />
+    <ProjectReference Include="..\..\..\Source\MQTT\VagabondK.nF.MQTT.Sparkplug\VagabondK.nF.MQTT.Sparkplug.csproj" />
+    <ProjectReference Include="..\..\..\Source\MQTT\VagabondK.nF.MQTT.Mapping\VagabondK.nF.MQTT.Mapping.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\..\Source\MQTT\VagabondK.nF.MQTT.Sparkplug.Mapping\VagabondK.nF.MQTT.Sparkplug.Mapping.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <Compile Include="..\..\..\Samples\MQTT\VagabondK.nF.MQTT.Sparkplug.Mapping\SparkplugMapping.cs" Link="SparkplugMapping.cs" />
+    <Compile Include="..\..\..\Samples\MQTT\VagabondK.nF.MQTT.Sparkplug.Mapping\SparkplugEncoder.cs" Link="SparkplugEncoder.cs" />
+  </ItemGroup>
+</Project>

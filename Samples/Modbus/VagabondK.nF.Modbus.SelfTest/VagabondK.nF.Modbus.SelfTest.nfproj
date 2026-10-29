@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup><ProjectGuid>{310E1601-9B23-4A51-B344-100000000012}</ProjectGuid></PropertyGroup>
+  <Import Project="..\..\..\Build\Library.props" />
+  <Import Project="..\..\..\Build\Network.props" />
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <StartupObject>VagabondK.nF.Samples.SelfTest.Program</StartupObject>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="mscorlib">
+      <HintPath>$(PackagesPath)nanoFramework.CoreLibrary.1.17.11\lib\mscorlib.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <ProjectReference Include="..\..\..\Source\Modbus\VagabondK.nF.Modbus\VagabondK.nF.Modbus.nfproj">
+      <Project>{310E1601-9B23-4A51-B344-100000000001}</Project><Name>VagabondK.nF.Modbus</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\Source\Modbus\VagabondK.nF.Modbus.Client\VagabondK.nF.Modbus.Client.nfproj">
+      <Project>{310E1601-9B23-4A51-B344-100000000002}</Project><Name>VagabondK.nF.Modbus.Client</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\Source\Modbus\VagabondK.nF.Modbus.Server\VagabondK.nF.Modbus.Server.nfproj">
+      <Project>{310E1601-9B23-4A51-B344-100000000003}</Project><Name>VagabondK.nF.Modbus.Server</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\Source\Modbus\VagabondK.nF.Modbus.RTU\VagabondK.nF.Modbus.RTU.nfproj">
+      <Project>{310E1601-9B23-4A51-B344-100000000004}</Project><Name>VagabondK.nF.Modbus.RTU</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\Source\Modbus\VagabondK.nF.Modbus.ASCII\VagabondK.nF.Modbus.ASCII.nfproj">
+      <Project>{310E1601-9B23-4A51-B344-100000000005}</Project><Name>VagabondK.nF.Modbus.ASCII</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\Source\Modbus\VagabondK.nF.Modbus.TCP\VagabondK.nF.Modbus.TCP.nfproj">
+      <Project>{310E1601-9B23-4A51-B344-100000000006}</Project><Name>VagabondK.nF.Modbus.TCP</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="..\..\..\Build\Library.targets" />
+</Project>

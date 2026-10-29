@@ -1,0 +1,13 @@
+<Project>
+  <Import Project="PackageReadme.targets" />
+  <!-- MCU 런타임 의존성은 PC Analyzer 참조가 아닌 NuGet 메타데이터에만 추가합니다. -->
+  <Target Name="PrepareMappingPackage" BeforeTargets="GenerateNuspec" DependsOnTargets="PreparePackageReadme">
+    <PropertyGroup>
+      <NuspecFile>$(MSBuildThisFileDirectory)Mapping.nuspec</NuspecFile>
+      <NuspecBasePath>$(MSBuildProjectDirectory)</NuspecBasePath>
+      <MappingRuntimePackage>$([System.String]::Copy('$(MSBuildProjectName)').Replace('.Mapping', ''))</MappingRuntimePackage>
+      <MappingPackageReadme>$(GeneratedPackageReadme)</MappingPackageReadme>
+      <NuspecProperties>id=$(PackageId);version=$(PackageVersion);description=$(Description);runtime=$(MappingRuntimePackage);configuration=$(Configuration);readme=$(MappingPackageReadme);icon=$(MSBuildThisFileDirectory)nugetIcon.png;projectUrl=$(PackageProjectUrl);repositoryUrl=$(RepositoryUrl);authors=$(Authors);tags=$(MSBuildProjectName.Replace('.', ' ')) nanoFramework embedded;releaseNotes=$(PackageReleaseNotes)</NuspecProperties>
+    </PropertyGroup>
+  </Target>
+</Project>

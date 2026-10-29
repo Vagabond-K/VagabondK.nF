@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup><ProjectGuid>{310E1601-9B23-4A51-B344-100000000186}</ProjectGuid></PropertyGroup>
+  <Import Project="..\..\Build\Library.props" />
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <SmokePackagesPath Condition="'$(SmokePackagesPath)' == ''">$(MSBuildProjectDirectory)\bin\packages\</SmokePackagesPath>
+    <PackagesPath>$(SmokePackagesPath)</PackagesPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Update="mscorlib"><HintPath>$(PackagesPath)nanoFramework.CoreLibrary.1.17.11\lib\mscorlib.dll</HintPath><Private>true</Private></Reference>
+    <Reference Update="nanoFramework.Runtime.Native"><HintPath>$(PackagesPath)nanoFramework.Runtime.Native.1.7.11\lib\nanoFramework.Runtime.Native.dll</HintPath></Reference>
+    <Reference Include="nanoFramework.System.Text"><HintPath>$(PackagesPath)nanoFramework.System.Text.1.3.42\lib\nanoFramework.System.Text.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="VagabondK.nF.MQTT.Sparkplug"><HintPath>$(PackagesPath)VagabondK.nF.MQTT.Sparkplug.0.1.0-preview.1\lib\VagabondK.nF.MQTT.Sparkplug.dll</HintPath></Reference>
+  </ItemGroup>
+  <Import Project="..\..\Build\Library.targets" />
+</Project>

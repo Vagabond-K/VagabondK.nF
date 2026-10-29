@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <NanoFrameworkProjectSystemPath Condition="'$(NanoFrameworkProjectSystemPath)' == ''">$(MSBuildExtensionsPath)\nanoFramework\v1.0\</NanoFrameworkProjectSystemPath>
+  </PropertyGroup>
+  <Import Project="$(NanoFrameworkProjectSystemPath)NFProjectSystem.Default.props" />
+  <PropertyGroup>
+    <ProjectGuid>{310E1601-9B23-4A51-B344-100000000107}</ProjectGuid>
+    <ProjectTypeGuids>{11A8DD76-328B-46DF-9F39-F559912D0360};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>VagabondK.nF.BACnet.MappingPackageSmoke</RootNamespace>
+    <AssemblyName>VagabondK.nF.BACnet.Mapping.PackageSmoke</AssemblyName>
+    <TargetFrameworkVersion>v1.0</TargetFrameworkVersion>
+    <Configuration Condition="'$(Configuration)' == ''">Release</Configuration>
+    <Platform Condition="'$(Platform)' == ''">AnyCPU</Platform>
+    <BinaryOnly Condition="'$(BinaryOnly)' == ''">false</BinaryOnly>
+    <LangVersion>7.3</LangVersion>
+    <NoStdLib>true</NoStdLib>
+    <NoConfig>true</NoConfig>
+    <SmokePackagesPath Condition="'$(SmokePackagesPath)' == ''">$(MSBuildProjectDirectory)\bin\packages\</SmokePackagesPath>
+  </PropertyGroup>
+  <Import Project="$(NanoFrameworkProjectSystemPath)NFProjectSystem.props" />
+  <PropertyGroup>
+    <OutputPath>bin\$(Configuration)\$(BinaryOnly)\</OutputPath>
+    <IntermediateOutputPath>obj\$(Configuration)\$(BinaryOnly)\</IntermediateOutputPath>
+    <DefineConstants Condition="'$(BinaryOnly)' == 'true'">$(DefineConstants);BINARY_ONLY</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="mscorlib"><HintPath>$(SmokePackagesPath)nanoFramework.CoreLibrary.1.17.11\lib\mscorlib.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="nanoFramework.Runtime.Native"><HintPath>$(SmokePackagesPath)nanoFramework.Runtime.Native.1.7.11\lib\nanoFramework.Runtime.Native.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="nanoFramework.System.Text"><HintPath>$(SmokePackagesPath)nanoFramework.System.Text.1.3.42\lib\nanoFramework.System.Text.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="VagabondK.nF.BACnet"><HintPath>$(SmokePackagesPath)VagabondK.nF.BACnet.0.1.0-preview.1\lib\VagabondK.nF.BACnet.dll</HintPath><Private>true</Private></Reference>
+    <Compile Include="Program.cs" />
+  </ItemGroup>
+  <Import Project="$(NanoFrameworkProjectSystemPath)NFProjectSystem.CSharp.targets" />
+  <Import Project="$(SmokePackagesPath)VagabondK.nF.BACnet.Mapping.0.1.0-preview.1\build\VagabondK.nF.BACnet.Mapping.targets" />
+</Project>

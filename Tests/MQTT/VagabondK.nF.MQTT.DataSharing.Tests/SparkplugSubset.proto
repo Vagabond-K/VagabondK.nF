@@ -1,0 +1,26 @@
+// Wire-compatible scalar subset. Field numbers/types are from Eclipse Tahu:
+// sparkplug_b/sparkplug_b.proto at 5736e404889d4b95910613040a99ba79589ffb13.
+// Deliberately separate from the hand-written MCU decoder.
+syntax = "proto2";
+option csharp_namespace = "Sparkplug.Reference";
+message Payload {
+  message Metric {
+    optional string name = 1;
+    optional uint64 alias = 2;
+    optional uint64 timestamp = 3;
+    optional uint32 datatype = 4;
+    optional bool is_historical = 5;
+    optional bool is_transient = 6;
+    optional bool is_null = 7;
+    oneof value {
+      uint32 int_value = 10;
+      uint64 long_value = 11;
+      float float_value = 12;
+      double double_value = 13;
+      bool boolean_value = 14;
+    }
+  }
+  optional uint64 timestamp = 1;
+  repeated Metric metrics = 2;
+  optional uint64 seq = 3;
+}

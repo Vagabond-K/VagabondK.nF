@@ -1,0 +1,54 @@
+private static void Skip(byte[] bytes, ref int p)
+{
+    while (p < bytes.Length && (bytes[p] == 32 || bytes[p] == 13 || bytes[p] == 10 || bytes[p] == 9)) p++;
+}
+private static bool Take(byte[] bytes, ref int p, char value)
+{
+    Skip(bytes, ref p);
+    if (p == bytes.Length || bytes[p] != value) return false;
+    p++; return true;
+}
+private static bool Literal(byte[] bytes, ref int p, string value)
+{
+    if (bytes.Length - p < value.Length) return false;
+    for (int i = 0; i < value.Length; i++) if (bytes[p + i] != value[i]) return false;
+    p += value.Length; return true;
+}
+private static bool Number(byte[] bytes, ref int p, out int value)
+{
+    value = 0;
+    bool negative = p < bytes.Length && bytes[p] == 45;
+    if (negative) p++;
+    int first = p;
+    int limit = negative ? int.MinValue : -int.MaxValue;
+    while (p < bytes.Length && bytes[p] >= 48 && bytes[p] <= 57)
+    {
+        int digit = bytes[p++] - 48;
+        if (value < limit / 10) return false;
+        value *= 10;
+        if (value < limit + digit) return false;
+        value -= digit;
+    }
+    if (first == p || (p - first > 1 && bytes[first] == 48)) return false;
+    if (!negative) value = -value;
+    return true;
+}
+private static int IntegerLength(int value)
+{
+    int length = value < 0 ? 2 : 1;
+    while (value <= -10 || value >= 10) { value /= 10; length++; }
+    return length;
+}
+private static void WriteInteger(byte[] bytes, ref int position, int value)
+{
+    int end = position + IntegerLength(value);
+    if (value < 0) bytes[position] = 45;
+    else value = -value;
+    int p = end;
+    do { bytes[--p] = (byte)(48 - value % 10); value /= 10; } while (value != 0);
+    position = end;
+}
+private static void WriteText(byte[] bytes, ref int position, string text)
+{
+    for (int n = 0; n < text.Length; n++) bytes[position++] = (byte)text[n];
+}

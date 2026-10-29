@@ -1,0 +1,11 @@
+<Project>
+  <PropertyGroup>
+    <Authors>Vagabond K</Authors>
+    <Company>Vagabond K</Company>
+    <PackageProjectUrl>https://github.com/Vagabond-K/VagabondK.nF</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Vagabond-K/VagabondK.nF</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>nanoFramework;embedded;$(MSBuildProjectName.Replace('.', ';'))</PackageTags>
+    <PackageReleaseNotes>첫 평가용 사전 릴리스입니다. 이 패키지의 기능·설치 방법·사용 예와 주요 제약은 포함된 README에 정리했습니다. API 호환성과 공개 피드 지원 정책은 확정되지 않았으며 안전·적합성 인증을 마친 제품이 아닙니다.</PackageReleaseNotes>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package>
+  <metadata>
+    <id>$id$</id>
+    <version>$version$</version>
+    <authors>$authors$</authors>
+    <projectUrl>$projectUrl$</projectUrl>
+    <repository type="git" url="$repositoryUrl$" />
+    <license type="expression">MIT</license>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>$description$</description>
+    <icon>nugetIcon.png</icon>
+    <readme>README.md</readme>
+    <tags>$tags$</tags>
+    <releaseNotes>$releaseNotes$</releaseNotes>
+    <dependencies>
+      <dependency id="$runtime$" version="[$version$]" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="..\..\..\LICENSE" target="LICENSE" />
+    <file src="bin\$configuration$\netstandard2.0\$id$.dll" target="analyzers\dotnet\cs" />
+    <file src="build\$id$.targets" target="build" />
+    <file src="$readme$" target="" />
+    <file src="$icon$" target="" />
+  </files>
+</package>

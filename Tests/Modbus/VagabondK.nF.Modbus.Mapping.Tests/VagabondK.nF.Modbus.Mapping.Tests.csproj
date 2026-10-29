@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <StartupObject>Program</StartupObject>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Source\Modbus\VagabondK.nF.Modbus.Mapping\VagabondK.nF.Modbus.Mapping.csproj" />
+    <Analyzer Include="..\..\..\Source\Modbus\VagabondK.nF.Modbus.Mapping\bin\$(Configuration)\netstandard2.0\VagabondK.nF.Modbus.Mapping.dll" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" />
+    <Compile Include="..\..\..\Samples\Modbus\VagabondK.nF.Modbus.Mapping\Models.cs" Link="Models.cs" />
+    <Compile Include="..\..\..\Samples\Modbus\VagabondK.nF.Modbus.Mapping\AllFormats.cs" Link="AllFormats.cs" />
+    <Compile Include="..\..\..\Samples\Modbus\VagabondK.nF.Modbus.Mapping\SampleLoopback.cs" Link="SampleLoopback.cs" />
+    <Compile Include="..\..\..\Source\Modbus\VagabondK.nF.Modbus\*.cs" Link="Core\%(Filename)%(Extension)" />
+    <Compile Include="..\..\..\Source\Modbus\VagabondK.nF.Modbus.Client\*.cs" Link="Client\%(Filename)%(Extension)" />
+    <Compile Include="..\..\..\Source\Modbus\VagabondK.nF.Modbus.Server\*.cs" Link="Server\%(Filename)%(Extension)" />
+  </ItemGroup>
+  <Import Project="..\..\..\Source\Shared\VagabondK.nF.Shared.projitems" Label="Shared" />
+</Project>

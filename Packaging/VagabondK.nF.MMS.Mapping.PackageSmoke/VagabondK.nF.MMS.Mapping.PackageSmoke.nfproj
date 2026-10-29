@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup><ProjectGuid>{310E1601-9B23-4A51-B344-100000000143}</ProjectGuid></PropertyGroup>
+  <Import Project="..\..\Build\Library.props" />
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <SmokeProtocol Condition="'$(SmokeProtocol)' == ''">MMS</SmokeProtocol>
+    <SmokeRole Condition="'$(SmokeRole)' == ''">Server</SmokeRole>
+    <OutputPath>bin\$(Configuration)\$(SmokeProtocol)\$(SmokeRole)\</OutputPath>
+    <IntermediateOutputPath>obj\$(Configuration)\$(SmokeProtocol)\$(SmokeRole)\</IntermediateOutputPath>
+    <SmokePackagesPath Condition="'$(SmokePackagesPath)' == ''">$(MSBuildProjectDirectory)\bin\packages\</SmokePackagesPath>
+    <DefineConstants Condition="'$(SmokeRole)' == 'Server'">SERVER_ONLY</DefineConstants>
+    <DefineConstants Condition="'$(SmokeRole)' == 'Client'">CLIENT_ONLY</DefineConstants>
+    <DefineConstants Condition="'$(SmokeProtocol)' == 'IEC61850'">$(DefineConstants);IEC</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\Samples\$(SmokeProtocol)\VagabondK.nF.$(SmokeProtocol).Mapping\Models.cs" Link="Models.cs" />
+    <Reference Include="mscorlib"><HintPath>$(SmokePackagesPath)nanoFramework.CoreLibrary.1.17.11\lib\mscorlib.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="nanoFramework.Runtime.Native"><HintPath>$(SmokePackagesPath)nanoFramework.Runtime.Native.1.7.11\lib\nanoFramework.Runtime.Native.dll</HintPath></Reference>
+    <Reference Include="VagabondK.nF.MMS"><HintPath>$(SmokePackagesPath)VagabondK.nF.MMS.0.1.0-preview.1\lib\VagabondK.nF.MMS.dll</HintPath></Reference>
+    <Reference Include="VagabondK.nF.MMS.$(SmokeRole)"><HintPath>$(SmokePackagesPath)VagabondK.nF.MMS.$(SmokeRole).0.1.0-preview.1\lib\VagabondK.nF.MMS.$(SmokeRole).dll</HintPath></Reference>
+  </ItemGroup>
+  <ItemGroup Condition="'$(SmokeProtocol)' == 'IEC61850'">
+    <Reference Include="VagabondK.nF.IEC61850"><HintPath>$(SmokePackagesPath)VagabondK.nF.IEC61850.0.1.0-preview.1\lib\VagabondK.nF.IEC61850.dll</HintPath></Reference>
+    <Reference Include="VagabondK.nF.IEC61850.$(SmokeRole)"><HintPath>$(SmokePackagesPath)VagabondK.nF.IEC61850.$(SmokeRole).0.1.0-preview.1\lib\VagabondK.nF.IEC61850.$(SmokeRole).dll</HintPath></Reference>
+  </ItemGroup>
+  <Import Project="$(SmokePackagesPath)VagabondK.nF.$(SmokeProtocol).Mapping.0.1.0-preview.1\build\VagabondK.nF.$(SmokeProtocol).Mapping.targets" />
+  <Import Project="..\..\Build\Library.targets" />
+</Project>

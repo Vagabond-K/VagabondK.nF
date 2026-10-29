@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings><Nullable>disable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Source\DNP3\VagabondK.nF.DNP3.Mapping\VagabondK.nF.DNP3.Mapping.csproj" />
+    <Analyzer Include="..\..\..\Source\DNP3\VagabondK.nF.DNP3.Mapping\bin\$(Configuration)\netstandard2.0\VagabondK.nF.DNP3.Mapping.dll" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" />
+    <Compile Include="..\..\..\Source\DNP3\VagabondK.nF.DNP3\*.cs" Link="Runtime\%(Filename)%(Extension)" />
+    <Compile Include="..\..\..\Source\DNP3\VagabondK.nF.DNP3.Outstation\*.cs" Link="Runtime\%(Filename)%(Extension)" />
+    <Compile Include="..\..\..\Source\DNP3\VagabondK.nF.DNP3.Master\*.cs" Link="Runtime\%(Filename)%(Extension)" />
+    <Compile Include="..\..\..\Source\DNP3\VagabondK.nF.DNP3.TCP\*.cs" Link="Runtime\%(Filename)%(Extension)" />
+    <Compile Include="..\..\..\Samples\DNP3\VagabondK.nF.DNP3.Mapping\DeviceData.cs" Link="DeviceData.cs" />
+    <Compile Include="..\..\..\Samples\DNP3\VagabondK.nF.DNP3.MasterMapping\ReceivedData.cs" Link="ReceivedData.cs" />
+    <Compile Include="..\..\..\Samples\DNP3\VagabondK.nF.DNP3.Mapping\FloatFormats.cs" Link="FloatSource.cs" />
+    <Compile Include="..\..\..\Samples\DNP3\VagabondK.nF.DNP3.MasterMapping\FloatFormats.cs" Link="FloatTarget.cs" />
+    <Compile Include="..\VagabondK.nF.DNP3.Mapping.Hardware\MasterValidation.cs" Link="MasterValidation.cs" />
+    <Compile Include="..\VagabondK.nF.DNP3.Mapping.Hardware\MasterSerialValidation.cs" Link="MasterSerialValidation.cs" />
+    <Compile Include="..\VagabondK.nF.DNP3.Mapping.Hardware\SerialCrcValidation.cs" Link="SerialCrcValidation.cs" />
+    <Compile Include="..\..\..\Source\DNP3\VagabondK.nF.DNP3.Serial\Dnp3SerialSession.cs" Link="Runtime\Dnp3SerialSession.cs" />
+    <Compile Include="..\VagabondK.nF.DNP3.Mapping.Hardware\MasterSoakProxy.cs" Link="MasterSoakProxy.cs" />
+  </ItemGroup>
+  <Import Project="..\..\..\Source\Shared\VagabondK.nF.Shared.projitems" Label="Shared" />
+</Project>

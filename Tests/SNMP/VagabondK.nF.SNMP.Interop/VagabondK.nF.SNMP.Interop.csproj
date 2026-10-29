@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings><Nullable>disable</Nullable>
+    <StartupObject>VagabondK.nF.SNMP.Interop.Program</StartupObject>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\..\Source\SNMP\VagabondK.nF.SNMP\*.cs" Link="SnmpCore\%(Filename)%(Extension)" />
+    <Compile Include="..\..\..\Source\SNMP\VagabondK.nF.SNMP.UDP\*.cs" Link="SnmpUdp\%(Filename)%(Extension)" />
+    <Compile Include="..\..\..\Samples\SNMP\VagabondK.nF.SNMP.UDPHost\*.cs" Link="Sample\%(Filename)%(Extension)" />
+    <PackageReference Include="Lextm.SharpSnmpLib" Version="12.5.7" />
+  </ItemGroup>
+</Project>

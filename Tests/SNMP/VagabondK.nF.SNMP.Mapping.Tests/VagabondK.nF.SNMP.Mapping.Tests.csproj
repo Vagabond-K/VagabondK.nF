@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings><Nullable>disable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <StartupObject>Program</StartupObject>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Source\SNMP\VagabondK.nF.SNMP.Mapping\VagabondK.nF.SNMP.Mapping.csproj" />
+    <Analyzer Include="..\..\..\Source\SNMP\VagabondK.nF.SNMP.Mapping\bin\$(Configuration)\netstandard2.0\VagabondK.nF.SNMP.Mapping.dll" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" />
+    <PackageReference Include="Lextm.SharpSnmpLib" Version="12.5.7" />
+    <Compile Include="..\..\..\Source\SNMP\VagabondK.nF.SNMP\*.cs" Link="Runtime\%(Filename)%(Extension)" />
+    <Compile Include="..\..\..\Source\SNMP\VagabondK.nF.SNMP.UDP\*.cs" Link="Transport\%(Filename)%(Extension)" />
+    <Compile Include="..\..\..\Samples\SNMP\VagabondK.nF.SNMP.Mapping\DeviceData.cs" Link="DeviceData.cs" />
+    <Compile Include="..\VagabondK.nF.SNMP.Tests\Wire.cs" Link="Wire.cs" />
+  </ItemGroup>
+</Project>

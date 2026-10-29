@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition="'$(Configuration)' == ''">Release</Configuration>
+  </PropertyGroup>
+  <ItemGroup>
+    <BuildTool Include="Source\Modbus\VagabondK.nF.Modbus.Mapping\VagabondK.nF.Modbus.Mapping.csproj" />
+    <BuildTool Include="Source\SNMP\VagabondK.nF.SNMP.Mapping\VagabondK.nF.SNMP.Mapping.csproj" />
+    <BuildTool Include="Source\BACnet\VagabondK.nF.BACnet.Mapping\VagabondK.nF.BACnet.Mapping.csproj" />
+    <BuildTool Include="Source\DNP3\VagabondK.nF.DNP3.Mapping\VagabondK.nF.DNP3.Mapping.csproj" />
+    <BuildTool Include="Source\IEC61850\VagabondK.nF.IEC61850.SCL\VagabondK.nF.IEC61850.SCL.csproj" />
+    <BuildTool Include="Source\MMS\VagabondK.nF.MMS.Mapping\VagabondK.nF.MMS.Mapping.csproj" />
+    <BuildTool Include="Source\IEC61850\VagabondK.nF.IEC61850.Mapping\VagabondK.nF.IEC61850.Mapping.csproj" />
+    <BuildTool Include="Source\MQTT\VagabondK.nF.MQTT.Mapping\VagabondK.nF.MQTT.Mapping.csproj" />
+    <BuildTool Include="Source\MQTT\VagabondK.nF.MQTT.Sparkplug.Mapping\VagabondK.nF.MQTT.Sparkplug.Mapping.csproj" />
+    <ModbusLibrary Include="Source\Modbus\VagabondK.nF.Modbus\VagabondK.nF.Modbus.nfproj" />
+    <ModbusLibrary Include="Source\Modbus\VagabondK.nF.Modbus.Client\VagabondK.nF.Modbus.Client.nfproj" />
+    <ModbusLibrary Include="Source\Modbus\VagabondK.nF.Modbus.Server\VagabondK.nF.Modbus.Server.nfproj" />
+    <ModbusLibrary Include="Source\Modbus\VagabondK.nF.Modbus.RTU\VagabondK.nF.Modbus.RTU.nfproj" />
+    <ModbusLibrary Include="Source\Modbus\VagabondK.nF.Modbus.ASCII\VagabondK.nF.Modbus.ASCII.nfproj" />
+    <ModbusLibrary Include="Source\Modbus\VagabondK.nF.Modbus.TCP\VagabondK.nF.Modbus.TCP.nfproj" />
+    <ModbusLibrary Include="Source\Modbus\VagabondK.nF.Modbus.Serial\VagabondK.nF.Modbus.Serial.nfproj" />
+    <DNP3Library Include="Source\DNP3\VagabondK.nF.DNP3\VagabondK.nF.DNP3.nfproj" />
+    <DNP3Library Include="Source\DNP3\VagabondK.nF.DNP3.Master\VagabondK.nF.DNP3.Master.nfproj" />
+    <DNP3Library Include="Source\DNP3\VagabondK.nF.DNP3.Outstation\VagabondK.nF.DNP3.Outstation.nfproj" />
+    <DNP3Library Include="Source\DNP3\VagabondK.nF.DNP3.TCP\VagabondK.nF.DNP3.TCP.nfproj" />
+    <DNP3Library Include="Source\DNP3\VagabondK.nF.DNP3.Serial\VagabondK.nF.DNP3.Serial.nfproj" />
+    <BACnetLibrary Include="Source\BACnet\VagabondK.nF.BACnet\VagabondK.nF.BACnet.nfproj" />
+    <BACnetLibrary Include="Source\BACnet\VagabondK.nF.BACnet.IP\VagabondK.nF.BACnet.IP.nfproj" />
+    <SNMPLibrary Include="Source\SNMP\VagabondK.nF.SNMP\VagabondK.nF.SNMP.nfproj" />
+    <SNMPLibrary Include="Source\SNMP\VagabondK.nF.SNMP.UDP\VagabondK.nF.SNMP.UDP.nfproj" />
+    <MMSLibrary Include="Source\MMS\VagabondK.nF.MMS\VagabondK.nF.MMS.nfproj" />
+    <MMSLibrary Include="Source\MMS\VagabondK.nF.MMS.Client\VagabondK.nF.MMS.Client.nfproj" />
+    <MMSLibrary Include="Source\MMS\VagabondK.nF.MMS.Server\VagabondK.nF.MMS.Server.nfproj" />
+    <MMSLibrary Include="Source\MMS\VagabondK.nF.MMS.TCP\VagabondK.nF.MMS.TCP.nfproj" />
+    <IEC61850Library Include="Source\IEC61850\VagabondK.nF.IEC61850\VagabondK.nF.IEC61850.nfproj" />
+    <IEC61850Library Include="Source\IEC61850\VagabondK.nF.IEC61850.Client\VagabondK.nF.IEC61850.Client.nfproj" />
+    <IEC61850Library Include="Source\IEC61850\VagabondK.nF.IEC61850.Server\VagabondK.nF.IEC61850.Server.nfproj" />
+    <MQTTLibrary Include="Source\MQTT\VagabondK.nF.MQTT\VagabondK.nF.MQTT.nfproj" />
+    <SparkplugLibrary Include="Source\MQTT\VagabondK.nF.MQTT.Sparkplug\VagabondK.nF.MQTT.Sparkplug.nfproj" />
+  </ItemGroup>
+  <Target Name="Build">
+    <MSBuild Projects="@(BuildTool)" Targets="Restore;Build" Properties="Configuration=$(Configuration)" />
+    <MSBuild Projects="@(ModbusLibrary);@(DNP3Library);@(BACnetLibrary);@(SNMPLibrary);@(MMSLibrary);@(IEC61850Library);@(MQTTLibrary);@(SparkplugLibrary)" Targets="Build" Properties="Configuration=$(Configuration)" />
+  </Target>
+  <Target Name="Clean">
+    <MSBuild Projects="@(BuildTool)" Targets="Clean" Properties="Configuration=$(Configuration)" />
+    <MSBuild Projects="@(ModbusLibrary);@(DNP3Library);@(BACnetLibrary);@(SNMPLibrary);@(MMSLibrary);@(IEC61850Library);@(MQTTLibrary);@(SparkplugLibrary)" Targets="Clean" Properties="Configuration=$(Configuration)" />
+  </Target>
+  <Target Name="Rebuild">
+    <MSBuild Projects="@(BuildTool)" Targets="Restore;Rebuild" Properties="Configuration=$(Configuration)" />
+    <MSBuild Projects="@(ModbusLibrary);@(DNP3Library);@(BACnetLibrary);@(SNMPLibrary);@(MMSLibrary);@(IEC61850Library);@(MQTTLibrary);@(SparkplugLibrary)" Targets="Rebuild" Properties="Configuration=$(Configuration)" />
+  </Target>
+</Project>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <NanoFrameworkProjectSystemPath Condition="'$(NanoFrameworkProjectSystemPath)' == ''">$(MSBuildExtensionsPath)\nanoFramework\v1.0\</NanoFrameworkProjectSystemPath>
+  </PropertyGroup>
+  <Import Project="$(NanoFrameworkProjectSystemPath)NFProjectSystem.Default.props" />
+  <PropertyGroup>
+    <ProjectGuid>{310E1601-9B23-4A51-B344-100000000096}</ProjectGuid>
+    <ProjectTypeGuids>{11A8DD76-328B-46DF-9F39-F559912D0360};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>VagabondK.nF.MappingPackageSmoke</RootNamespace>
+    <AssemblyName>VagabondK.nF.Modbus.Mapping.PackageSmoke</AssemblyName>
+    <TargetFrameworkVersion>v1.0</TargetFrameworkVersion>
+    <Configuration Condition="'$(Configuration)' == ''">Release</Configuration>
+    <Platform Condition="'$(Platform)' == ''">AnyCPU</Platform>
+    <MappingRole Condition="'$(MappingRole)' == ''">Client</MappingRole>
+    <MappingBitsOnly Condition="'$(MappingBitsOnly)' == ''">false</MappingBitsOnly>
+    <LangVersion>7.3</LangVersion>
+    <NoStdLib>true</NoStdLib>
+    <NoConfig>true</NoConfig>
+    <SmokePackagesPath Condition="'$(SmokePackagesPath)' == ''">$(MSBuildProjectDirectory)\bin\packages\</SmokePackagesPath>
+  </PropertyGroup>
+  <Import Project="$(NanoFrameworkProjectSystemPath)NFProjectSystem.props" />
+  <PropertyGroup>
+    <OutputPath>bin\$(Configuration)\$(MappingRole)-$(MappingBitsOnly)\</OutputPath>
+    <IntermediateOutputPath>obj\$(Configuration)\$(MappingRole)-$(MappingBitsOnly)\</IntermediateOutputPath>
+    <DefineConstants Condition="'$(MappingRole)' == 'Client'">$(DefineConstants);MAPPING_CLIENT</DefineConstants>
+    <DefineConstants Condition="'$(MappingBitsOnly)' == 'true'">$(DefineConstants);MAPPING_BITS_ONLY</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="mscorlib"><HintPath>$(SmokePackagesPath)nanoFramework.CoreLibrary.1.17.11\lib\mscorlib.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="nanoFramework.Runtime.Native"><HintPath>$(SmokePackagesPath)nanoFramework.Runtime.Native.1.7.11\lib\nanoFramework.Runtime.Native.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="VagabondK.nF.Modbus"><HintPath>$(SmokePackagesPath)VagabondK.nF.Modbus.0.1.0-preview.1\lib\VagabondK.nF.Modbus.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="VagabondK.nF.Modbus.$(MappingRole)"><HintPath>$(SmokePackagesPath)VagabondK.nF.Modbus.$(MappingRole).0.1.0-preview.1\lib\VagabondK.nF.Modbus.$(MappingRole).dll</HintPath><Private>true</Private></Reference>
+    <Compile Include="Program.cs" />
+  </ItemGroup>
+  <Import Project="$(NanoFrameworkProjectSystemPath)NFProjectSystem.CSharp.targets" />
+  <Import Project="$(SmokePackagesPath)VagabondK.nF.Modbus.Mapping.0.1.0-preview.1\build\VagabondK.nF.Modbus.Mapping.targets" />
+</Project>

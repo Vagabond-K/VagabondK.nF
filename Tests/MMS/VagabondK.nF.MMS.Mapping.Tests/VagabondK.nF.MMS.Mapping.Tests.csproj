@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings><Nullable>disable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <TieredCompilation>false</TieredCompilation>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Source\MMS\VagabondK.nF.MMS.Mapping\VagabondK.nF.MMS.Mapping.csproj" />
+    <ProjectReference Include="..\..\..\Source\IEC61850\VagabondK.nF.IEC61850.Mapping\VagabondK.nF.IEC61850.Mapping.csproj" />
+    <Analyzer Include="..\..\..\Source\MMS\VagabondK.nF.MMS.Mapping\bin\$(Configuration)\netstandard2.0\VagabondK.nF.MMS.Mapping.dll" />
+    <Analyzer Include="..\..\..\Source\IEC61850\VagabondK.nF.IEC61850.Mapping\bin\$(Configuration)\netstandard2.0\VagabondK.nF.IEC61850.Mapping.dll" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" />
+    <Compile Include="..\..\..\Source\MMS\VagabondK.nF.MMS\*.cs" Link="MMS\%(Filename)%(Extension)" />
+    <Compile Include="..\..\..\Source\MMS\VagabondK.nF.MMS.Client\*.cs" Link="MmsClient\%(Filename)%(Extension)" />
+    <Compile Include="..\..\..\Source\MMS\VagabondK.nF.MMS.Server\*.cs" Link="MmsServer\%(Filename)%(Extension)" />
+    <Compile Include="..\..\..\Source\MMS\VagabondK.nF.MMS.TCP\*.cs" Link="TCP\%(Filename)%(Extension)" />
+    <Compile Include="..\..\..\Source\IEC61850\VagabondK.nF.IEC61850\*.cs" Link="IEC\%(Filename)%(Extension)" />
+    <Compile Include="..\..\..\Source\IEC61850\VagabondK.nF.IEC61850.Client\*.cs" Link="IecClient\%(Filename)%(Extension)" />
+    <Compile Include="..\..\..\Source\IEC61850\VagabondK.nF.IEC61850.Server\*.cs" Link="IecServer\%(Filename)%(Extension)" />
+    <Compile Include="..\..\..\Samples\MMS\VagabondK.nF.MMS.Mapping\Models.cs" Link="MmsModels.cs" />
+    <Compile Include="..\..\..\Samples\MMS\VagabondK.nF.MMS.Mapping\WritableFormats.cs" Link="MmsWritableFormats.cs" />
+    <Compile Include="..\..\..\Samples\IEC61850\VagabondK.nF.IEC61850.Mapping\Models.cs" Link="IecModels.cs" />
+    <Compile Include="..\..\..\Samples\IEC61850\VagabondK.nF.IEC61850.Mapping\AllFormats.cs" Link="IecAllFormats.cs" />
+  </ItemGroup>
+  <Import Project="..\..\..\Source\Shared\VagabondK.nF.Shared.projitems" Label="Shared" />
+</Project>

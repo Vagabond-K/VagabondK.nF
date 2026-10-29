@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{310E1601-9B23-4A51-B344-100000000098}</ProjectGuid>
+  </PropertyGroup>
+  <Import Project="..\..\..\Build\Library.props" />
+  <Import Project="..\..\..\Build\Network.props" />
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <MappingHardwareRole Condition="'$(MappingHardwareRole)' == ''">Slave</MappingHardwareRole>
+    <MappingScaleCount Condition="'$(MappingScaleCount)' == ''">8</MappingScaleCount>
+    <DefineConstants Condition="'$(MappingHardwareRole)' == 'Master'">$(DefineConstants);MAPPING_HARDWARE_MASTER</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="mscorlib">
+      <HintPath>$(PackagesPath)nanoFramework.CoreLibrary.1.17.11\lib\mscorlib.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <ProjectReference Include="..\..\..\Source\Modbus\VagabondK.nF.Modbus.Mapping\VagabondK.nF.Modbus.Mapping.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" />
+    <ProjectReference Include="..\..\..\Source\Modbus\VagabondK.nF.Modbus\VagabondK.nF.Modbus.nfproj" />
+    <ProjectReference Include="..\..\..\Source\Modbus\VagabondK.nF.Modbus.Client\VagabondK.nF.Modbus.Client.nfproj" />
+    <ProjectReference Include="..\..\..\Source\Modbus\VagabondK.nF.Modbus.Server\VagabondK.nF.Modbus.Server.nfproj" />
+    <ProjectReference Include="..\..\..\Source\Modbus\VagabondK.nF.Modbus.TCP\VagabondK.nF.Modbus.TCP.nfproj" />
+  </ItemGroup>
+  <Import Project="..\..\..\Build\Library.targets" />
+  <Target Name="GenerateHardwareScaleModel" BeforeTargets="CoreCompile">
+    <Error Condition="'$(MappingHardwareRole)' != 'Master' and '$(MappingHardwareRole)' != 'Slave'" Text="MappingHardwareRole must be Master or Slave." />
+    <Exec Command="pwsh -NoProfile -File &quot;$(MSBuildProjectDirectory)\Generate-ScaleModel.ps1&quot; -Count $(MappingScaleCount) -OutputPath &quot;$(MSBuildProjectDirectory)\$(IntermediateOutputPath)ScaleModel.g.cs&quot;" />
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)ScaleModel.g.cs" />
+    </ItemGroup>
+  </Target>
+</Project>

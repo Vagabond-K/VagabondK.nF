@@ -1,0 +1,9 @@
+{
+  "name": "vknf-tahu-interop-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Independent Eclipse Tahu Sparkplug interoperability peer",
+  "dependencies": {
+    "sparkplug-client": "3.2.4"
+  }
+}

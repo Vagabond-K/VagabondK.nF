@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup><ProjectGuid>{310E1601-9B23-4A51-B344-100000000061}</ProjectGuid></PropertyGroup>
+  <Import Project="..\..\..\Build\Library.props" />
+  <Import Project="..\..\..\Build\Network.props" />
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><StartupObject>VagabondK.nF.DNP3.TCPHost.Program</StartupObject>
+    <DefineConstants Condition="'$(Dnp3HardwareTest)' == 'true'">$(DefineConstants);DEBUG;DNP3_HARDWARE_TEST</DefineConstants>
+    <DefineConstants Condition="'$(Dnp3Role)' == 'Master'">$(DefineConstants);DNP3_MASTER_TEST</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\VagabondK.nF.DNP3.SerialHost\SerialValidation.cs"><Link>SerialValidation.cs</Link></Compile>
+    <ProjectReference Include="..\..\..\Source\DNP3\VagabondK.nF.DNP3\VagabondK.nF.DNP3.nfproj"><Project>{310E1601-9B23-4A51-B344-100000000054}</Project><Name>VagabondK.nF.DNP3</Name></ProjectReference>
+    <ProjectReference Include="..\..\..\Source\DNP3\VagabondK.nF.DNP3.Master\VagabondK.nF.DNP3.Master.nfproj"><Project>{310E1601-9B23-4A51-B344-100000000055}</Project><Name>VagabondK.nF.DNP3.Master</Name></ProjectReference>
+    <ProjectReference Include="..\..\..\Source\DNP3\VagabondK.nF.DNP3.Outstation\VagabondK.nF.DNP3.Outstation.nfproj"><Project>{310E1601-9B23-4A51-B344-100000000056}</Project><Name>VagabondK.nF.DNP3.Outstation</Name></ProjectReference>
+    <ProjectReference Include="..\..\..\Source\DNP3\VagabondK.nF.DNP3.TCP\VagabondK.nF.DNP3.TCP.nfproj"><Project>{310E1601-9B23-4A51-B344-100000000057}</Project><Name>VagabondK.nF.DNP3.TCP</Name></ProjectReference>
+    <ProjectReference Include="..\..\..\Source\DNP3\VagabondK.nF.DNP3.Serial\VagabondK.nF.DNP3.Serial.nfproj"><Project>{310E1601-9B23-4A51-B344-100000000053}</Project><Name>VagabondK.nF.DNP3.Serial</Name></ProjectReference>
+  </ItemGroup>
+  <Import Project="..\..\..\Build\Library.targets" />
+</Project>

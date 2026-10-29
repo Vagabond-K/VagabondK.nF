@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings><Nullable>disable</Nullable><TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="System.IO.Ports" Version="10.0.0" />
+    <Compile Include="..\..\..\Source\DNP3\VagabondK.nF.DNP3\*.cs" Link="Core\%(Filename)%(Extension)" />
+    <Compile Include="..\..\..\Source\DNP3\VagabondK.nF.DNP3.Master\*.cs" Link="Master\%(Filename)%(Extension)" />
+    <Compile Include="..\..\..\Source\DNP3\VagabondK.nF.DNP3.Outstation\*.cs" Link="Outstation\%(Filename)%(Extension)" />
+    <Compile Include="..\..\..\Source\DNP3\VagabondK.nF.DNP3.Serial\Dnp3SerialSession.cs" Link="Serial\Dnp3SerialSession.cs" />
+    <Compile Include="..\..\..\Samples\DNP3\VagabondK.nF.DNP3.SerialHost\SerialValidation.cs" Link="SerialValidation.cs" />
+  </ItemGroup>
+  <Import Project="..\..\..\Source\Shared\VagabondK.nF.Shared.projitems" Label="Shared" />
+</Project>

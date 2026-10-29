@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- packages.config consumers need an explicit Analyzer item; PackageReference adds it automatically. -->
+  <ItemGroup Condition="'$(UsingMicrosoftNETSdk)' != 'true'">
+    <Analyzer Include="$(MSBuildThisFileDirectory)..\analyzers\dotnet\cs\VagabondK.nF.Modbus.Mapping.dll" />
+  </ItemGroup>
+</Project>

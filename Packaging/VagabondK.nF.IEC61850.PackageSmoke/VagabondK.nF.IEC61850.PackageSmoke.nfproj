@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup><NanoFrameworkProjectSystemPath Condition="'$(NanoFrameworkProjectSystemPath)' == ''">$(MSBuildExtensionsPath)\nanoFramework\v1.0\</NanoFrameworkProjectSystemPath></PropertyGroup>
+  <Import Project="$(NanoFrameworkProjectSystemPath)NFProjectSystem.Default.props" />
+  <PropertyGroup>
+    <ProjectGuid>{310E1601-9B23-4A51-B344-100000000127}</ProjectGuid>
+    <ProjectTypeGuids>{11A8DD76-328B-46DF-9F39-F559912D0360};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <OutputType>Exe</OutputType><AssemblyName>VagabondK.nF.IEC61850.PackageSmoke</AssemblyName>
+    <TargetFrameworkVersion>v1.0</TargetFrameworkVersion>
+    <Configuration Condition="'$(Configuration)' == ''">Release</Configuration><Platform Condition="'$(Platform)' == ''">AnyCPU</Platform>
+    <OutputPath>bin\$(Configuration)\</OutputPath><IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
+    <LangVersion>7.3</LangVersion><NoStdLib>true</NoStdLib><NoConfig>true</NoConfig>
+    <IecRole Condition="'$(IecRole)' == ''">All</IecRole>
+    <SmokePackagesPath Condition="'$(SmokePackagesPath)' == ''">$(MSBuildProjectDirectory)\bin\packages\</SmokePackagesPath>
+    <DefineConstants Condition="'$(IecRole)' == 'All'">CLIENT;SERVER;TCP</DefineConstants>
+    <DefineConstants Condition="'$(IecRole)' == 'Client'">CLIENT</DefineConstants>
+    <DefineConstants Condition="'$(IecRole)' == 'Server'">SERVER</DefineConstants>
+    <DefineConstants Condition="'$(IecRole)' == 'ServerTcp'">SERVER;TCP</DefineConstants>
+    <DefineConstants Condition="'$(IecRole)' == 'Tcp'">TCP</DefineConstants>
+  </PropertyGroup>
+  <Import Project="$(NanoFrameworkProjectSystemPath)NFProjectSystem.props" />
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Reference Include="mscorlib"><HintPath>$(SmokePackagesPath)nanoFramework.CoreLibrary.1.17.11\lib\mscorlib.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="nanoFramework.Runtime.Native"><HintPath>$(SmokePackagesPath)nanoFramework.Runtime.Native.1.7.11\lib\nanoFramework.Runtime.Native.dll</HintPath></Reference>
+    <Reference Include="VagabondK.nF.IEC61850"><HintPath>$(SmokePackagesPath)VagabondK.nF.IEC61850.0.1.0-preview.1\lib\VagabondK.nF.IEC61850.dll</HintPath></Reference>
+    <Reference Include="VagabondK.nF.MMS"><HintPath>$(SmokePackagesPath)VagabondK.nF.MMS.0.1.0-preview.1\lib\VagabondK.nF.MMS.dll</HintPath></Reference>
+  </ItemGroup>
+  <ItemGroup Condition="'$(IecRole)' == 'Client' Or '$(IecRole)' == 'All'">
+    <Reference Include="VagabondK.nF.MMS.Client"><HintPath>$(SmokePackagesPath)VagabondK.nF.MMS.Client.0.1.0-preview.1\lib\VagabondK.nF.MMS.Client.dll</HintPath></Reference>
+    <Reference Include="VagabondK.nF.IEC61850.Client"><HintPath>$(SmokePackagesPath)VagabondK.nF.IEC61850.Client.0.1.0-preview.1\lib\VagabondK.nF.IEC61850.Client.dll</HintPath></Reference>
+  </ItemGroup>
+  <ItemGroup Condition="'$(IecRole)' == 'Server' Or '$(IecRole)' == 'ServerTcp' Or '$(IecRole)' == 'All'">
+    <Reference Include="VagabondK.nF.MMS.Server"><HintPath>$(SmokePackagesPath)VagabondK.nF.MMS.Server.0.1.0-preview.1\lib\VagabondK.nF.MMS.Server.dll</HintPath></Reference>
+    <Reference Include="VagabondK.nF.IEC61850.Server"><HintPath>$(SmokePackagesPath)VagabondK.nF.IEC61850.Server.0.1.0-preview.1\lib\VagabondK.nF.IEC61850.Server.dll</HintPath></Reference>
+  </ItemGroup>
+  <ItemGroup Condition="'$(IecRole)' == 'Tcp' Or '$(IecRole)' == 'ServerTcp' Or '$(IecRole)' == 'All'">
+    <Reference Include="VagabondK.nF.MMS.TCP"><HintPath>$(SmokePackagesPath)VagabondK.nF.MMS.TCP.0.1.0-preview.1\lib\VagabondK.nF.MMS.TCP.dll</HintPath></Reference>
+    <Reference Include="System.Net"><HintPath>$(SmokePackagesPath)nanoFramework.System.Net.1.11.66\lib\System.Net.dll</HintPath></Reference>
+    <Reference Include="System.Threading"><HintPath>$(SmokePackagesPath)nanoFramework.System.Threading.1.1.52\lib\System.Threading.dll</HintPath></Reference>
+    <Reference Include="System.IO.Streams"><HintPath>$(SmokePackagesPath)nanoFramework.System.IO.Streams.1.1.96\lib\System.IO.Streams.dll</HintPath></Reference>
+    <Reference Include="nanoFramework.Runtime.Events"><HintPath>$(SmokePackagesPath)nanoFramework.Runtime.Events.1.11.39\lib\nanoFramework.Runtime.Events.dll</HintPath></Reference>
+    <Reference Include="nanoFramework.System.Text"><HintPath>$(SmokePackagesPath)nanoFramework.System.Text.1.3.42\lib\nanoFramework.System.Text.dll</HintPath></Reference>
+  </ItemGroup>
+  <Import Project="$(NanoFrameworkProjectSystemPath)NFProjectSystem.CSharp.targets" />
+</Project>

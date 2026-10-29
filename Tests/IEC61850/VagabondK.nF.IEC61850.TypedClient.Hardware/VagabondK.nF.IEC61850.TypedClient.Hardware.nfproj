@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup><ProjectGuid>{310E1601-9B23-4A51-B344-100000000131}</ProjectGuid></PropertyGroup>
+  <Import Project="..\..\..\Build\Library.props" />
+  <Import Project="..\..\..\Build\Network.props" />
+  <PropertyGroup><OutputType>Exe</OutputType><DefineConstants>TYPED_CLIENT</DefineConstants></PropertyGroup>
+  <ItemGroup>
+    <Reference Include="mscorlib"><HintPath>$(PackagesPath)nanoFramework.CoreLibrary.1.17.11\lib\mscorlib.dll</HintPath><Private>true</Private></Reference>
+    <ProjectReference Include="..\..\..\Source\MMS\VagabondK.nF.MMS\VagabondK.nF.MMS.nfproj" />
+    <ProjectReference Include="..\..\..\Source\MMS\VagabondK.nF.MMS.Client\VagabondK.nF.MMS.Client.nfproj" />
+    <ProjectReference Include="..\..\..\Source\IEC61850\VagabondK.nF.IEC61850\VagabondK.nF.IEC61850.nfproj" />
+    <ProjectReference Include="..\..\..\Source\IEC61850\VagabondK.nF.IEC61850.Client\VagabondK.nF.IEC61850.Client.nfproj" />
+    <ProjectReference Include="..\..\..\Source\MMS\VagabondK.nF.MMS.TCP\VagabondK.nF.MMS.TCP.nfproj" />
+    <Compile Include="..\VagabondK.nF.IEC61850.Report.Hardware\Program.cs"><Link>Program.cs</Link></Compile>
+    <Compile Include="..\VagabondK.nF.IEC61850.Tests\TypedControlChecks.cs"><Link>TypedControlChecks.cs</Link></Compile>
+    <Compile Include="..\VagabondK.nF.IEC61850.Tests\TypedControlClientModel.cs"><Link>TypedControlClientModel.cs</Link></Compile>
+  </ItemGroup>
+  <Import Project="..\..\..\Build\Library.targets" />
+</Project>

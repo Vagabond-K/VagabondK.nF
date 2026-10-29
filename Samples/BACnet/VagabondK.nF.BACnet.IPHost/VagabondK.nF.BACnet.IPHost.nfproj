@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup><ProjectGuid>{310E1601-9B23-4A51-B344-100000000072}</ProjectGuid></PropertyGroup>
+  <Import Project="..\..\..\Build\Library.props" />
+  <Import Project="..\..\..\Build\Network.props" />
+  <PropertyGroup><OutputType>Exe</OutputType><StartupObject>VagabondK.nF.BACnet.IPHost.Program</StartupObject></PropertyGroup>
+  <PropertyGroup Condition="'$(BacnetHardwareTest)' == 'true'"><DefineConstants>$(DefineConstants);BACNET_HARDWARE_TEST</DefineConstants></PropertyGroup>
+  <ItemGroup>
+    <Reference Include="mscorlib"><HintPath>$(PackagesPath)nanoFramework.CoreLibrary.1.17.11\lib\mscorlib.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="System.IO.Streams"><HintPath>$(PackagesPath)nanoFramework.System.IO.Streams.1.1.96\lib\System.IO.Streams.dll</HintPath></Reference>
+    <ProjectReference Include="..\..\..\Source\BACnet\VagabondK.nF.BACnet\VagabondK.nF.BACnet.nfproj"><Project>{310E1601-9B23-4A51-B344-100000000070}</Project><Name>VagabondK.nF.BACnet</Name></ProjectReference>
+    <ProjectReference Include="..\..\..\Source\BACnet\VagabondK.nF.BACnet.IP\VagabondK.nF.BACnet.IP.nfproj"><Project>{310E1601-9B23-4A51-B344-100000000071}</Project><Name>VagabondK.nF.BACnet.IP</Name></ProjectReference>
+  </ItemGroup>
+  <Import Project="..\..\..\Build\Library.targets" />
+</Project>
