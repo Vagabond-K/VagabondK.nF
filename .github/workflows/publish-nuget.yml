@@ -1,0 +1,157 @@
+name: NuGet release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish to NuGet.org (select an existing version tag, not a branch)'
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nuget-release
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  build:
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 60
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      artifact-id: ${{ steps.artifact.outputs.artifact-id }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Check release version and publishing configuration
+        id: version
+        env:
+          PUBLISH: ${{ github.event_name == 'workflow_dispatch' && inputs.publish }}
+          NUGET_USER: ${{ vars.NUGET_USER }}
+          NUGET_PUBLISH_ENABLED: ${{ vars.NUGET_PUBLISH_ENABLED }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          [xml]$project = Get-Content -LiteralPath 'Source\Modbus\VagabondK.nF.Modbus.Mapping\VagabondK.nF.Modbus.Mapping.csproj'
+          $version = [string]$project.Project.PropertyGroup.Version
+          if ($version -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$') {
+            throw "Invalid package version: $version"
+          }
+          if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -cne "v$version") {
+            throw "Tag must match the package version: v$version"
+          }
+          if ($env:PUBLISH -eq 'true') {
+            if ($env:GITHUB_REF_TYPE -ne 'tag') { throw 'Publishing requires an existing version tag.' }
+            if ($env:NUGET_PUBLISH_ENABLED -cne 'true' -or [string]::IsNullOrWhiteSpace($env:NUGET_USER)) {
+              throw 'Configure repository variables NUGET_USER and NUGET_PUBLISH_ENABLED=true after setting up NuGet Trusted Publishing.'
+            }
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - uses: NuGet/setup-nuget@d105a947828025cd7a980103c35ba2bfae586d0f # v2
+        with:
+          nuget-version: '6.14.0'
+
+      - uses: nanoframework/nanobuild@7c31aa93121b2f6fc97b3ce74655cc48b2c2c505 # v1
+        with:
+          gitHubAuth: ${{ github.token }}
+
+      - name: Locate Visual Studio MSBuild and restore nanoFramework dependencies
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $msbuild = & $vswhere -latest -products '*' -version '[18.0,19.0)' -requires Microsoft.Component.MSBuild -find 'MSBuild\**\Bin\MSBuild.exe' |
+            Select-Object -First 1
+          if ($LASTEXITCODE -ne 0 -or -not $msbuild) { throw 'Visual Studio 2026 MSBuild was not found.' }
+          "RELEASE_MSBUILD=$msbuild" >> $env:GITHUB_ENV
+          'MSBUILDDISABLENODEREUSE=1' >> $env:GITHUB_ENV
+          & nuget restore .\packages.config -PackagesDirectory .\packages -NonInteractive -Verbosity quiet
+          if ($LASTEXITCODE -ne 0) { throw 'nanoFramework dependency restore failed.' }
+
+      - name: Run PC regression tests
+        run: .\Build\Test-All.ps1
+
+      - name: Build and verify all release packages
+        run: |
+          .\Build\Prepare-Packages.ps1 -OutputPath .\bin\ci-release -MSBuildPath $env:RELEASE_MSBUILD
+          .\Build\Test-ReleaseArtifact.ps1 -Path .\bin\ci-release -Version '${{ steps.version.outputs.version }}'
+
+      - name: Upload verified packages
+        id: artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: nuget-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            bin\ci-release\packages\*.nupkg
+            bin\ci-release\sha256.csv
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload build diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: nuget-logs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: bin\ci-release\logs
+          if-no-files-found: warn
+          retention-days: 14
+
+  publish:
+    if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref_type == 'tag'
+    needs: build
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 20
+    environment: nuget
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact-id }}
+          merge-multiple: true
+          path: bin\ci-release
+
+      - name: Verify downloaded packages before authentication
+        run: .\Build\Test-ReleaseArtifact.ps1 -Path .\bin\ci-release -Version '${{ needs.build.outputs.version }}'
+
+      - name: Obtain short-lived NuGet credentials
+        id: login
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1
+        with:
+          user: ${{ vars.NUGET_USER }}
+
+      - name: Publish verified packages without rebuilding
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($package in Get-ChildItem -LiteralPath .\bin\ci-release\packages -File -Filter '*.nupkg' | Sort-Object Name) {
+            & dotnet nuget push $package.FullName --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json --no-symbols
+            if ($LASTEXITCODE -ne 0) {
+              throw "Publishing failed: $($package.Name). Earlier packages may already be public. Inspect NuGet.org before retrying."
+            }
+          }

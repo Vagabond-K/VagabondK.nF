@@ -85,6 +85,62 @@ MQTT 두 샘플의 이전 `.DataSharing` 폴더·프로젝트·네임스페이�
 API 호환성·공개 패키지 피드 지원 정책은 확정되지 않았습니다. 패키지의 외부 게시·업로드·서명이나 산업 인증은 수행하지 않았습니다.
 프로젝트 라이선스는 [MIT](../LICENSE)이며 타사 의존성의 라이선스는 원본 패키지를 따릅니다.
 
+## GitHub Actions NuGet 배포
+
+[NuGet release 워크플로](../.github/workflows/publish-nuget.yml)는 Windows Server 2025·VS 2026,
+.NET 10 SDK와 공식 `nanoframework/nanobuild`를 사용합니다. PC 회귀 시험 후
+`Prepare-Packages.ps1`로 34개 패키지와 패키지 소비 프로젝트를 검증합니다.
+보드 시험·장치 배포는 실행하지 않습니다. 외부 액션은 커밋 SHA로 고정했습니다.
+비공개 저장소의 GitHub-hosted runner 사용량은 계정의 Actions 사용량·과금 정책을 확인하십시오.
+
+### 처음 한 번 설정할 항목
+
+1. NuGet.org의 **Trusted Publishing**에서 소유자 `Vagabond-K`, 저장소 `VagabondK.nF`,
+   Workflow File `publish-nuget.yml`(파일명만), Environment `nuget`을 지정합니다.
+   정책 소유자는 실제 패키지 소유 계정 또는 조직을 선택하고 `VagabondK.nF.*`의
+   새 패키지 생성과 새 버전 게시 권한을 허용합니다.
+2. GitHub 저장소 **Settings → Secrets and variables → Actions → Variables**에서
+   `NUGET_USER`에 NuGet.org 프로필 사용자명(이메일 아님)을 등록합니다.
+   사용자명은 비밀 인증 정보가 아니며, 장기 API 키·비밀번호는 등록하지 않습니다.
+3. 정책 구성을 마친 뒤 같은 위치에 `NUGET_PUBLISH_ENABLED`를 문자열 `true`로 등록합니다.
+   이 값이 없거나 사용자명이 없으면 게시 요청은 빌드 시작 단계에서 중단됩니다.
+4. GitHub의 `nuget` Environment는 `v*` 태그만 허용합니다.
+   요금제가 지원하면 Required reviewers를 추가하십시오.
+   지원하지 않는 경우 별도의 승인 대기는 없으며, 아래 수동 실행의 게시 선택이 명시적 배포 결정입니다.
+
+이 저장소는 설정 당시 비공개입니다. NuGet.org에 올리는 패키지는 공개되며,
+README의 저장소 링크도 비공개 저장소에 접근할 수 없는 사용자에게는 열리지 않습니다.
+공개 배포 전에 저장소 공개 여부·문서 접근성·라이선스와 각 패키지 ID의 소유권을 확인하십시오.
+Trusted Publishing의 비공개 저장소 정책은 최초 게시 전 임시 활성 기간이 있을 수 있으므로
+NuGet.org에 표시되는 유효 기간도 확인하십시오.
+
+### 실행 순서와 보호 장치
+
+1. 변경 파일을 커밋·푸시합니다. 기본 브랜치에 워크플로 파일이 있어야 **Run workflow**가 표시됩니다.
+2. Actions → **NuGet release → Run workflow**에서 기본값 `publish=false`로 실행합니다.
+   이 실행은 게시하지 않고 검증된 패키지·SHA256 및 진단 로그를 artifact로 보관합니다.
+3. 배포할 커밋에 `v0.1.0-preview.1`과 같이 실제 패키지 버전과 같은 태그를 생성·푸시합니다.
+   태그 푸시도 검증만 수행하며 자동 게시하지 않습니다.
+4. **Run workflow**에서 해당 **태그**를 선택하고 `publish=true`로 실행합니다.
+   브랜치에서는 게시할 수 없고, 태그와 소스 버전이 다르면 중단됩니다.
+   보호된 Environment를 설정했다면 이때 승인 후 게시합니다.
+
+게시 작업은 빌드 작업의 artifact ID로 동일한 패키지를 내려받고,
+`Test-ReleaseArtifact.ps1`로 34개 이름·버전·내부 의존성·README·SHA256을 다시 확인합니다.
+그 후에만 `NuGet/login`으로 1시간 유효 임시 키를 받아 게시하며 다시 빌드하지 않습니다.
+OIDC `id-token: write` 권한은 게시 작업에만 부여합니다. 병렬 릴리스는 직렬화하며
+진행 중인 배포를 새 실행이 자동 취소하지 않습니다.
+
+현재 버전은 여러 프로젝트·패키징 스크립트·패키지 소비 fixture에 명시되어 있습니다.
+태그만 바꿔 버전을 자동 치환하지 않습니다. 다음 릴리스에서는 이 버전 선언들을 함께 변경해야 하며,
+다른 버전 산출물이나 일부 패키지 누락은 최종 artifact 검증에서 거절됩니다.
+NuGet.org에는 동일 ID·버전을 덮어쓸 수 없습니다.
+34개 게시 전체는 원자적이지 않으므로 도중에 실패하면 앞선 패키지는 이미 공개되었을 수 있습니다.
+중복을 성공으로 숨기는 `--skip-duplicate`는 사용하지 않습니다. 실패 시 로그와 NuGet.org 상태를 먼저 확인하고,
+누락 패키지만 검증된 artifact에서 별도 게시하거나 수정 사항에 새 버전을 부여하십시오.
+
+공식 인증 절차는 [NuGet Trusted Publishing](https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing)을 참조하십시오.
+
 | `Pack.ps1 -LibrarySet` | 런타임 패키지 구성 |
 |---|---|
 | `Modbus` | 공통·Client·Server·RTU·ASCII·TCP·Serial 7개 |
