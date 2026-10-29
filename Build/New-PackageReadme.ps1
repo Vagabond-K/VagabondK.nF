@@ -9,6 +9,9 @@ $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 [xml]$metadata = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'PackageMetadata.props')
 $repositoryUrl = [string]$metadata.Project.PropertyGroup.RepositoryUrl
 $catalog = Get-Content -LiteralPath (Join-Path $root 'README.md') -Raw -Encoding UTF8
+$overview = [regex]::Match($catalog, '\A# VagabondK\.nF\r?\n[ \t]*\r?\n(?<text>[^\r\n]+(?:\r?\n[^\r\n]+)*)')
+if (-not $overview.Success) { throw 'Missing introductory paragraph in the root README.' }
+$projectIntroduction = $overview.Groups['text'].Value.Trim()
 $pattern = '(?m)^\| \[' + [regex]::Escape($PackageId) + '\]\([^)]+\) \| ([^|]+) \| ([^|]+) \|'
 $entry = [regex]::Match($catalog, $pattern)
 if (-not $entry.Success) { throw "Package is not documented in the root catalog: $PackageId" }
@@ -16,9 +19,44 @@ $summary = $entry.Groups[2].Value.Trim()
 $group = $PackageId.Split('.')[2]
 $mapping = $PackageId.EndsWith('.Mapping')
 $tool = $PackageId.EndsWith('.SCL')
-$introduction = if ($tool) { 'PC에서 실행하는 명령줄 도구입니다.' } elseif ($mapping) {
-    'PC에서 빌드할 때 모델 연결 코드를 만드는 소스 생성기입니다.'
-} else { 'MCU에서 실행하는 nanoFramework 라이브러리입니다.' }
+$introductions = @{
+    'Modbus' = '이 패키지는 .NET nanoFramework용 Modbus 공통 라이브러리입니다. 요청을 보내려면 `VagabondK.nF.Modbus.Client`, 요청에 응답하려면 `VagabondK.nF.Modbus.Server`를 선택하고, 사용할 전송 방식에 맞는 RTU·ASCII·TCP 패키지를 추가합니다.'
+    'Modbus.Client' = '이 패키지는 Modbus Master 요청을 보내는 .NET nanoFramework용 클라이언트입니다. TCP 통신에는 `VagabondK.nF.Modbus.TCP`를, UART 통신에는 RTU 또는 ASCII 패키지와 `VagabondK.nF.Modbus.Serial`을 함께 사용합니다.'
+    'Modbus.Server' = '이 패키지는 Modbus Slave 요청에 응답하는 .NET nanoFramework용 서버입니다. TCP 통신에는 `VagabondK.nF.Modbus.TCP`를, UART 통신에는 RTU 또는 ASCII 패키지와 `VagabondK.nF.Modbus.Serial`을 함께 사용합니다.'
+    'Modbus.RTU' = '이 패키지는 Modbus RTU 프레임을 처리하는 .NET nanoFramework용 전송 계층입니다. `VagabondK.nF.Modbus.Client` 또는 `VagabondK.nF.Modbus.Server`와 조합하고, 실제 UART 연결에는 `VagabondK.nF.Modbus.Serial`을 사용합니다.'
+    'Modbus.ASCII' = '이 패키지는 Modbus ASCII 프레임을 처리하는 .NET nanoFramework용 전송 계층입니다. `VagabondK.nF.Modbus.Client` 또는 `VagabondK.nF.Modbus.Server`와 조합하고, 실제 UART 연결에는 `VagabondK.nF.Modbus.Serial`을 사용합니다.'
+    'Modbus.TCP' = '이 패키지는 Modbus TCP 프레임과 소켓 통신을 처리하는 .NET nanoFramework용 전송 계층입니다. 요청을 보내는 앱에는 `VagabondK.nF.Modbus.Client`, 요청에 응답하는 앱에는 `VagabondK.nF.Modbus.Server`를 함께 사용합니다.'
+    'Modbus.Serial' = '이 패키지는 .NET nanoFramework의 UART를 Modbus 통신 채널로 연결하는 어댑터입니다. RTU 또는 ASCII 전송 패키지와 Client 또는 Server 역할 패키지를 함께 사용합니다.'
+    'Modbus.Mapping' = '이 패키지는 빌드할 때 사용자 모델의 Modbus 연결 코드를 생성합니다. Client 읽기·쓰기 또는 Server 저장소에 맞는 런타임과 RTU·ASCII·TCP 전송 패키지를 선택하고, 앱에서 생성된 API를 명시적으로 호출합니다.'
+    'DNP3' = '이 패키지는 .NET nanoFramework용 DNP3 공통 라이브러리입니다. 앱의 역할에 따라 `VagabondK.nF.DNP3.Master` 또는 `VagabondK.nF.DNP3.Outstation`을 선택하고, TCP 또는 Serial 전송 패키지를 함께 사용합니다.'
+    'DNP3.Master' = '이 패키지는 DNP3 읽기·제어 요청과 응답 수신을 담당하는 .NET nanoFramework용 Master입니다. 소켓 통신에는 `VagabondK.nF.DNP3.TCP`, UART 통신에는 `VagabondK.nF.DNP3.Serial`을 함께 사용합니다.'
+    'DNP3.Outstation' = '이 패키지는 DNP3 포인트·이벤트를 관리하고 Master 요청에 응답하는 .NET nanoFramework용 Outstation입니다. 소켓 통신에는 `VagabondK.nF.DNP3.TCP`, UART 통신에는 `VagabondK.nF.DNP3.Serial`을 함께 사용합니다.'
+    'DNP3.TCP' = '이 패키지는 호출자가 소유한 TCP 소켓을 DNP3 통신에 연결합니다. `VagabondK.nF.DNP3.Master` 또는 `VagabondK.nF.DNP3.Outstation`과 함께 사용하며, 소켓의 생성과 수명은 앱에서 관리합니다.'
+    'DNP3.Serial' = '이 패키지는 UART 기반 DNP3 링크와 확인 응답·재시도를 처리합니다. `VagabondK.nF.DNP3.Master` 또는 `VagabondK.nF.DNP3.Outstation`과 함께 사용합니다.'
+    'DNP3.Mapping' = '이 패키지는 빌드할 때 사용자 모델과 DNP3 포인트의 연결 코드를 생성합니다. 수신·제어에는 `VagabondK.nF.DNP3.Master`, 값·이벤트 게시에는 `VagabondK.nF.DNP3.Outstation`을 선택하고, TCP 또는 Serial 전송 계층을 함께 사용합니다.'
+    'BACnet' = '이 패키지는 .NET nanoFramework용 BACnet 라이브러리로, BACnet/IP 프레임 처리와 Device·AV·BV 객체의 조회·설정 기능을 제공합니다. UDP 소켓을 통한 통신에는 `VagabondK.nF.BACnet.IP` 패키지를 함께 사용합니다.'
+    'BACnet.IP' = '이 패키지는 호출자가 소유한 UDP 소켓을 BACnet/IP Device에 연결하는 어댑터입니다. 객체와 요청 처리는 의존성으로 설치되는 `VagabondK.nF.BACnet`이 담당하고, 소켓의 생성과 수명은 앱에서 관리합니다.'
+    'BACnet.Mapping' = '이 패키지는 빌드할 때 float·bool 모델을 BACnet Device의 AV·BV 객체에 연결하는 저장소 코드를 생성합니다. 객체 처리는 `VagabondK.nF.BACnet`, UDP 통신은 `VagabondK.nF.BACnet.IP`와 함께 사용합니다.'
+    'SNMP' = '이 패키지는 .NET nanoFramework용 SNMPv1/v2c Agent와 v2c Trap 메시지 생성을 제공합니다. UDP 소켓으로 요청을 받거나 Trap을 보내려면 `VagabondK.nF.SNMP.UDP`를 함께 사용합니다.'
+    'SNMP.UDP' = '이 패키지는 호출자가 소유한 UDP 소켓으로 SNMP 요청을 처리하고 v2c Trap을 전송합니다. 메시지와 Agent 기능은 의존성으로 설치되는 `VagabondK.nF.SNMP` 패키지가 담당합니다.'
+    'SNMP.Mapping' = '이 패키지는 빌드할 때 사용자 모델의 스칼라 값을 SNMP OID에 연결하는 Agent 저장소 코드를 생성합니다. Agent 처리는 `VagabondK.nF.SNMP`, UDP 통신은 `VagabondK.nF.SNMP.UDP`와 함께 사용합니다.'
+    'MMS' = '이 패키지는 .NET nanoFramework용 MMS 값·형식·채널과 공통 코덱을 제공합니다. 앱의 역할에 따라 `VagabondK.nF.MMS.Client` 또는 `VagabondK.nF.MMS.Server`를 선택하고, TCP 통신에는 `VagabondK.nF.MMS.TCP`를 추가합니다. IEC 61850 패키지에는 의존하지 않습니다.'
+    'MMS.Client' = '이 패키지는 연결 협상과 읽기·쓰기·탐색·보고 수신을 담당하는 .NET nanoFramework용 MMS 클라이언트입니다. TCP 연결에는 `VagabondK.nF.MMS.TCP`를 사용하거나 앱에서 `IMmsChannel`을 구현합니다.'
+    'MMS.Server' = '이 패키지는 고정 변수와 명명 목록을 제공하고 InformationReport를 보내는 .NET nanoFramework용 MMS 서버입니다. TCP 연결에는 `VagabondK.nF.MMS.TCP`를 사용하거나 앱에서 `IMmsChannel`을 구현합니다.'
+    'MMS.TCP' = '이 패키지는 호출자가 소유한 TCP 소켓을 시간 제한이 있는 MMS 채널로 연결합니다. `VagabondK.nF.MMS.Client` 또는 `VagabondK.nF.MMS.Server`와 함께 사용하며, 소켓의 생성과 수명은 앱에서 관리합니다.'
+    'MMS.Mapping' = '이 패키지는 빌드할 때 사용자 모델의 MMS 읽기·쓰기·보고 및 서버 연결 코드를 생성합니다. 역할에 맞는 `VagabondK.nF.MMS.Client` 또는 `VagabondK.nF.MMS.Server`와 사용하고, TCP 연결에는 `VagabondK.nF.MMS.TCP`를 추가합니다.'
+    'IEC61850' = '이 패키지는 .NET nanoFramework에서 MMS 기반 IEC 61850 값·품질·시각과 공통 제어 모델을 표현합니다. 앱의 역할에 따라 `VagabondK.nF.IEC61850.Client` 또는 `VagabondK.nF.IEC61850.Server`를 선택하며, TCP 연결에는 `VagabondK.nF.MMS.TCP`를 사용합니다.'
+    'IEC61850.Client' = '이 패키지는 제한된 IEC 61850 DataSet·URCB 수신과 SPC/DPC/APC 제어를 제공하는 .NET nanoFramework용 클라이언트입니다. MMS 요청은 의존성인 `VagabondK.nF.MMS.Client`가 담당하며, TCP 연결에는 `VagabondK.nF.MMS.TCP`를 추가합니다.'
+    'IEC61850.Server' = '이 패키지는 제한된 IEC 61850 제어·DataSet·URCB 서버 모델을 제공합니다. MMS 요청 처리는 의존성인 `VagabondK.nF.MMS.Server`가 담당하며, TCP 연결에는 `VagabondK.nF.MMS.TCP`를 추가합니다.'
+    'IEC61850.Mapping' = '이 패키지는 빌드할 때 사용자 모델의 IEC 61850 값·품질·시각과 DataSet·URCB·제어 연결 코드를 생성합니다. 앱의 역할에 맞는 IEC61850.Client 또는 IEC61850.Server 런타임을 선택하고, TCP 통신에는 `VagabondK.nF.MMS.TCP`를 함께 사용합니다.'
+    'IEC61850.SCL' = '이 패키지는 PC에서 SCL 파일을 읽어 정적 C# 서버 모델을 만드는 .NET 10 명령줄 도구입니다. 생성한 코드는 nanoFramework 앱에 포함하고 `VagabondK.nF.IEC61850.Server`와 사용합니다. TCP 통신에는 `VagabondK.nF.MMS.TCP`를 추가합니다.'
+    'MQTT' = '이 패키지는 .NET nanoFramework용 MQTT 클라이언트로, 별도 매핑 패키지 없이 메시지를 송수신할 수 있습니다. 모델을 평면 JSON으로 연결하려면 `VagabondK.nF.MQTT.Mapping`을, Sparkplug 메시지를 사용하려면 `VagabondK.nF.MQTT.Sparkplug`를 선택합니다.'
+    'MQTT.Sparkplug' = '이 패키지는 제한된 Sparkplug B 스칼라 메시지와 Birth/Data/Death 세션을 처리합니다. MQTT 전송은 포함하지 않으므로 `VagabondK.nF.MQTT` 또는 별도 MQTT 클라이언트와 연결합니다. 모델 연결 코드는 `VagabondK.nF.MQTT.Sparkplug.Mapping`으로 생성할 수 있습니다.'
+    'MQTT.Mapping' = '이 패키지는 빌드할 때 사용자 모델과 명시한 토픽의 평면 JSON 계약 사이의 변환 코드를 생성합니다. 실제 송수신에는 `VagabondK.nF.MQTT` 또는 앱에서 선택한 MQTT 클라이언트를 연결합니다.'
+    'MQTT.Sparkplug.Mapping' = '이 패키지는 빌드할 때 사용자 모델과 Sparkplug 스칼라 메트릭의 송신·수신 연결 코드를 생성합니다. 메시지 처리는 `VagabondK.nF.MQTT.Sparkplug`가 담당하며, 전송에는 `VagabondK.nF.MQTT` 또는 별도 MQTT 클라이언트를 연결합니다.'
+}
+$introduction = $introductions[$PackageId.Substring('VagabondK.nF.'.Length)]
+if (-not $introduction) { throw "Missing package-specific introduction: $PackageId" }
 $projectFolder = Join-Path $root "Source\$group\$PackageId"
 $extension = if ($mapping -or $tool) { 'csproj' } else { 'nfproj' }
 [xml]$project = Get-Content -LiteralPath (Join-Path $projectFolder "$PackageId.$extension") -Encoding UTF8
@@ -95,8 +133,9 @@ $text = @"
 
 **주요 기능:** $summary
 
-VagabondK.nF는 .NET nanoFramework를 편리하게 사용하기 위한 라이브러리 세트입니다.
-$introduction 애플리케이션에 필요한 역할과 전송 방식에 맞춰 다른 패키지와 조합해 사용하십시오.
+$projectIntroduction
+
+$introduction
 
 ## 설치
 
