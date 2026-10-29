@@ -75,9 +75,15 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
-          $msbuild = & $vswhere -latest -products '*' -version '[18.0,19.0)' -requires Microsoft.Component.MSBuild -find 'MSBuild\**\Bin\MSBuild.exe' |
-            Select-Object -First 1
-          if ($LASTEXITCODE -ne 0 -or -not $msbuild) { throw 'Visual Studio 2026 MSBuild was not found.' }
+          $instancesJson = & $vswhere -latest -products '*' -requires Microsoft.Component.MSBuild -format json
+          if ($LASTEXITCODE -ne 0) { throw 'Visual Studio discovery failed.' }
+          $instances = @($instancesJson | ConvertFrom-Json)
+          if ($instances.Count -ne 1 -or [version]$instances[0].installationVersion -lt [version]'18.0') {
+            throw "Visual Studio 2026 or newer was not found: $instancesJson"
+          }
+          $msbuild = Join-Path $instances[0].installationPath 'MSBuild\Current\Bin\MSBuild.exe'
+          if (-not (Test-Path -LiteralPath $msbuild)) { throw "MSBuild does not exist: $msbuild" }
+          Write-Host "Using $($instances[0].displayName): $msbuild"
           "RELEASE_MSBUILD=$msbuild" >> $env:GITHUB_ENV
           'MSBUILDDISABLENODEREUSE=1' >> $env:GITHUB_ENV
           & nuget restore .\packages.config -PackagesDirectory .\packages -NonInteractive -Verbosity quiet
