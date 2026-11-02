@@ -9,7 +9,7 @@ $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $name = if ($LibrarySet -eq 'Sparkplug') { 'VagabondK.nF.MQTT.Sparkplug.Mapping' } else { 'VagabondK.nF.MQTT.Mapping' }
 if (-not $OutputPath) { $OutputPath = Join-Path $root ('bin\nuget\' + $LibrarySet.ToLowerInvariant() + '-mapping') }
 $output = [IO.Path]::GetFullPath($OutputPath)
-$package = Join-Path $output "$name.0.1.0-preview.1.nupkg"
+$package = Join-Path $output "$name.0.1.0-preview.2.nupkg"
 if (Test-Path -LiteralPath $package) { throw "Package already exists; choose a fresh output folder: $package" }
 & (Join-Path $PSScriptRoot 'Pack.ps1') -MSBuildPath $MSBuildPath -NuGetPath $NuGetPath -OutputPath $output -LibrarySet $LibrarySet
 & dotnet pack (Join-Path $root "Source\MQTT\$name\$name.csproj") -c Release -o $output --nologo -v minimal

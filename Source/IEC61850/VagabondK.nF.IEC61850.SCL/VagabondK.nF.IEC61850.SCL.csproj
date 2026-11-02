@@ -9,7 +9,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>vk-nf-iec61850-scl</ToolCommandName>
-    <Version>0.1.0-preview.1</Version>
+    <Version>0.1.0-preview.2</Version>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageIcon>nugetIcon.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>

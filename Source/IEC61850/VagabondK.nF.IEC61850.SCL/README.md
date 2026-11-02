@@ -84,7 +84,7 @@ Client 역할 분리 후에는 `bin\nuget\role-split-scl`에 새로 패키징한
 .\Build\Pack-Iec61850SclTool.ps1 -OutputPath .\bin\nuget\iec61850-scl-local
 ```
 
-`VagabondK.nF.IEC61850.SCL.0.1.0-preview.1.nupkg`는 .NET 10 PC 전용 dotnet tool입니다.
+`VagabondK.nF.IEC61850.SCL.0.1.0-preview.2.nupkg`는 .NET 10 PC 전용 dotnet tool입니다.
 새 출력 폴더에 생성한 뒤 외부 NuGet 소스를 차단한 로컬 설치와 예제 SCD 변환을 확인합니다.
 설치 후 실행 명령은 `vk-nf-iec61850-scl <input.scl> <output.cs>`입니다.
 이 도구와 native 검증 피어는 MMS/IEC MCU 라이브러리 7개 패키지에 포함되지 않습니다. 자동 업로드하지 않습니다.

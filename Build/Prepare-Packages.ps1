@@ -17,7 +17,7 @@ $null = New-Item -ItemType Directory -Path $output
 $logs = Join-Path $output 'logs'
 $null = New-Item -ItemType Directory -Path $logs
 $env:MSBUILDDISABLENODEREUSE = '1'
-$version = '0.1.0-preview.1'
+$version = '0.1.0-preview.2'
 $sets = @('Modbus', 'DNP3', 'BACnet', 'SNMP', 'MMS', 'IEC61850', 'MQTT', 'Sparkplug')
 
 & (Join-Path $PSScriptRoot 'Test-PackageReadmes.ps1') -OutputPath (Join-Path $output 'readmes') `

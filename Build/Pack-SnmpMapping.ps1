@@ -8,7 +8,7 @@ $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 if (-not $OutputPath) { $OutputPath = Join-Path $root 'bin\nuget\snmp-mapping' }
 $output = [IO.Path]::GetFullPath($OutputPath)
 $name = 'VagabondK.nF.SNMP.Mapping'
-$package = Join-Path $output "$name.0.1.0-preview.1.nupkg"
+$package = Join-Path $output "$name.0.1.0-preview.2.nupkg"
 if (Test-Path -LiteralPath $package) { throw "Package already exists; choose a fresh output folder: $package" }
 & (Join-Path $PSScriptRoot 'Pack.ps1') -MSBuildPath $MSBuildPath -NuGetPath $NuGetPath -OutputPath $output -LibrarySet SNMP
 & dotnet pack (Join-Path $root "Source\SNMP\$name\$name.csproj") -c Release -o $output --nologo -v minimal

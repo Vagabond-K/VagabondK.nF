@@ -20,7 +20,7 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 $consumer = Join-Path $root 'Packaging\VagabondK.nF.MMS.Mapping.PackageSmoke'
 foreach ($protocol in @('MMS', 'IEC61850')) {
     $generator = "VagabondK.nF.$protocol.Mapping"
-    $packageFile = Join-Path $feed "$generator.0.1.0-preview.1.nupkg"
+    $packageFile = Join-Path $feed "$generator.0.1.0-preview.2.nupkg"
     if (-not (Test-Path -LiteralPath $packageFile)) {
         if ($protocol -eq 'IEC61850') { continue }
         throw "Package missing: $packageFile"
@@ -46,7 +46,7 @@ foreach ($protocol in @('MMS', 'IEC61850')) {
         $packages = Join-Path $consumer ('bin\restore-' + [Guid]::NewGuid().ToString('N'))
         $names = @($generator, "VagabondK.nF.$protocol.$role")
         foreach ($name in $names) {
-            & $NuGetPath install $name -Version '0.1.0-preview.1' -Source ($feed + ';' + (Join-Path $root 'packages')) `
+            & $NuGetPath install $name -Version '0.1.0-preview.2' -Source ($feed + ';' + (Join-Path $root 'packages')) `
                 -OutputDirectory $packages -NonInteractive -NoHttpCache -DirectDownload -Verbosity quiet
             if ($LASTEXITCODE -ne 0) { throw "$name offline package restore failed." }
         }

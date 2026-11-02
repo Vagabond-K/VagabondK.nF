@@ -10,7 +10,7 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 if (-not $FeedPath) { $FeedPath = Join-Path $PSScriptRoot ('..\bin\nuget\' + $LibrarySet.ToLowerInvariant()) }
 $feed = [IO.Path]::GetFullPath($FeedPath)
-$version = '0.1.0-preview.1'
+$version = '0.1.0-preview.2'
 [xml]$projects = Get-Content -LiteralPath (Join-Path $root 'VagabondK.nF.proj')
 $libraries = @($projects.Project.ItemGroup.ChildNodes | Where-Object { $_.LocalName -eq "${LibrarySet}Library" -or ($LibrarySet -eq 'IEC61850' -and $_.LocalName -eq 'MMSLibrary') })
 $names = @($libraries | ForEach-Object { [IO.Path]::GetFileNameWithoutExtension($_.Include) })

@@ -18,7 +18,7 @@ UTC의 기본 시간 품질은 **동기화되지 않음**입니다. 이 예제�
 MSBuild Samples\IEC61850\VagabondK.nF.IEC61850.TCPHost\VagabondK.nF.IEC61850.TCPHost.nfproj /t:Rebuild /p:Configuration=Release
 ```
 
-로컬 NuGet 사용 시 MMS 코어·Server·TCP와 IEC 코어·Server 패키지 `0.1.0-preview.1`로 ProjectReference를 대체하십시오.
+로컬 NuGet 사용 시 MMS 코어·Server·TCP와 IEC 코어·Server 패키지 `0.1.0-preview.2`로 ProjectReference를 대체하십시오.
 MMS.Client·IEC61850.Client DLL은 필요하지 않습니다.
 `Build\Test-Packages.ps1 -LibrarySet IEC61850`은 저장소 소스 참조 없이
 각 역할의 패키지 소비자 이미지를 생성합니다. 원본 libiec61850 검증 피어는 제품/패키지에 포함하지 않습니다.

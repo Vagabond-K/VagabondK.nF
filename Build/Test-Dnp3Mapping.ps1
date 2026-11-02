@@ -5,7 +5,7 @@ $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 if (-not $FeedPath) { $FeedPath = Join-Path $root 'bin\nuget\dnp3-mapping' }
 $feed = [IO.Path]::GetFullPath($FeedPath)
 $name = 'VagabondK.nF.DNP3.Mapping'
-$version = '0.1.0-preview.1'
+$version = '0.1.0-preview.2'
 $zip = [IO.Compression.ZipFile]::OpenRead((Join-Path $feed "$name.$version.nupkg"))
 try {
     $dlls = @($zip.Entries | Where-Object FullName -like '*.dll' | ForEach-Object FullName)

@@ -14,7 +14,7 @@ $config=Join-Path $output 'nuget.config'
 $escaped=[Security.SecurityElement]::Escape($output)
 [IO.File]::WriteAllText($config,"<configuration><packageSources><clear/><add key=`"local`" value=`"$escaped`"/></packageSources></configuration>")
 $tools=Join-Path $output 'installed'
-& dotnet tool install VagabondK.nF.IEC61850.SCL --version 0.1.0-preview.1 --tool-path $tools --configfile $config
+& dotnet tool install VagabondK.nF.IEC61850.SCL --version 0.1.0-preview.2 --tool-path $tools --configfile $config
 if ($LASTEXITCODE -ne 0) { throw 'SCL tool offline install failed.' }
 $generated=Join-Path $output 'GeneratedIec61850Model.cs'
 & (Join-Path $tools 'vk-nf-iec61850-scl.exe') (Join-Path $root 'Tests\IEC61850\VagabondK.nF.IEC61850.Tests\Fixtures\Data.scd') $generated

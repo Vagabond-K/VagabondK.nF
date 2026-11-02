@@ -334,7 +334,7 @@ namespace VagabondK.nF.BACnet
                 if (property == 70)
                     return Text(b, p, "VagabondK.nF BACnet");
                 if (property == 44 || property == 12)
-                    return Text(b, p, "0.1.0-preview.1");
+                    return Text(b, p, "0.1.0-preview.2");
                 if (property == 98)
                     return UInt(b, p, 2, 1);
                 if (property == 139)

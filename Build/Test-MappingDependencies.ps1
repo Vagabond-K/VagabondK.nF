@@ -7,7 +7,7 @@ $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $feed = [IO.Path]::GetFullPath($FeedPath)
-$version = '0.1.0-preview.1'
+$version = '0.1.0-preview.2'
 $runtime = $Name -replace '\.Mapping$', ''
 $zip = [IO.Compression.ZipFile]::OpenRead((Join-Path $feed "$Name.$version.nupkg"))
 try {

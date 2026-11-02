@@ -16,7 +16,7 @@ $releaseNotes = [Security.SecurityElement]::Escape($metadata.Project.PropertyGro
 $catalog = Get-Content -LiteralPath (Join-Path $root 'README.md') -Raw -Encoding UTF8
 if (-not $OutputPath) { $OutputPath = Join-Path $PSScriptRoot ('..\bin\nuget\' + $LibrarySet.ToLowerInvariant()) }
 $output = [IO.Path]::GetFullPath($OutputPath)
-$version = '0.1.0-preview.1'
+$version = '0.1.0-preview.2'
 $assemblyInfo = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'AssemblyInfo.cs') -Raw
 if ($assemblyInfo -notmatch 'AssemblyVersion\("0\.1\.0\.0"\)') {
     throw 'Update the package version and smoke fixture when changing the assembly version.'

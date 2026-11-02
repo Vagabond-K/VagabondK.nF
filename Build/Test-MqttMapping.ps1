@@ -10,7 +10,7 @@ $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $name = if ($LibrarySet -eq 'Sparkplug') { 'VagabondK.nF.MQTT.Sparkplug.Mapping' } else { 'VagabondK.nF.MQTT.Mapping' }
 if (-not $FeedPath) { $FeedPath = Join-Path $root ('bin\nuget\' + $LibrarySet.ToLowerInvariant() + '-mapping') }
 $feed = [IO.Path]::GetFullPath($FeedPath)
-$version = '0.1.0-preview.1'
+$version = '0.1.0-preview.2'
 $zip = [IO.Compression.ZipFile]::OpenRead((Join-Path $feed "$name.$version.nupkg"))
 try {
     $dlls = @($zip.Entries | Where-Object FullName -like '*.dll' | ForEach-Object FullName)

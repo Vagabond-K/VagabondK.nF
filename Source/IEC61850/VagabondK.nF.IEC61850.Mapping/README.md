@@ -3,7 +3,7 @@
 PC Roslyn 생성기로 사용자 모델을 기존 IEC 61850 Client/Server에 연결합니다.
 MCU에서 리플렉션·제네릭·LINQ를 사용하지 않으며, 새 런타임 DLL이나 속성 설정자(setter)에 의한 자동 제어 전송은 없습니다.
 일반 스칼라·동기화·오류 처리 계약은 [MMS 매핑](../../MMS/VagabondK.nF.MMS.Mapping/README.md)과 같습니다.
-로컬 평가용 `0.1.0-preview.1`이며 실제 IED 적합성 인증을 의미하지 않습니다.
+로컬 평가용 `0.1.0-preview.2`이며 실제 IED 적합성 인증을 의미하지 않습니다.
 
 매핑 NuGet 설치 시 같은 버전의 `VagabondK.nF.IEC61850` 공통 코어와 전이 의존성인
 `VagabondK.nF.MMS`를 자동 복원합니다. Client/Server 역할과 TCP는 별도로 선택합니다.

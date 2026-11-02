@@ -29,9 +29,9 @@
     <Reference Include="mscorlib"><HintPath>$(SmokePackagesPath)nanoFramework.CoreLibrary.1.17.11\lib\mscorlib.dll</HintPath><Private>true</Private></Reference>
     <Reference Include="nanoFramework.Runtime.Native"><HintPath>$(SmokePackagesPath)nanoFramework.Runtime.Native.1.7.11\lib\nanoFramework.Runtime.Native.dll</HintPath><Private>true</Private></Reference>
     <Reference Include="nanoFramework.System.Text"><HintPath>$(SmokePackagesPath)nanoFramework.System.Text.1.3.42\lib\nanoFramework.System.Text.dll</HintPath><Private>true</Private></Reference>
-    <Reference Include="VagabondK.nF.BACnet"><HintPath>$(SmokePackagesPath)VagabondK.nF.BACnet.0.1.0-preview.1\lib\VagabondK.nF.BACnet.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="VagabondK.nF.BACnet"><HintPath>$(SmokePackagesPath)VagabondK.nF.BACnet.0.1.0-preview.2\lib\VagabondK.nF.BACnet.dll</HintPath><Private>true</Private></Reference>
     <Compile Include="Program.cs" />
   </ItemGroup>
   <Import Project="$(NanoFrameworkProjectSystemPath)NFProjectSystem.CSharp.targets" />
-  <Import Project="$(SmokePackagesPath)VagabondK.nF.BACnet.Mapping.0.1.0-preview.1\build\VagabondK.nF.BACnet.Mapping.targets" />
+  <Import Project="$(SmokePackagesPath)VagabondK.nF.BACnet.Mapping.0.1.0-preview.2\build\VagabondK.nF.BACnet.Mapping.targets" />
 </Project>
