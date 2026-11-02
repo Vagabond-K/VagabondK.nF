@@ -376,10 +376,10 @@ Modbus RTU/ASCII/TCP 결과는 [SerialServer 문서](../Samples/Modbus/VagabondK
 | Modbus 매핑 | PASS: 경계 37종, Master 고장 5종, 8/32/128포인트 60초 이상 안정성 보존 힙 증가 0 B | `mapping-hardware-20261102-150739` |
 | BACnet 매핑 | PASS: 샘플 128회, 8/32/64객체 견고성, 보존 힙 증가 0 B. 64객체 읽기/쓰기 중앙값 9.18/8.39 ms | `bacnet-mapping-hardware-20261102-141410` |
 | SNMP 매핑 | PASS: 기본 128라운드, `-Robustness` 보존 힙 증가 144 B(허용 256 B, Nano와 같음) | `snmp-mapping-hardware-20261102-142024`·`-142224` |
-| DNP3 매핑 | 샘플 128라운드와 8 Point/이벤트 16 PASS(보존 힙 증가 0 B). 8/128·32/16은 첫 읽기의 `Dnp3Database.Snapshot`, 128/16은 `Dnp3Binding` 생성에서 OOM. 32/128·128/128은 미실행 | `dnp3-mapping-hardware-20261102-140037` |
+| DNP3 매핑 | 최적화 후 샘플 128라운드, 8/16·8/128·32/16 각 100라운드 PASS(보존 힙 증가 0 B). 8/128 여유 힙 4,980 B, 32/16 11,520 B; 32/16은 의도한 Overflow 103회. 32/128은 TCP 준비 시간 초과(MCU 로그 미수집으로 원인 미확인), 128/16·128/128은 미실행 | `dnp3-mapping-hardware-20261102-155345` |
 | IEC61850 매핑 Client | PASS: 앱 2회 기동, Association 32회, 요청 1,648·리포트 1,040, 고장 0, 힙 최저값 = 기준값 | `mapping-hardware-Client-20261102-145004` |
 | IEC61850 리포트 장기 실행 | PASS(`-DurationMinutes 6`): MCU 세션 24·리포트 616, 힙 최저값 = 기준값 16,464 B | `iec61850-report-soak-20261102-144201` |
-| DNP3 TCPHost 양 역할 | 실행 불가: 검증 저장소 `SerialValidation` 생성 중 OOM(SerialHost와 같은 원인) | `mini-hardware-20261102\mini-dnp3tcp.log` |
+| DNP3 TCPHost 양 역할 | 실행 불가: 검증 저장소 `SerialValidation` 생성 중 OOM(SerialHost와 같은 원인). 진단 빌드로 시작 직후 가용 힙 26,796 B에서 `System.OutOfMemoryException`을 확인했고, 측정값/Event를 56개로 줄인 변형도 같은 지점에서 실패 | `mini-hardware-20261102\mini-dnp3tcp.log`·`dnp3-risk-20261102\diag-mcu-2.log` |
 | DNP3 MasterMapping | 실행 불가: 7포인트 샘플에서 MCU OOM | `dnp3-master-mapping-20261102-142612` |
 | IEC61850 Server 시험기 | 실행 불가: 정적 초기화의 `MmsServerControl` 생성 중 OOM | `iec61850-server-hardware-20261102-142943` |
 | IEC61850 매핑 Server | 실패: 시작 시 여유 힙 약 9.9KB, MMS 세션 중 OOM | `mapping-hardware-Server-20261102-143734` |
@@ -387,8 +387,10 @@ Modbus RTU/ASCII/TCP 결과는 [SerialServer 문서](../Samples/Modbus/VagabondK
 | IEC61850 MCU Client, MMS/IEC 상호운용 | 미실행: 작업 트리 경로의 `VagabondKMmsPeer.exe`에 인바운드 허용 규칙이 없음. 두 MCU 이미지가 OOM 없이 `Ready.`까지 기동하는 것만 확인 | `mapping-interop-hardware-20261102-142823` |
 
 실패·실행 불가 항목의 PC 측 검증(DNP3 매핑 31,231개, IEC61850 기반 289,613개·MMS Server 7,057개)은 통과했습니다.
-원인은 C3의 작은 관리 힙(작은 앱 시작 시 약 37KB, TCP 앱 약 24KB)입니다. 구조체 배열 요소마다 약 130B가 할당되고,
-DNP3는 읽기마다 `PointCount + EventCapacity` 크기 임시 배열을, MMS Server 제어 객체는 초기화 시 인코딩 버퍼를 할당합니다.
+원인은 C3의 작은 관리 힙(작은 앱 시작 시 약 37KB, TCP 앱 약 24KB)입니다. 구조체 배열 요소마다 약 130B가 할당됩니다.
+DNP3는 `Snapshot` 결과와 요청 병합 버퍼, 제어 명령 배열을 실제 개수에 맞춰 할당하도록 개선했지만,
+8/128 뒤의 GC 여유는 4,980 B뿐이며 128 Point급 구성과 꽉 찬 대형 Event 큐는 여전히 한계입니다.
+MMS Server 제어 객체는 초기화 시 인코딩 버퍼를 할당합니다.
 Client 역할과 리포트 장기 실행 이미지는 Mini에서 동작합니다. 미실행 구성을 성공으로 간주하지 마십시오.
 
 리포트 장기 실행은 MCU 6번째 세션에서 힙 기준값을 정하고 7세션 이상을 요구하므로

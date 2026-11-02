@@ -17,6 +17,14 @@ Geekble Mini ESP32-C3는 `/p:Board=GeekbleMini`로 빌드하면 TX GPIO6(D6), RX
 약 37KB(1.17.0.64 측정)이고, nanoFramework는 구조체 배열의 요소마다 힙 블록을 할당합니다(`Dnp3Measurement`/`Dnp3Record` 요소당 약 130B).
 측정값 64개와 Point 56개만으로 약 17KB를 사용하며, 시나리오에 필요한 Event 112개 이상의 Database와 읽기 요청마다
 할당되는 `PointCount + EventCapacity` 크기의 임시 배열을 확보하지 못해 `OutOfMemoryException`으로 종료됩니다.
+2026-11-02 1.18.0.30에서 `Main`을 try/catch로 감싼 임시 진단 빌드로 확인했습니다(저장소에는 포함하지 않음).
+시작 직후 GC 후 가용 힙은 26,796 B였고, `new SerialValidation()`에서 `System.OutOfMemoryException`이 발생했습니다.
+앱이 예외로 종료되므로 PC Master는 첫 링크 프레임에 응답을 받지 못해 `link acknowledgement retries exhausted`로 실패합니다.
+측정값 배열과 Event 용량을 모두 56개로 줄인 변형도 같은 지점에서 실패했습니다.
+게다가 그 변형은 `Operate`가 Point 56개를 모두 갱신하고 시나리오 2·3 구간의 Event 112개가 한꺼번에 필요해
+`event overflow`로 시험이 실패하므로(PC 인메모리 구동에서 재현) 채택하지 않았습니다. 이 검증 저장소는 Mini에서 시작조차 할 수 없습니다.
+Mini에서 가능한 DNP3 시험은 `SerialValidation`을 쓰지 않는 [DNP3 매핑 시험](../../../Tests/DNP3/VagabondK.nF.DNP3.Mapping.Hardware/README.md)이며,
+상세 결과와 미실행 조합은 [실물 시험 결과](../../../Build/README.md#geekble-miniesp32-c3-실물-결과)를 참조하십시오.
 `SerialPortChannel.ConfigureRs485(port)`를 **Open 전에** 호출하면
 `SerialMode.RS485`, `Handshake.None`을 설정합니다. nanoFramework 네이티브 UART 드라이버가
 마지막 정지 비트까지 RTS를 유지하도록 맡기며, `Write` 반환 직후 임의 GPIO를 낮추지 않습니다.
@@ -149,6 +157,7 @@ g41v1 제어와 g40v1/g42v1 읽기는 `-2147483648, -123, -1, 0, 2147483647`도
 
 ### 재실행
 
+이 절차는 Geekble Nano(COM3) 기준입니다. Geekble Mini는 위 설명대로 `SerialValidation` 생성에서 OOM이 발생해 이 절차로 시험할 수 없습니다.
 격리된 시험 장치의 배선을 확인한 뒤에만 실행하십시오. PC 소비자는 .NET 10입니다.
 Visual Studio MSBuild로 다음 프로젝트를 Release 빌드합니다.
 

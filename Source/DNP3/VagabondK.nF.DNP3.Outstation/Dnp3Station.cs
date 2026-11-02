@@ -266,7 +266,8 @@ namespace VagabondK.nF.DNP3
         {
             error = 0;
             int p = 2;
-            var all = new Dnp3Record[_database.PointCount + _database.EventCapacity];
+            int maximumRecords = _database.PointCount + _database.EventCapacity;
+            var all = new Dnp3Record[_database.PointCount];
             int count = 0;
             Dnp3Channel.Require(p < request.Length);
             while (p < request.Length)
@@ -325,11 +326,22 @@ namespace VagabondK.nF.DNP3
                             duplicate = true;
                     if (!duplicate)
                     {
-                        Dnp3Channel.Require(count < all.Length);
+                        Dnp3Channel.Require(count < maximumRecords);
+                        if (count == all.Length)
+                        {
+                            int capacity = all.Length == 0 ? 1 : all.Length * 2;
+                            if (capacity > maximumRecords)
+                                capacity = maximumRecords;
+                            var expanded = new Dnp3Record[capacity];
+                            Array.Copy(all, expanded, count);
+                            all = expanded;
+                        }
                         all[count++] = records[i];
                     }
                 }
             }
+            if (count == all.Length)
+                return all;
             var result = new Dnp3Record[count];
             Array.Copy(all, result, count);
             return result;
@@ -420,8 +432,9 @@ namespace VagabondK.nF.DNP3
 
         private byte[] Commands(byte[] request, int function, long now)
         {
-            var commands = new Dnp3Command[32];
-            var offsets = new int[32];
+            const int maximumCommands = 32;
+            var commands = new Dnp3Command[1];
+            var offsets = new int[1];
             int count = 0, p = 2;
             while (p < request.Length)
             {
@@ -432,7 +445,22 @@ namespace VagabondK.nF.DNP3
                 Dnp3Channel.Require(request.Length - p >= width);
                 int number = (int)Dnp3Objects.Read(request, p, width);
                 p += width;
-                Dnp3Channel.Require(number > 0 && number <= commands.Length - count);
+                Dnp3Channel.Require(number > 0 && number <= maximumCommands - count);
+                int required = count + number;
+                if (required > commands.Length)
+                {
+                    int capacity = commands.Length * 2;
+                    if (capacity < required)
+                        capacity = required;
+                    if (capacity > maximumCommands)
+                        capacity = maximumCommands;
+                    var expandedCommands = new Dnp3Command[capacity];
+                    var expandedOffsets = new int[capacity];
+                    Array.Copy(commands, expandedCommands, count);
+                    Array.Copy(offsets, expandedOffsets, count);
+                    commands = expandedCommands;
+                    offsets = expandedOffsets;
+                }
                 for (int i = 0; i < number; i++)
                 {
                     Dnp3Channel.Require(request.Length - p >= width);
