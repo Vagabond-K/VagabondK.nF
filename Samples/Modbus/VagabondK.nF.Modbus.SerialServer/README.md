@@ -27,6 +27,36 @@ DM2472 단자 방향은 보드 뒷면 배선도 기준입니다.
 5V 신호를 Nano GPIO에 직결하지 마십시오.
 모듈이 방향을 제어하므로 UART RS485/RTS 모드는 사용하지 않습니다.
 
+### Geekble Mini ESP32-C3
+
+Mini에서는 MSBuild에 `/p:Board=GeekbleMini`를 추가해 Rebuild합니다.
+생략하면 기존 Nano 핀(GPIO17/18)을 사용합니다.
+
+| Nano | Mini | 연결 |
+|---|---|---|
+| D8 / GPIO17 (TX) | D6 / GPIO6 | LV3 → HV3 → DM2472 RXD |
+| D9 / GPIO18 (RX) | D7 / GPIO7 | DM2472 TXD → HV2 → LV2 |
+| 5V | VUSB | DM2472 VCC, 레벨 변환기 HV |
+| 3V3 | 3V3 | 레벨 변환기 LV |
+| GND | GND | 공통 |
+
+GPIO2/8/9는 스트래핑 핀(GPIO9는 BOOT 버튼), GPIO10은 LED,
+GPIO20/21은 콘솔 UART0이므로 사용하지 않습니다.
+
+Mini 펌웨어는 Nano와 같은 `ESP32_C3` 1.18.0.30을 사용합니다.
+출고 상태의 1.17.0.64는 System.Net 네이티브 체크섬(0x6DFA71D6)이 패키지 1.11.66(0x8EFB9944)과 달라
+TCP 샘플이 링크되지 않았고, `nanoff --deploy`도 E2002로 실패했습니다.
+`nanoff --update`는 C3 내장 USB에서 백업 후 E4000으로 실패하여, 캐시된 펌웨어 ZIP의
+`bootloader.bin`(0x0), `partitions_4mb.bin`(0x8000), `nanoCLR.bin`(0x10000)을 esptool로 기록했습니다.
+설정 파티션(0x3C0000)은 기록하지 않아 Wi-Fi 설정이 유지되었고, 이후 `nanoff --deploy`는 정상 동작했습니다.
+
+Geekble Mini, `ESP32_C3`에서 다음 시험이 통과했습니다(COM6 PC 어댑터).
+
+| 시험 | 펌웨어 | 결과 |
+|---|---|---|
+| RTU 기본·확장(`-Extended -Iterations 100`) | 1.17.0.64, 1.18.0.30 | PASS, 확장 약 99~101초 |
+| ASCII 확장(`-Protocol Ascii -Extended`) | 1.17.0.64 | PASS, 약 156초 |
+
 ```powershell
 nuget restore .\packages.config -PackagesDirectory .\packages -NonInteractive
 & 'C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe' .\Samples\Modbus\VagabondK.nF.Modbus.SerialServer\VagabondK.nF.Modbus.SerialServer.nfproj /t:Rebuild /p:Configuration=Release /v:minimal

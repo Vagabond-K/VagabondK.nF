@@ -8,16 +8,25 @@ using nanoFramework.Hardware.Esp32;
 namespace VagabondK.nF.DNP3.SerialHost
 {
     /// <summary>실제 UART와 PC 피어를 사용해 DNP3 Master/Outstation을 검증하는 보드 진입점입니다.</summary>
-    /// <remarks>DNP3_HARDWARE_TEST가 없으면 통신을 시작하지 않습니다. GPIO17/18, COM2 9600 8E1과 배선을 확인합니다.
+    /// <remarks>DNP3_HARDWARE_TEST가 없으면 통신을 시작하지 않습니다. COM2 9600 8E1, TX/RX 핀(Geekble Nano GPIO17/18,
+    /// GEEKBLE_MINI 빌드는 GPIO6/7)과 배선을 확인합니다.
     /// DM2472 자동 방향 제어를 전제로 Normal UART를 사용합니다. 제어 명령은 전용 테스트 데이터에만 적용합니다.</remarks>
     public static class Program
     {
+#if GEEKBLE_MINI
+        private const int TxPin = 6;
+        private const int RxPin = 7;
+#else
+        private const int TxPin = 17;
+        private const int RxPin = 18;
+#endif
+
         /// <summary>컴파일 조건에 따라 역할과 일반/수치 시나리오를 선택하여 Serial 세션을 반복 처리합니다.</summary>
         public static void Main()
         {
 #if DNP3_HARDWARE_TEST
-            Configuration.SetPinFunction(17, DeviceFunction.COM2_TX);
-            Configuration.SetPinFunction(18, DeviceFunction.COM2_RX);
+            Configuration.SetPinFunction(TxPin, DeviceFunction.COM2_TX);
+            Configuration.SetPinFunction(RxPin, DeviceFunction.COM2_RX);
 #if DNP3_NUMERIC_TEST
             var validation = new NumericValidation();
 #else

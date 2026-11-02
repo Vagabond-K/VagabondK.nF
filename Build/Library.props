@@ -23,6 +23,10 @@
     <NoConfig>true</NoConfig>
     <PackagesPath>$(MSBuildThisFileDirectory)..\packages\</PackagesPath>
   </PropertyGroup>
+  <!-- 실물 시험 보드 선택입니다. 기본값은 Geekble Nano(ESP32-S3)이며 GeekbleMini는 ESP32-C3 핀맵을 사용합니다. -->
+  <PropertyGroup Condition="'$(Board)' == 'GeekbleMini'">
+    <DefineConstants>$(DefineConstants);GEEKBLE_MINI</DefineConstants>
+  </PropertyGroup>
   <Import Project="$(NanoFrameworkProjectSystemPath)NFProjectSystem.props" />
   <ItemGroup>
     <Reference Include="mscorlib">

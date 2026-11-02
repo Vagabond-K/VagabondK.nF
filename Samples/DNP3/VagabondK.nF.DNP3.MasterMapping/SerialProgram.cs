@@ -9,15 +9,24 @@ using nanoFramework.Hardware.Esp32;
 
 namespace VagabondK.nF.DNP3.MasterMapping.Sample
 {
-    // DNP3_MASTER_MAPPING_SERIAL_SAMPLE용 진입점입니다. GPIO17/18 및 COM2 9600 8E1이 보드와 통신 상대에 맞는지 확인합니다.
+    // DNP3_MASTER_MAPPING_SERIAL_SAMPLE용 진입점입니다. TX/RX 핀(Geekble Nano GPIO17/18, GEEKBLE_MINI 빌드는 GPIO6/7)
+    // 및 COM2 9600 8E1이 보드와 통신 상대에 맞는지 확인합니다.
     // DM2472의 자동 방향 제어를 전제로 Normal UART를 사용하며 네이티브 RS485 모드를 켜지 않습니다.
     internal static class SerialProgram
     {
+#if GEEKBLE_MINI
+        private const int TxPin = 6;
+        private const int RxPin = 7;
+#else
+        private const int TxPin = 17;
+        private const int RxPin = 18;
+#endif
+
         // Master 응답 대기와 Link 송신 큐가 모두 비었을 때만 다음 읽기를 시작합니다.
         public static void Main()
         {
-            Configuration.SetPinFunction(17, DeviceFunction.COM2_TX);
-            Configuration.SetPinFunction(18, DeviceFunction.COM2_RX);
+            Configuration.SetPinFunction(TxPin, DeviceFunction.COM2_TX);
+            Configuration.SetPinFunction(RxPin, DeviceFunction.COM2_RX);
             var data = new ReceivedData();
             var sync = new object();
             var floatData = new FloatData();

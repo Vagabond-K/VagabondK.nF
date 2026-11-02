@@ -12,6 +12,11 @@ PLC나 Modbus 없이 MCU에서 직접 실행하는 Outstation 예제입니다.
 애플리케이션이 보드별 TX/RX/RTS 핀 매핑, 트랜시버 배선, 보레이트·패리티·정지 비트 설정,
 `SerialPort.Open/Dispose`를 담당합니다. 이 예제의 활성 시험 설정은 Geekble Nano의
 COM2, TX GPIO17(D8), RX GPIO18(D9), 9600 8E1이며 다른 보드에 그대로 적용하지 마십시오.
+Geekble Mini ESP32-C3는 `/p:Board=GeekbleMini`로 빌드하면 TX GPIO6(D6), RX GPIO7(D7)을 사용합니다.
+단, 현재 검증 시나리오는 Mini에서 실행할 수 없습니다. ESP32-C3(1.17.0.64, 1.18.0.30 MinSizeRel) 시작 시 관리 힙 여유는
+약 37KB(1.17.0.64 측정)이고, nanoFramework는 구조체 배열의 요소마다 힙 블록을 할당합니다(`Dnp3Measurement`/`Dnp3Record` 요소당 약 130B).
+측정값 64개와 Point 56개만으로 약 17KB를 사용하며, 시나리오에 필요한 Event 112개 이상의 Database와 읽기 요청마다
+할당되는 `PointCount + EventCapacity` 크기의 임시 배열을 확보하지 못해 `OutOfMemoryException`으로 종료됩니다.
 `SerialPortChannel.ConfigureRs485(port)`를 **Open 전에** 호출하면
 `SerialMode.RS485`, `Handshake.None`을 설정합니다. nanoFramework 네이티브 UART 드라이버가
 마지막 정지 비트까지 RTS를 유지하도록 맡기며, `Write` 반환 직후 임의 GPIO를 낮추지 않습니다.

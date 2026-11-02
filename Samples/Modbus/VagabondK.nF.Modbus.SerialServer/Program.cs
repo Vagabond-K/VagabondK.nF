@@ -12,17 +12,25 @@ using VagabondK.nF.Modbus.Server;
 namespace VagabondK.nF.Samples.SerialServer
 {
     /// <summary>보드 UART에서 Modbus 요청을 처리하고 수신 진단을 Input Register에 게시합니다.</summary>
-    /// <remarks>GPIO17/18과 COM2 설정은 보드별로 확인합니다. 이 예제의 DM2472는 방향을 자동 제어하므로 UART RS485 모드를 사용하지 않습니다.
+    /// <remarks>COM2 TX/RX는 Geekble Nano GPIO17/18, GEEKBLE_MINI 빌드에서 Geekble Mini GPIO6/7입니다.
+    /// 이 예제의 DM2472는 방향을 자동 제어하므로 UART RS485 모드를 사용하지 않습니다.
     /// MODBUS_ASCII 선택 시 양쪽을 9600 7E1로 맞춥니다. 저장소는 예제 메모리이며 물리 출력을 구동하지 않습니다.</remarks>
     public static class Program
     {
+#if GEEKBLE_MINI
+        private const int TxPin = 6;
+        private const int RxPin = 7;
+#else
+        private const int TxPin = 17;
+        private const int RxPin = 18;
+#endif
         private static readonly byte[] DiscardBuffer = new byte[256];
 
         /// <summary>초기 데이터를 만들고 요청을 반복 처리하며 오류 후 UART의 남은 데이터를 비웁니다.</summary>
         public static void Main()
         {
-            Configuration.SetPinFunction(17, DeviceFunction.COM2_TX);
-            Configuration.SetPinFunction(18, DeviceFunction.COM2_RX);
+            Configuration.SetPinFunction(TxPin, DeviceFunction.COM2_TX);
+            Configuration.SetPinFunction(RxPin, DeviceFunction.COM2_RX);
 #if MODBUS_ASCII
             const int dataBits = 7;
 #else
@@ -41,11 +49,11 @@ namespace VagabondK.nF.Samples.SerialServer
 #endif
 #if MODBUS_ASCII
                 IModbusTransport transport = new AsciiTransport(channel, 3000);
-                Debug.WriteLine("ASCII 9600 7E1, Unit 1; TX GPIO17, RX GPIO18.");
+                Debug.WriteLine("ASCII 9600 7E1, Unit 1; TX GPIO" + TxPin + ", RX GPIO" + RxPin + ".");
 #else
                 IModbusTransport transport = new RtuTransport(channel, 9600,
                     RtuReceiveMode.RequestLength, 11, 3000);
-                Debug.WriteLine("RTU 9600 8E1, request-length RX, Unit 1; TX GPIO17, RX GPIO18.");
+                Debug.WriteLine("RTU 9600 8E1, request-length RX, Unit 1; TX GPIO" + TxPin + ", RX GPIO" + RxPin + ".");
 #endif
                 var store = new ArrayDataStore(2000, 2000, 128, 128);
                 store.WriteHoldingRegisters(0, 3, new ushort[] { 123, 456, 65535 });

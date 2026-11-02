@@ -2,6 +2,7 @@
 
 Geekble Nano가 Master, PC COM6의 시험기가 Unit 1 Slave로 동작합니다.
 기존 SerialServer와 같은 GPIO17 TX / GPIO18 RX, 9600 8E1,
+(Geekble Mini는 `/p:Board=GeekbleMini`로 GPIO6 TX / GPIO7 RX)
 DM2472 자동 방향 RS-485 배선을 사용합니다. COM3는 앱 배포에만 사용하고
 시험 도중 디버거나 USB 출력 수신기를 연결하지 않습니다.
 네이티브 펌웨어와 배선을 바꾸지 않습니다.
@@ -130,6 +131,10 @@ CLR 예외 출력에 따른 추가 지연 가능성도 제거하지 않았습니
 원본 로그는 `Tests\Modbus\VagabondK.nF.Modbus.SerialClientFixture\bin\rtu-client-final.log`입니다.
 시험 후 PC 포트를 닫고 기존 RTU Server 앱으로 복원했습니다.
 이 관측 구간에서 가용 힙이 같았다는 사실만으로 장기 누수 부재를 단정하지 않습니다.
+
+Geekble Mini ESP32-C3 / CLR 1.17.0.64(`/p:Board=GeekbleMini`)에서도 RTU와 ASCII 시험이 모두 PASS로 종료했습니다.
+PC READY부터 완료까지 RTU 301.5초, ASCII 617.0초(13단계)였고, GC 후 가용 힙은 RTU 34,596바이트,
+ASCII 34,332바이트로 관측 구간에서 변화가 없었습니다.
 
 ## 일반 Server 복원
 
