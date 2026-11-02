@@ -170,6 +170,16 @@ Serial ACK/응답 Timeout 검사는 별도 시험입니다.
 [전체 검증 대조표](../../../Samples/MappingCoverage.md)를 참조하십시오.
 Outstation 여섯 조합의 게시/GC 수치를 Master·Serial 통신 비용으로 해석하지 않습니다.
 
+## Geekble Mini(ESP32-C3) 결과 (2026-11-02)
+
+`bin\dnp3-mapping-hardware-20261102-140037`에서 샘플 128라운드(4,924개 검증)와
+8 Point·이벤트 용량 16 조합을 통과했습니다. 이 조합의 GC 후 여유 힙은 18,420 B, 보존 힙 증가는 0 B였고
+읽기 중앙값 70.7 ms, 제어 중앙값 86.1 ms(p95 235 ms)입니다.
+8/128·32/16은 첫 읽기의 `Dnp3Database.Snapshot`(`Dnp3Station.ReadRequest`)에서 OOM이 발생해 장치가 연결을 닫았고
+피어는 `FAILURE_NO_COMMS`로 종료했습니다. 128/16은 시작 시 `Dnp3Binding` 생성에서 OOM이 발생했습니다.
+더 큰 32/128·128/128은 실행하지 않았습니다. 읽기마다 `PointCount + EventCapacity` 크기 임시 배열을
+할당하므로 C3의 관리 힙에서는 작은 모델만 사용할 수 있습니다.
+
 ## 시험 준비 과정의 실패와 수정
 
 첫 샘플 시험(`bin\dnp3-mapping-hardware-first`)은 원본 피어의 첫 요청에서

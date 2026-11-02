@@ -52,3 +52,8 @@ Faulted 뒤 재호출 송신 0회를 확인합니다. 물리 네트워크 유실
 730,140 B로 유지됐고 원래 Modbus 복원·COM6 읽기도 성공했습니다.
 `-MalformedRecovery`를 생략하면 기존 전체 Server 시험을 실행합니다.
 역할별 남은 범위와 선행 실패 기록은 `Tests\FaultRecovery.md`를 참조하십시오.
+
+Geekble Mini(ESP32-C3)에서는 이 Server 시험기가 정적 초기화의 `MmsServerControl` 생성 중
+`OutOfMemoryException`으로 시작하지 못했습니다. 생성 매핑 Server도 MMS 세션 중 힙이 부족했습니다.
+같은 보드에서 IEC61850 매핑 Client와 리포트 장기 실행은 통과했습니다.
+[Mini 실물 결과](../../../Build/README.md#geekble-miniesp32-c3-실물-결과)를 참조하십시오.

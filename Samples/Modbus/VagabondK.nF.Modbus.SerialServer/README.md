@@ -57,6 +57,11 @@ Geekble Mini, `ESP32_C3`에서 다음 시험이 통과했습니다(COM6 PC 어�
 | RTU 기본·확장(`-Extended -Iterations 100`) | 1.17.0.64, 1.18.0.30 | PASS, 확장 약 99~101초 |
 | ASCII 확장(`-Protocol Ascii -Extended`) | 1.17.0.64 | PASS, 약 156초 |
 
+Mini는 `nanoff --deploy` 직후 앱 시작이 약 60~70초 늦습니다. 배포 뒤 디버거로 CLR만 재시작하면
+6~9초 안에 시작하므로, 준비 기한이 짧은 시험은 배포 후 재시작하거나 충분히 기다리십시오.
+다른 프로토콜의 Mini 결과와 메모리 제약은
+[Mini 실물 결과](../../../Build/README.md#geekble-miniesp32-c3-실물-결과)를 참조하십시오.
+
 ```powershell
 nuget restore .\packages.config -PackagesDirectory .\packages -NonInteractive
 & 'C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe' .\Samples\Modbus\VagabondK.nF.Modbus.SerialServer\VagabondK.nF.Modbus.SerialServer.nfproj /t:Rebuild /p:Configuration=Release /v:minimal

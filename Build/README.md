@@ -358,6 +358,45 @@ PC 전용 `Test-MappingInterop.ps1`과 구분하며 libiec61850 빌드 도구·�
 수신 콜백의 처리 시간도 통신 기한을 소모할 수 있으므로 느린 검증·예외 경로는 독립 스냅샷을 보관한 뒤
 통신 작업 밖에서 처리합니다. 사용자 콜백을 강제로 중단하거나 작업 기한을 늘려 성공으로 간주하지 않습니다.
 
+### Geekble Mini(ESP32-C3) 실물 결과
+
+2026-11-02, Geekble Mini(`ESP32_C3` 1.18.0.30, COM7, Wi-Fi `192.168.0.171`)에서 Nano용 실물 시험을 다시 실행했습니다.
+저장소 스크립트는 COM3·`192.168.0.187`·Nano 복원 이미지를 고정하므로 포트·주소·복원 이미지만 바꾼
+임시 사본으로 실행했고, 저장소 스크립트는 변경하지 않았습니다. 복원 이미지는 `/p:Board=GeekbleMini`로
+빌드한 Modbus SerialServer(`bin\hardware\restore-Mini.SerialServer.bin`)이며, 모든 실행 뒤
+COM6에서 `123,456,65535` 읽기를 확인했습니다. 수동 실행·캡처 로그는 `bin\mini-hardware-20261102`에 있습니다.
+Modbus RTU/ASCII/TCP 결과는 [SerialServer 문서](../Samples/Modbus/VagabondK.nF.Modbus.SerialServer/README.md)에 있습니다.
+
+| 시험 | 결과 | 증거(`bin` 아래) |
+|---|---|---|
+| BACnet IPHost | PASS: 독립 BACnet 4.0.0, 256회 float32/BOOL 왕복, 손상 WriteProperty 32종 | `mini-hardware-20261102\mini-bacnet.log` |
+| SNMP UDPHost | PASS: 6,314개 검증, BER 손상 10종 거절. 초과 UDP 2종은 Nano와 같이 `TRANSPORT ONLY` | `mini-hardware-20261102\mini-snmp.log` |
+| MQTT 진단 | PASS: 603검사, 적용 68회/거절 65회 | `mqtt-sharing-20261102-135049` |
+| MQTT Sparkplug·일반·Sparkplug 일반·Tahu | PASS: Sparkplug 2,370검사, 일반 239검사, Sparkplug 일반 nativeData 30, Tahu 3.2.4 | `mqtt-sharing-20261102-135209`·`-135344`·`-135535`·`-135749` |
+| Modbus 매핑 | PASS: 경계 37종, Master 고장 5종, 8/32/128포인트 60초 이상 안정성 보존 힙 증가 0 B | `mapping-hardware-20261102-150739` |
+| BACnet 매핑 | PASS: 샘플 128회, 8/32/64객체 견고성, 보존 힙 증가 0 B. 64객체 읽기/쓰기 중앙값 9.18/8.39 ms | `bacnet-mapping-hardware-20261102-141410` |
+| SNMP 매핑 | PASS: 기본 128라운드, `-Robustness` 보존 힙 증가 144 B(허용 256 B, Nano와 같음) | `snmp-mapping-hardware-20261102-142024`·`-142224` |
+| DNP3 매핑 | 샘플 128라운드와 8 Point/이벤트 16 PASS(보존 힙 증가 0 B). 8/128·32/16은 첫 읽기의 `Dnp3Database.Snapshot`, 128/16은 `Dnp3Binding` 생성에서 OOM. 32/128·128/128은 미실행 | `dnp3-mapping-hardware-20261102-140037` |
+| IEC61850 매핑 Client | PASS: 앱 2회 기동, Association 32회, 요청 1,648·리포트 1,040, 고장 0, 힙 최저값 = 기준값 | `mapping-hardware-Client-20261102-145004` |
+| IEC61850 리포트 장기 실행 | PASS(`-DurationMinutes 6`): MCU 세션 24·리포트 616, 힙 최저값 = 기준값 16,464 B | `iec61850-report-soak-20261102-144201` |
+| DNP3 TCPHost 양 역할 | 실행 불가: 검증 저장소 `SerialValidation` 생성 중 OOM(SerialHost와 같은 원인) | `mini-hardware-20261102\mini-dnp3tcp.log` |
+| DNP3 MasterMapping | 실행 불가: 7포인트 샘플에서 MCU OOM | `dnp3-master-mapping-20261102-142612` |
+| IEC61850 Server 시험기 | 실행 불가: 정적 초기화의 `MmsServerControl` 생성 중 OOM | `iec61850-server-hardware-20261102-142943` |
+| IEC61850 매핑 Server | 실패: 시작 시 여유 힙 약 9.9KB, MMS 세션 중 OOM | `mapping-hardware-Server-20261102-143734` |
+| IEC61850 리포트 `-TypedControls` | 실행 불가: `TypedControlModel` 생성자의 `MmsServerControl` 초기화 중 OOM | `iec61850-report-soak-20261102-150224` |
+| IEC61850 MCU Client, MMS/IEC 상호운용 | 미실행: 작업 트리 경로의 `VagabondKMmsPeer.exe`에 인바운드 허용 규칙이 없음. 두 MCU 이미지가 OOM 없이 `Ready.`까지 기동하는 것만 확인 | `mapping-interop-hardware-20261102-142823` |
+
+실패·실행 불가 항목의 PC 측 검증(DNP3 매핑 31,231개, IEC61850 기반 289,613개·MMS Server 7,057개)은 통과했습니다.
+원인은 C3의 작은 관리 힙(작은 앱 시작 시 약 37KB, TCP 앱 약 24KB)입니다. 구조체 배열 요소마다 약 130B가 할당되고,
+DNP3는 읽기마다 `PointCount + EventCapacity` 크기 임시 배열을, MMS Server 제어 객체는 초기화 시 인코딩 버퍼를 할당합니다.
+Client 역할과 리포트 장기 실행 이미지는 Mini에서 동작합니다. 미실행 구성을 성공으로 간주하지 마십시오.
+
+리포트 장기 실행은 MCU 6번째 세션에서 힙 기준값을 정하고 7세션 이상을 요구하므로
+`-DurationMinutes 2`(측정 60초)는 판정 조건을 채우지 못했습니다(`iec61850-report-soak-20261102-143902`).
+Mini는 `nanoff --deploy` 직후 앱 시작이 약 60~70초 늦어 준비 기한을 넘길 수 있습니다.
+배포 뒤 디버거로 CLR만 재시작하면 6~9초 안에 시작하므로 임시 사본은 배포마다 이 재시작을 수행했습니다.
+첫 MQTT 실행(`mqtt-sharing-20261102-134249`)은 이 지연 때문에 RTU 응답 시간 초과로 실패했습니다.
+
 ## 기존 사전 릴리스 참조를 갱신할 때
 
 이전 `NF` 참조·using은 `nF`로 바꾸고 앱·의존 DLL을 함께 재빌드합니다.

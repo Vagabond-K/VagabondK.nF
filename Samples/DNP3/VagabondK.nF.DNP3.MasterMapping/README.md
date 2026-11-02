@@ -87,6 +87,9 @@ holding 0..2 = 123/456/65535를 확인합니다. `-Points 128`처럼 한 이미�
 Direct/Select+Operate 후 이벤트, Confirmation 후 드레인 및 비요청 수신을 확인했습니다.
 최종 실행은 첫 복원 시도와 COM6 읽기까지 통과했습니다.
 
+Geekble Mini(ESP32-C3)에서는 7포인트 샘플 이미지부터 MCU가 `OutOfMemoryException`을 보고해 실행할 수 없었습니다
+(`bin\dnp3-master-mapping-20261102-142612`). 같은 실행의 PC 측 DNP3 매핑 31,231개 검증은 통과했습니다.
+
 ## 8/32/128 Point 자원 측정
 
 각 규모는 7종 Point를 순환 배치합니다. 값은 필드, 품질은 필드와 setter-only 속성을 교차 사용하고,
