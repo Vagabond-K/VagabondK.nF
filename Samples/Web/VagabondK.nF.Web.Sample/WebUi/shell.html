@@ -72,10 +72,10 @@ const $ = id => document.getElementById(id);
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 const feat = WebUi.feat, MAN = WebUi.M;
 const KEYS = WebUi.KEYS, LABELS = WebUi.LABELS;
-let st = null, seenAt = 0, base = null, authed = false, failures = 0;
+let st = null, seenAt = 0, base = null, authed = false, failures = 0, SRV = {};
 const formValues = () => WebUi.values($('sf'));
 function fillForm(s) { base = WebUi.fill($('sf'), s); syncForm(); }
-const settingsBody = v => new URLSearchParams(Object.assign({schemaVersion: String(MAN.schema), gatewayProfile: MAN.id}, v));
+const settingsBody = v => new URLSearchParams(Object.assign({schemaVersion: String(SRV.schemaVersion), gatewayProfile: MAN.id}, v));
 function formState(errs) {
 const v = formValues(), chg = base ? KEYS.filter(k => v[k] !== base[k]) : [];
 const bad = Object.keys(errs).length;
@@ -118,6 +118,8 @@ function showLogin(msg) { authed = false; $('login').hidden = false; $('loginMsg
 async function checkAuth() {
 const a = await api('/api/auth/status');
 if (a.csrfHeader) csrfH = a.csrfHeader;
+SRV = a;
+if (a.limits) $('sf').deviceName.maxLength = a.limits.nameMax;
 authed = !a.authEnabled || a.loggedIn;
 $('btnOut').hidden = !a.authEnabled || !a.loggedIn;
 $('login').hidden = authed;

@@ -11,7 +11,7 @@
 <section id="v-settings" hidden>
 <h1>설정</h1>
 <form id="sf" autocomplete="off">
-<label class="row"><span>장치 이름</span><input name="deviceName" maxlength="30"></label>
+<label class="row"><span>장치 이름</span><input name="deviceName"></label>
 <label class="row"><span>폴링 주기</span><input name="pollMs" inputmode="numeric"></label>
 <label class="row"><span>진단 모드</span><select name="debug"><option value="0">아니요</option><option value="1">예</option></select></label>
 </form>
@@ -38,9 +38,11 @@ const a = $('pv').querySelector('.age');
 if (a) a.textContent = '가동 ' + Math.floor(uptime) + '초 · tick은 매초 실행';
 }
 function checkSettings(v) {
-const e = {};
-if (!v.deviceName || v.deviceName.length > 30) e.deviceName = '1~30자로 입력하세요.';
-if (!/^\d+$/.test(v.pollMs) || +v.pollMs < 200 || +v.pollMs > 60000) e.pollMs = '200~60000 사이 정수여야 합니다.';
+const e = {}, L = SRV.limits || {};
+if (!v.deviceName) e.deviceName = '장치 이름을 입력하세요.';
+else if (L.nameMax && v.deviceName.length > L.nameMax) e.deviceName = L.nameMax + '자 이내로 입력하세요.';
+if (!/^\d+$/.test(v.pollMs)) e.pollMs = '정수를 입력하세요.';
+else if (L.pollMin && (+v.pollMs < L.pollMin || +v.pollMs > L.pollMax)) e.pollMs = L.pollMin + '~' + L.pollMax + ' 사이 정수여야 합니다.';
 return e;
 }
 function syncForm() { formState(checkSettings(formValues())); }

@@ -14,6 +14,9 @@ namespace VagabondK.nF.Web.Sample
     {
         public const string Path = "I:\\web-sample.cfg";
 
+        // 검증 한계값의 단일 출처. /api/auth/status의 limits로 클라이언트에 전달된다.
+        public const int NameMax = 30, PollMin = 200, PollMax = 60000, Schema = 1;
+
         public static string DeviceName = "ESP32 샘플";
         public static int PollMs = 1000;
         public static bool Debug = false;
@@ -30,8 +33,8 @@ namespace VagabondK.nF.Web.Sample
                     int eq = line.IndexOf('=');
                     if (eq < 0) continue;
                     string key = line.Substring(0, eq), val = line.Substring(eq + 1);
-                    if (key == "deviceName" && val.Length > 0 && val.Length <= 30) DeviceName = val;
-                    else if (key == "pollMs") { int v; if (int.TryParse(val, out v) && v >= 200 && v <= 60000) PollMs = v; }
+                    if (key == "deviceName" && val.Length > 0 && val.Length <= NameMax) DeviceName = val;
+                    else if (key == "pollMs") { int v; if (int.TryParse(val, out v) && v >= PollMin && v <= PollMax) PollMs = v; }
                     else if (key == "debug") Debug = val == "1";
                 }
             }
@@ -169,7 +172,11 @@ namespace VagabondK.nF.Web.Sample
                 ",\"lockedOut\":" + (g.IsLockedOut ? "true" : "false") +
                 ",\"remaining\":" + g.RemainingAttempts.ToString() +
                 ",\"lockSec\":" + g.LockoutSecondsRemaining.ToString() +
-                ",\"csrfHeader\":\"" + CsrfMarker + "\"}");
+                ",\"csrfHeader\":\"" + CsrfMarker + "\"" +
+                ",\"schemaVersion\":" + SampleConfig.Schema.ToString() +
+                ",\"limits\":{\"nameMax\":" + SampleConfig.NameMax.ToString() +
+                ",\"pollMin\":" + SampleConfig.PollMin.ToString() +
+                ",\"pollMax\":" + SampleConfig.PollMax.ToString() + "}}");
         }
 
         [Route("api/auth/login")]
@@ -238,8 +245,8 @@ namespace VagabondK.nF.Web.Sample
         public void SettingsGet(WebServerEventArgs e)
         {
             WebApi.Json(e.Context.Response, 200,
-                "{\"ok\":true,\"schemaVersion\":1,\"gatewayProfile\":\"web-sample\"," +
-                SampleConfig.Json().Substring(1));
+                "{\"ok\":true,\"schemaVersion\":" + SampleConfig.Schema.ToString() +
+                ",\"gatewayProfile\":\"web-sample\"," + SampleConfig.Json().Substring(1));
         }
 
         [Route("api/settings")]
@@ -251,8 +258,8 @@ namespace VagabondK.nF.Web.Sample
             string name = f.Get("deviceName"), poll = f.Get("pollMs"), dbg = f.Get("debug");
 
             int pollMs;
-            if (name == null || name.Length < 1 || name.Length > 30) { WebApi.Error(e.Context.Response, 400, "deviceName 오류"); return; }
-            if (poll == null || !int.TryParse(poll, out pollMs) || pollMs < 200 || pollMs > 60000) { WebApi.Error(e.Context.Response, 400, "pollMs 오류"); return; }
+            if (name == null || name.Length < 1 || name.Length > SampleConfig.NameMax) { WebApi.Error(e.Context.Response, 400, "deviceName 오류"); return; }
+            if (poll == null || !int.TryParse(poll, out pollMs) || pollMs < SampleConfig.PollMin || pollMs > SampleConfig.PollMax) { WebApi.Error(e.Context.Response, 400, "pollMs 오류"); return; }
             if (dbg != "0" && dbg != "1") { WebApi.Error(e.Context.Response, 400, "debug 오류"); return; }
 
             SampleConfig.DeviceName = name;
