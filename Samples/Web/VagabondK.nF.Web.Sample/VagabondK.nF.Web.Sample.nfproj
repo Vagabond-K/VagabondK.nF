@@ -13,9 +13,9 @@
     <Reference Include="nanoFramework.WebServer"><HintPath>$(PackagesPath)nanoFramework.WebServer.1.2.162\lib\nanoFramework.WebServer.dll</HintPath><Private>true</Private></Reference>
     <Reference Include="nanoFramework.System.Security.Cryptography"><HintPath>$(PackagesPath)nanoFramework.System.Security.Cryptography.1.0.43\lib\nanoFramework.System.Security.Cryptography.dll</HintPath><Private>true</Private></Reference>
   </ItemGroup>
-  <!-- WebUi 빌드타임 페이지 생성: 셸+프로필 머지/축소/gzip은 VagabondK.nF.WebUi.Generator(소스 생성기)가 수행. -->
+  <!-- WebUi 빌드타임 페이지 생성: 셸+프로필 머지/축소/gzip은 VagabondK.nF.WebUi(소스 생성기)가 수행. -->
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Source\Web\VagabondK.nF.WebUi.Generator\VagabondK.nF.WebUi.Generator.csproj"
+    <ProjectReference Include="..\..\..\Source\Web\VagabondK.nF.WebUi\VagabondK.nF.WebUi.csproj"
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" />
   </ItemGroup>
   <ItemGroup>

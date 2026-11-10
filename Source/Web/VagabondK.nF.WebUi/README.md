@@ -6,15 +6,19 @@ nanoGate 스타일 장치 관리 화면을 빌드 타임에 조립하는 페이�
 공용 **셸**(탭·로그인·fetch·다이얼로그·포인트 편집기) 하나와 게이트웨이별 작은 **프로필** 하나를
 머지·검증·축소해 C# 문자열 리소스 하나로 임베드합니다 — 런타임 리플렉션 없음, 외부 자산 없음.
 
-장치에서 실행되는 코드는 없으므로 `.nfproj`/DLL이 없습니다. 구성은 MSBuild 태스크(`.targets`)와
-페이지에 주입되는 JS 자산(`Assets/core.js`)뿐이며, 이 자체가 프로젝트의 전부입니다.
+장치에서 실행되는 코드는 없으므로 이 프로젝트는 일반 Roslyn **소스 생성기**(netstandard2.0)입니다.
+`.targets`가 셸·프로필·`Assets/core.js`를 `AdditionalFiles`로, 네임스페이스 등 옵션을 globalconfig로
+주입하면 생성기가 컴파일 타임에 페이지를 조립해 `WebPage` 소스를 만들어 냅니다.
 
 ## 파일
 
 | 파일 | 역할 |
 |---|---|
 | `Assets/core.js` | 런타임 라이브러리(`<!--@core-->`에 주입): 매니페스트 접근, 폼 팩토리, 값 포맷, 마이크로 vDOM, 컴포넌트 레지스트리 |
-| `VagabondK.nF.WebUi.targets` | MSBuild 훅(`WebUiGeneratePage`, `CoreCompile` 직전 실행): 머지·검증·축소·gzip 후 `WebPage.g.cs` 생성 |
+| `VagabondK.nF.WebUi.targets` | MSBuild 배선(`WebUiWriteGeneratorConfig`, `CoreCompile` 직전 실행): `AdditionalFiles`+globalconfig 주입 |
+| `WebUiGenerator.cs` | 생성기 진입점(`IIncrementalGenerator`): 입력 수집→조립→`WebPage` 소스 출력, WUI000~002 진단 |
+| `PageComposer.cs` | 머지·매니페스트 검증·축소·gzip·FNV 해시와 C# 코드 생성 |
+| `MiniJson.cs` | 매니페스트 파싱/직렬화용 최소 JSON 구현 |
 
 ## 마커
 
@@ -109,8 +113,11 @@ form 이름 중복·누락, views에 없는 form 이름, 프로필 스크립트�
   <WebUiNamespace>MyGateway.Management</WebUiNamespace>
 </PropertyGroup>
 <Import Project="..\..\VagabondK.nF\Source\Web\VagabondK.nF.WebUi\VagabondK.nF.WebUi.targets" />
+<ProjectReference Include="..\..\VagabondK.nF\Source\Web\VagabondK.nF.WebUi\VagabondK.nF.WebUi.csproj"
+                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" />
 ```
 
-`$(IntermediateOutputPath)WebPage.g.cs`를 생성합니다. 페이지가 64KB를 넘지 않는 장치를
+생성 소스는 컴파일러에 의해 메모리에서 직접 컴파일됩니다(디스크에 내려다보려면
+`/p:EmitCompilerGeneratedFiles=true`). 페이지가 64KB를 넘지 않는 장치를
 배려해 gzip 바이트열을 여러 파트로 나눠 `WebPage.Length` / `PartCount` / `ETag` 상수와
 `WebPage.GetPart(int)` 메서드로 노출하며, 관리 프로젝트의 일반 소스처럼 컴파일됩니다.

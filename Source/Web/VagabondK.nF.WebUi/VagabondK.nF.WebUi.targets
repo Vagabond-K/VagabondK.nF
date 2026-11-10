@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   VagabondK.nF.WebUi: build-time page composer for nanoFramework management UIs.
-  This file only wires inputs to VagabondK.nF.WebUi.Generator (a Roslyn source generator,
+  This file only wires inputs to VagabondK.nF.WebUi (a Roslyn source generator project,
   referenced from the consuming project as <ProjectReference OutputItemType="Analyzer" .../>).
   The generator merges shell + profile into one page, minifies/gzips it, and emits a C# class
   holding gzipped Base64 parts (so the device never stores the whole page in RAM).
@@ -13,7 +13,7 @@
       <WebUiNamespace>My.App</WebUiNamespace>   (default: VagabondK.nF.WebUi)
     </PropertyGroup>
     <Import Project="...\VagabondK.nF.WebUi.targets" />
-    <ProjectReference Include="...\VagabondK.nF.WebUi.Generator.csproj"
+    <ProjectReference Include="...\VagabondK.nF.WebUi.csproj"
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" />
 
   Markers (single-line HTML comments, written below as MARK:NAME):

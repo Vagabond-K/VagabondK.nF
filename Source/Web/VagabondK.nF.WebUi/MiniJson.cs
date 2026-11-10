@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 
-namespace VagabondK.nF.WebUi.Generator
+namespace VagabondK.nF.WebUi
 {
     /// <summary>매니페스트 파싱/직렬화용 초소형 JSON (targets 인라인 태스크에서 이식).</summary>
     internal sealed class MiniJson

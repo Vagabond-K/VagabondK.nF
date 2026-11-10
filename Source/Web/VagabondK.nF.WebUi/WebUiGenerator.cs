@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Text;
 
-namespace VagabondK.nF.WebUi.Generator
+namespace VagabondK.nF.WebUi
 {
     /// <summary>
     /// WebUi 셸/프로필 HTML을 빌드 타임에 머지·축소·gzip하여 WebPage 소스를 생성하는 증분 생성기.

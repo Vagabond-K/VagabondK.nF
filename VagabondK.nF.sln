@@ -227,7 +227,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Web", "Web", "{5C2A0E77-3B4
 EndProject
 Project("{11A8DD76-328B-46DF-9F39-F559912D0360}") = "VagabondK.nF.WebAuth", "Source\Web\VagabondK.nF.WebAuth\VagabondK.nF.WebAuth.nfproj", "{310E1601-9B23-4A51-B344-100000000192}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VagabondK.nF.WebUi.Generator", "Source\Web\VagabondK.nF.WebUi.Generator\VagabondK.nF.WebUi.Generator.csproj", "{310E1601-9B23-4A51-B344-100000000193}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VagabondK.nF.WebUi", "Source\Web\VagabondK.nF.WebUi\VagabondK.nF.WebUi.csproj", "{310E1601-9B23-4A51-B344-100000000193}"
 EndProject
 Project("{11A8DD76-328B-46DF-9F39-F559912D0360}") = "VagabondK.nF.Web.Sample", "Samples\Web\VagabondK.nF.Web.Sample\VagabondK.nF.Web.Sample.nfproj", "{C8C1DACD-56A6-427D-BE40-1E4163447C99}"
 EndProject

@@ -6,7 +6,7 @@
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <NoWarn>$(NoWarn);RS2008</NoWarn>
-    <RootNamespace>VagabondK.nF.WebUi.Generator</RootNamespace>
+    <RootNamespace>VagabondK.nF.WebUi</RootNamespace>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
   </PropertyGroup>
