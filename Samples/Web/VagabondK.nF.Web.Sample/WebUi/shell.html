@@ -170,11 +170,10 @@ ev.preventDefault();
 try {
 await post('/api/auth/login', 'password=' + encodeURIComponent($('pw').value));
 $('pw').value = '';
-$('login').hidden = true;
-authed = true;
-$('btnOut').hidden = false;
 failures = 0;
-refresh();
+// 서버가 세션 쿠키를 거부(브라우저 차단 등)하면 창이 다시 나타나므로 원인을 안내한다.
+if (!await checkAuth()) showLogin('로그인되었으나 세션 쿠키가 유지되지 않습니다. 브라우저의 쿠키 차단 설정을 확인하세요.');
+else refresh();
 } catch (err) { $('loginMsg').textContent = err.message; }
 };
 $('btnOut').onclick = async () => { try { await post('/api/auth/logout', ''); } catch (e) {} location.reload(); };
