@@ -3,6 +3,9 @@ param(
     [string]$NuGetPath = 'nuget',
     [string]$OutputPath = '',
     [switch]$NoBuild,
+    [string]$PackageVersion = '0.1.0-preview.1',
+    [string]$ProjectReferenceVersion = '',
+    [string[]]$PackageIds = @(),
     [ValidateSet('Modbus','DNP3','BACnet','SNMP','MMS','IEC61850','MQTT','Sparkplug')][string]$LibrarySet = 'Modbus'
 )
 
@@ -16,13 +19,27 @@ $releaseNotes = [Security.SecurityElement]::Escape($metadata.Project.PropertyGro
 $catalog = Get-Content -LiteralPath (Join-Path $root 'README.md') -Raw -Encoding UTF8
 if (-not $OutputPath) { $OutputPath = Join-Path $PSScriptRoot ('..\bin\nuget\' + $LibrarySet.ToLowerInvariant()) }
 $output = [IO.Path]::GetFullPath($OutputPath)
-$version = '0.1.0-preview.1'
+$version = $PackageVersion
+if (-not $ProjectReferenceVersion) { $ProjectReferenceVersion = $version }
+foreach ($value in @($version, $ProjectReferenceVersion)) {
+    if ($value -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$') {
+        throw "Invalid package version: $value"
+    }
+}
 $assemblyInfo = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'AssemblyInfo.cs') -Raw
 if ($assemblyInfo -notmatch 'AssemblyVersion\("0\.1\.0\.0"\)') {
     throw 'Update the package version and smoke fixture when changing the assembly version.'
 }
 [xml]$projects = Get-Content -LiteralPath (Join-Path $root 'VagabondK.nF.proj')
 $libraries = @($projects.Project.ItemGroup.ChildNodes | Where-Object { $_.LocalName -eq "${LibrarySet}Library" -or ($LibrarySet -eq 'IEC61850' -and $_.LocalName -eq 'MMSLibrary') })
+if ($PackageIds.Count) {
+    foreach ($id in $PackageIds) {
+        if (-not @($libraries | Where-Object { [IO.Path]::GetFileNameWithoutExtension($_.Include) -ceq $id }).Count) {
+            throw "Package is not in the selected runtime library set: $id"
+        }
+    }
+    $libraries = @($libraries | Where-Object { $PackageIds -ccontains [IO.Path]::GetFileNameWithoutExtension($_.Include) })
+}
 foreach ($library in $libraries) {
     $name = [IO.Path]::GetFileNameWithoutExtension($library.Include)
     $packageFile = Join-Path $output "$name.$version.nupkg"
@@ -66,7 +83,9 @@ foreach ($library in $libraries) {
         $dependencies[$package[0].id] = $package[0].version
     }
     foreach ($reference in $project.SelectNodes("//*[local-name()='ProjectReference']")) {
-        $dependencies[[IO.Path]::GetFileNameWithoutExtension($reference.Include)] = $version
+        $referenceName = [IO.Path]::GetFileNameWithoutExtension($reference.Include)
+        $selected = @($libraries | Where-Object { [IO.Path]::GetFileNameWithoutExtension($_.Include) -ceq $referenceName }).Count -gt 0
+        $dependencies[$referenceName] = if ($selected) { $version } else { $ProjectReferenceVersion }
     }
     $dependencyXml = @($dependencies.Keys | Sort-Object | ForEach-Object {
         '      <dependency id="{0}" version="[{1}]" />' -f $_, $dependencies[$_]

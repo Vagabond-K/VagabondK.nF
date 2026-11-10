@@ -26,7 +26,7 @@ Client와 Server는 서로 의존하지 않으며 공통 코어는 UART·Socket�
 프로젝트 의존성과 별도로 필요한 nanoFramework 시스템 어셈블리도 배포해야 합니다.
 TCP 연결의 생성·수락과 UART 설정, 포트·소켓의 수명 관리는 앱의 책임이며 라이브러리는 전달받은 포트·소켓을 닫지 않습니다.
 
-Client/Server 공통 지원 함수는 `01`, `02`, `03`, `04`, `05`, `06`, `0F`, `10`입니다.
+Client의 typed API와 저장소 Server의 공통 지원 함수는 `01`, `02`, `03`, `04`, `05`, `06`, `0F`, `10`입니다.
 
 - 주소는 **0 기반**입니다. `40001` 문서 표기는 API 주소 `0`에 해당합니다.
 - Client는 호출자가 제공한 결과 배열과 재사용 내부 버퍼를 사용합니다.
@@ -43,6 +43,60 @@ Client/Server 공통 지원 함수는 `01`, `02`, `03`, `04`, `05`, `06`, `0F`, 
 기본 최대 PDU는 253바이트, RTU ADU는 256바이트, TCP ADU는 260바이트,
 ASCII ADU는 513바이트입니다. 프레임 최대 크기와 함수별 최대 수량을 각각 검사합니다.
 Register는 부호 없는 16비트 값이며 숫자·문자열 해석은 아래 `RegisterConvert`를 사용합니다.
+
+## 단일 버퍼 PDU 처리
+
+`ModbusClient.ExchangePdu(byte unitId, byte[] pdu, int requestLength)`는 호출자의
+최소 253바이트 배열에서 요청을 보내고 같은 배열에 응답을 수신합니다.
+Function `1..127`을 허용하며 Unit ID·TCP Transaction ID·응답 Function을 검사합니다.
+예외 응답은 길이 2를 검사한 뒤 그대로 반환하고 `ModbusException`으로 변환하지 않습니다.
+정상 응답의 Function별 본문 길이·수량·쓰기 echo 검증은 호출자 책임입니다.
+직렬 Unit ID는 `1..247`이며 이 API는 브로드캐스트를 거부합니다.
+기존 typed API의 검증·장치 예외·브로드캐스트 쓰기 동작은 유지됩니다.
+
+Server는 기존 `IModbusDataStore` 생성자 외에 아래 생성자를 제공합니다.
+
+```csharp
+byte[] pdu = new byte[253];
+var client = new ModbusClient(serialTransport);
+var server = new ModbusServer(1, tcpTransport, new Forwarder(client), pdu);
+server.ProcessNextRequest();
+
+// using VagabondK.nF.Modbus;
+// using VagabondK.nF.Modbus.Client;
+// using VagabondK.nF.Modbus.Server;
+sealed class Forwarder : IModbusPduHandler
+{
+    private readonly ModbusClient client;
+    public Forwarder(ModbusClient client) { this.client = client; }
+    public int Process(FrameContext context, byte[] pdu, int requestLength)
+    {
+        return client.ExchangePdu(context.UnitId, pdu, requestLength);
+    }
+}
+```
+
+위 코드는 전달 구조만 보여 줍니다. TCP 수락·Serial 설정·복구 정책은 별도로 구현해야 합니다.
+`IModbusPduHandler.Process`는 요청 버퍼를 응답으로 덮어쓰고 길이 `1..253`을 반환합니다.
+원 요청의 Unit/TID/Function은 Server가 덮어쓰기 전에 보존합니다.
+다른 Unit은 무시하며 raw Server의 직렬 브로드캐스트는 handler를 호출하지 않고 무시합니다.
+Function 0 또는 0x80 이상에는 로컬 IllegalFunction 응답을 보내며, 정상 Function 일치와
+예외 Function/길이 2를 검사합니다. `ModbusException`만 원 Function의 예외 응답으로 변환하고
+잘못된 handler 응답이나 예상 밖 예외·I/O 오류는 호출자에게 전달합니다.
+타임아웃·CRC·Unit/Function 불일치를 gateway 오류 `0x0B`로 변환할지는 앱에서 결정합니다.
+TCP 프레임 오류 시 연결 종료와 UART 잔여 데이터 재동기화도 앱 책임입니다.
+
+raw Server는 저장소용 PDU 두 개와 `bool[2000]`·`ushort[125]`를 생성하지 않습니다.
+Client의 내부 PDU 두 개는 typed API를 처음 실행할 때 내부 잠금 안에서 생성합니다.
+raw만 사용하면 이 두 배열을 만들지 않지만, typed를 한 번이라도 호출하면 배열이 유지됩니다.
+따라서 지연 생성은 typed 경로의 최종 최대 메모리를 줄이는 기능이 아닙니다.
+전송 자체의 프레임 버퍼와 Client/Server 어셈블리·객체·잠금 비용은 남습니다.
+
+버퍼는 동기 호출 동안만 빌려 사용하고 보관·비동기 작업·재진입 호출에 사용하면 안 됩니다.
+서로 다른 인스턴스의 내부 잠금은 공용 배열 전체 수명을 보호하지 않습니다.
+앱이 수신→handler→downstream 교환→응답 전송 전체를 직렬화해야 합니다.
+위 예처럼 Client와 Server는 서로 다른 전송을 사용해야 하며 같은 전송을 공유하면 안 됩니다.
+수신 실패 후 버퍼 내용은 유효하지 않습니다.
 
 ## Register 데이터 변환
 
@@ -246,6 +300,8 @@ using (var port = new SerialPort("COM2", 9600, Parity.Even, 8, StopBits.One))
 `bitsPerCharacter`는 시작·데이터·패리티·정지 비트를 모두 포함하며 8E1/8N2는 11비트입니다.
 RS-485 방향 제어는 보드 펌웨어·배선에 의존하며 자체 제어가 필요하면 사용자 채널로 구현합니다.
 `RequestLength`는 Server 요청, `ResponseLength`는 Client 응답 수신에 사용합니다.
+`RequestLength`는 FC7(Read Exception Status)의 본문 없는 요청도 4바이트 ADU로 수신합니다.
+이는 프레임 길이 인식만 추가하며 저장소 Server의 FC7 지원을 뜻하지 않습니다(예외 `0x01`).
 알려진 함수의 길이·CRC·상한을 검사하지만 정확한 t1.5/t3.5 검증을 대신하지는 않습니다.
 알 수 없는 함수는 무통신 간격 방식이며 기존 생성자의 기본값은 `SilentInterval`입니다.
 ASCII는 상대의 설정(일반적으로 7E1)에 맞추고 `AsciiTransport(new SerialPortChannel(port), 1000)`을 사용합니다.

@@ -2,22 +2,25 @@ using System;
 
 namespace VagabondK.nF.Modbus.Server
 {
-    /// <summary>Modbus 요청을 저장소에 적용하고 응답하는 동기 Server입니다.</summary>
+    /// <summary>Modbus 요청을 저장소 또는 동기 PDU 처리기에 전달하고 응답하는 Server입니다.</summary>
     /// <remarks>
     /// 작업 스레드를 생성하지 않으므로 애플리케이션이 처리 루프를 실행해야 합니다.
     /// 이 인스턴스의 처리 호출은 내부 잠금으로 직렬화합니다. 전송과 저장소는 해제하지 않습니다.
-    /// 직렬 통신의 브로드캐스트는 쓰기만 처리하고 응답하지 않으며, 다른 Unit ID의 요청은 무시합니다.
+    /// 저장소 모드의 직렬 브로드캐스트는 쓰기만 처리하고 응답하지 않습니다.
+    /// PDU 모드는 직렬 브로드캐스트를 무시하며, 두 모드 모두 다른 Unit ID의 요청을 무시합니다.
     /// </remarks>
     public sealed class ModbusServer
     {
         private readonly IModbusTransport _transport;
         private readonly IModbusDataStore _store;
+        private readonly IModbusPduHandler _handler;
+        private readonly byte[] _pdu;
         private readonly byte _unitId;
         private readonly object _sync = new object();
-        private readonly byte[] _request = new byte[Protocol.MaxPduLength];
-        private readonly byte[] _response = new byte[Protocol.MaxPduLength];
-        private readonly bool[] _bits = new bool[2000];
-        private readonly ushort[] _registers = new ushort[125];
+        private readonly byte[] _request;
+        private readonly byte[] _response;
+        private readonly bool[] _bits;
+        private readonly ushort[] _registers;
 
         /// <summary>대상 Unit ID, 전송 및 데이터 저장소를 설정합니다.</summary>
         /// <param name="unitId">Server의 Unit ID입니다. Serial에서는 1~247이어야 합니다.</param>
@@ -36,6 +39,37 @@ namespace VagabondK.nF.Modbus.Server
             _unitId = unitId;
             _transport = transport;
             _store = store;
+            _request = new byte[Protocol.MaxPduLength];
+            _response = new byte[Protocol.MaxPduLength];
+            _bits = new bool[2000];
+            _registers = new ushort[125];
+        }
+
+        /// <summary>외부 버퍼 하나로 동작하는 동기 PDU Server를 생성합니다.</summary>
+        /// <param name="unitId">대상 Unit ID입니다. Serial에서는 1~247입니다.</param>
+        /// <param name="transport">호출자가 관리하는 전송입니다.</param>
+        /// <param name="handler">동일 버퍼에 응답을 기록하는 처리기입니다.</param>
+        /// <param name="buffer">앱이 소유하는 최소 253바이트 버퍼입니다.</param>
+        /// <remarks>
+        /// 저장소용 작업 배열은 생성하지 않습니다. Serial 브로드캐스트는 무시합니다.
+        /// 앱은 버퍼를 사용하는 모든 송수신을 직렬화하고 재진입·비동기 사용을 금지해야 합니다.
+        /// 버퍼와 전송은 해제하지 않습니다.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">전송, 처리기 또는 버퍼가 null입니다.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">버퍼 크기 또는 Serial Unit ID가 유효하지 않습니다.</exception>
+        public ModbusServer(byte unitId, IModbusTransport transport, IModbusPduHandler handler, byte[] buffer)
+        {
+            if (transport == null)
+                throw new ArgumentNullException("transport");
+            if (handler == null)
+                throw new ArgumentNullException("handler");
+            Protocol.ValidateBuffer(buffer, 0, Protocol.MaxPduLength);
+            if (transport.IsSerial && (unitId == 0 || unitId > 247))
+                throw new ArgumentOutOfRangeException("unitId");
+            _unitId = unitId;
+            _transport = transport;
+            _handler = handler;
+            _pdu = buffer;
         }
 
         /// <summary>다음 Frame 하나를 수신하고 대상 요청이면 처리합니다.</summary>
@@ -48,7 +82,7 @@ namespace VagabondK.nF.Modbus.Server
             lock (_sync)
             {
                 FrameContext context;
-                int length = _transport.Receive(_request, out context);
+                int length = _transport.Receive(_handler == null ? _request : _pdu, out context);
                 ProcessRequest(context, length);
             }
         }
@@ -67,7 +101,7 @@ namespace VagabondK.nF.Modbus.Server
             {
                 FrameContext context;
                 int length;
-                ReceiveStatus status = receiver.TryReceive(_request, out context, out length);
+                ReceiveStatus status = receiver.TryReceive(_handler == null ? _request : _pdu, out context, out length);
                 if (status == ReceiveStatus.Success)
                     ProcessRequest(context, length);
                 return status;
@@ -81,6 +115,12 @@ namespace VagabondK.nF.Modbus.Server
             bool broadcast = _transport.IsSerial && context.UnitId == 0;
             if (!broadcast && context.UnitId != _unitId)
                 return;
+            if (_handler != null)
+            {
+                if (!broadcast)
+                    ProcessPdu(context, length);
+                return;
+            }
             byte function = _request[0];
             if (broadcast && function != 5 && function != 6 && function != 15 && function != 16)
                 return;
@@ -108,6 +148,36 @@ namespace VagabondK.nF.Modbus.Server
             }
             if (!broadcast)
                 _transport.Send(context, _response, responseLength);
+        }
+
+        private void ProcessPdu(FrameContext context, int length)
+        {
+            byte function = _pdu[0];
+            int responseLength;
+            if (function == 0 || function >= 0x80)
+            {
+                _pdu[0] = (byte)(function | 0x80);
+                _pdu[1] = (byte)ExceptionCode.IllegalFunction;
+                responseLength = 2;
+            }
+            else
+            {
+                try
+                {
+                    responseLength = _handler.Process(context, _pdu, length);
+                }
+                catch (ModbusException error)
+                {
+                    _pdu[0] = (byte)(function | 0x80);
+                    _pdu[1] = (byte)error.Code;
+                    responseLength = 2;
+                }
+                if (responseLength < 1 || responseLength > Protocol.MaxPduLength ||
+                    (_pdu[0] != function && _pdu[0] != (function | 0x80)) ||
+                    (_pdu[0] == (function | 0x80) && responseLength != 2))
+                    throw new ModbusProtocolException("Invalid handler response PDU.");
+            }
+            _transport.Send(context, _pdu, responseLength);
         }
 
         private int Process(int length)

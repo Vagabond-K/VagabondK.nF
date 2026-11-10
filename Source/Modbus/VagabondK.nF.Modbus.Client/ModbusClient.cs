@@ -2,7 +2,7 @@ using System;
 
 namespace VagabondK.nF.Modbus.Client
 {
-    /// <summary>Modbus의 8개 기본 기능을 동기 요청으로 실행하는 Client입니다.</summary>
+    /// <summary>Modbus의 8개 기본 기능과 호출자 버퍼의 PDU 교환을 동기 요청으로 실행하는 Client입니다.</summary>
     /// <remarks>
     /// 이 인스턴스의 요청은 내부 잠금으로 직렬화합니다. 전송을 다른 Client나 Server와 공유하지 마십시오.
     /// 직렬 통신의 읽기 Unit ID는 1~247이며, 쓰기는 0을 브로드캐스트 주소로 사용할 수 있습니다.
@@ -14,8 +14,8 @@ namespace VagabondK.nF.Modbus.Client
     {
         private readonly IModbusTransport _transport;
         private readonly object _sync = new object();
-        private readonly byte[] _request = new byte[Protocol.MaxPduLength];
-        private readonly byte[] _response = new byte[Protocol.MaxPduLength];
+        private byte[] _request;
+        private byte[] _response;
         private ushort _transaction;
 
         /// <summary>지정한 전송을 사용하는 Client를 생성합니다.</summary>
@@ -26,6 +26,30 @@ namespace VagabondK.nF.Modbus.Client
             if (transport == null)
                 throw new ArgumentNullException("transport");
             _transport = transport;
+        }
+
+        /// <summary>호출자의 PDU를 전송하고 동일 버퍼에 정상 또는 장치 예외 응답을 수신합니다.</summary>
+        /// <param name="unitId">대상 Unit ID입니다. Serial에서는 1~247이며 브로드캐스트는 허용하지 않습니다.</param>
+        /// <param name="pdu">인덱스 0부터 요청이 담긴 최소 253바이트 버퍼입니다. 수신이 시작되면 덮어씁니다.</param>
+        /// <param name="requestLength">요청 길이이며 1~253입니다. Function은 1~127입니다.</param>
+        /// <returns>응답 길이입니다. 장치 예외 응답도 길이 2의 PDU로 반환하며 ModbusException으로 변환하지 않습니다.</returns>
+        /// <remarks>
+        /// typed 작업 버퍼를 생성하지 않습니다. 이 호출은 Function·Unit·TCP Transaction 및 예외 길이만 검증합니다.
+        /// Function별 본문 검증은 호출자 책임입니다. 공유 버퍼의 전체 수명은 앱이 직렬화하며 재진입·비동기 사용을 금지합니다.
+        /// 응답 실패 후 버퍼 내용은 유효하지 않습니다. UART 잔여 데이터와 연결 복구는 앱이 관리합니다.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">버퍼가 null입니다.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">버퍼, 길이, Function 또는 Serial Unit ID가 유효하지 않습니다.</exception>
+        /// <exception cref="ModbusProtocolException">응답의 길이·Function·Unit·Transaction이 유효하지 않습니다.</exception>
+        /// <exception cref="TimeoutException">전송 기한이 만료되었습니다.</exception>
+        public int ExchangePdu(byte unitId, byte[] pdu, int requestLength)
+        {
+            Protocol.ValidateBuffer(pdu, 0, Protocol.MaxPduLength);
+            Protocol.ValidatePdu(pdu, requestLength);
+            if (pdu[0] == 0 || pdu[0] >= 0x80)
+                throw new ArgumentOutOfRangeException("pdu");
+            lock (_sync)
+                return ExchangeCore(unitId, pdu, requestLength, pdu, false, false);
         }
 
         /// <summary>연속된 Coil 상태를 읽습니다(Function 01).</summary>
@@ -102,6 +126,13 @@ namespace VagabondK.nF.Modbus.Client
 
         private void Header(FunctionCode function, ushort address, ushort value)
         {
+            if (_request == null)
+            {
+                var request = new byte[Protocol.MaxPduLength];
+                var response = new byte[Protocol.MaxPduLength];
+                _request = request;
+                _response = response;
+            }
             _request[0] = (byte)function;
             Protocol.WriteUInt16(_request, 1, address);
             Protocol.WriteUInt16(_request, 3, value);
@@ -109,28 +140,36 @@ namespace VagabondK.nF.Modbus.Client
 
         private int Exchange(byte unitId, int length, bool write)
         {
+            return ExchangeCore(unitId, _request, length, _response, write, true);
+        }
+
+        private int ExchangeCore(byte unitId, byte[] request, int length, byte[] response, bool write, bool throwException)
+        {
             if (_transport.IsSerial && (unitId > 247 || (!write && unitId == 0)))
                 throw new ArgumentOutOfRangeException("unitId");
             _transaction = unchecked((ushort)(_transaction + 1));
             FrameContext sent = new FrameContext(unitId, _transaction);
-            _transport.Send(sent, _request, length);
+            byte function = request[0];
+            _transport.Send(sent, request, length);
             if (_transport.IsSerial && unitId == 0)
                 return 0;
 
             FrameContext received;
-            int count = _transport.Receive(_response, out received);
+            int count = _transport.Receive(response, out received);
             if (received.UnitId != unitId ||
                 (!_transport.IsSerial && received.TransactionId != sent.TransactionId))
                 throw new ModbusProtocolException("Response does not match the request context.");
             if (count < 1 || count > Protocol.MaxPduLength)
                 throw new ModbusProtocolException("Invalid response length.");
-            if (_response[0] == (_request[0] | 0x80))
+            if (response[0] == (function | 0x80))
             {
                 if (count != 2)
                     throw new ModbusProtocolException("Invalid exception response.");
-                throw new ModbusException((ExceptionCode)_response[1]);
+                if (throwException)
+                    throw new ModbusException((ExceptionCode)response[1]);
+                return count;
             }
-            if (_response[0] != _request[0])
+            if (response[0] != function)
                 throw new ModbusProtocolException("Response function does not match the request.");
             return count;
         }

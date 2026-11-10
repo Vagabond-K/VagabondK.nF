@@ -149,7 +149,11 @@ namespace VagabondK.nF.Modbus.RTU
                 return count == 0 ? ReceiveStatus.Idle : ReceiveStatus.Timeout;
             int function = _frame[1];
             int length;
-            if (_receiveMode == RtuReceiveMode.ResponseLength && (function & 0x80) != 0)
+            if (_receiveMode == RtuReceiveMode.RequestLength && function == 7)
+            {
+                length = 4;
+            }
+            else if (_receiveMode == RtuReceiveMode.ResponseLength && (function & 0x80) != 0)
             {
                 length = 5;
             }

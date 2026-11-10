@@ -69,6 +69,19 @@ MQTT 두 샘플의 이전 `.DataSharing` 폴더·프로젝트·네임스페이�
 
 ## 로컬 사전 릴리스 패키지
 
+런타임의 일부 패키지만 별도 로컬 버전으로 만들 때는 `Pack.ps1`의 `PackageIds`,
+`PackageVersion`, `ProjectReferenceVersion`을 사용합니다. 기본 전체 패키지 버전은 바꾸지 않습니다.
+선택한 패키지 간 참조는 `PackageVersion`, 선택하지 않은 프로젝트 참조는
+`ProjectReferenceVersion`(생략 시 `PackageVersion`)으로 고정합니다.
+소스 의존성과 지정한 외부 버전의 API 호환성은 패키지 소비 빌드로 별도 검증해야 합니다.
+
+```powershell
+.\Build\Pack.ps1 -LibrarySet Modbus `
+  -PackageIds VagabondK.nF.Modbus.Client,VagabondK.nF.Modbus.Server `
+  -PackageVersion 0.1.0-preview.2.gateway.1 -ProjectReferenceVersion 0.1.0-preview.2 `
+  -OutputPath .\bin\nuget\modbus-gateway-1
+```
+
 외부에 게시하지 않고 전체 배포 후보를 만들려면 다음 명령을 사용합니다.
 
 ```powershell

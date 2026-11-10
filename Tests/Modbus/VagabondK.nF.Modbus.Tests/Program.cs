@@ -58,6 +58,7 @@ internal static class Program
         Roles(true);
         ServerValidation();
         ClientValidation();
+        RawPduTests.Run();
         SerialRoundTrip(false);
         SerialRoundTrip(false, true);
         SerialRoundTrip(true);
@@ -268,12 +269,16 @@ internal static class Program
         FrameContext context;
         foreach (RtuReceiveMode mode in new[] { RtuReceiveMode.RequestLength, RtuReceiveMode.ResponseLength })
         {
-            foreach (byte function in new byte[] { 1, 2, 3, 4, 5, 6, 15, 16 })
+            foreach (byte function in mode == RtuReceiveMode.RequestLength ?
+                new byte[] { 1, 2, 3, 4, 5, 6, 7, 15, 16 } :
+                new byte[] { 1, 2, 3, 4, 5, 6, 15, 16 })
             {
                 var channel = new MemoryChannel { MaxRead = 1 };
                 var transport = new RtuTransport(channel, 9600, mode);
                 int size = mode == RtuReceiveMode.RequestLength && function >= 15 ||
                     mode == RtuReceiveMode.ResponseLength && function <= 4 ? 252 : 5;
+                if (function == 7)
+                    size = 1;
                 var pdu = new byte[size];
                 pdu[0] = function;
                 if (size == 252)
@@ -350,6 +355,29 @@ internal static class Program
         Equal(new byte[] { 0x7F }, output, receiver.Receive(output, out context));
         Throws<ArgumentOutOfRangeException>(() =>
             new RtuTransport(memory, 9600, (RtuReceiveMode)100));
+
+        int statusLength = RtuFrame.Encode(1, new byte[] { 7 }, 1, frame);
+        foreach (int batchSize in new[] { 1, 2, 3 })
+        {
+            batched = new DelayedBatchChannel(frame, statusLength, batchSize, 30);
+            receiver = new RtuTransport(batched, 9600, RtuReceiveMode.RequestLength, timeoutMilliseconds: 2000);
+            Equal(new byte[] { 7 }, output, receiver.Receive(output, out context));
+            Check(context.UnitId == 1 && context.TransactionId == 0, "Split FC7 request context");
+            Check(batched.Delays == (statusLength - 1) / batchSize, "Split FC7 waits for CRC beyond frame gap");
+        }
+
+        var clientChannel = new LinkedChannel();
+        var serverChannel = new LinkedChannel();
+        clientChannel.Peer = serverChannel;
+        serverChannel.Peer = clientChannel;
+        var server = new ModbusServer(1,
+            new RtuTransport(serverChannel, 9600, RtuReceiveMode.RequestLength),
+            new ArrayDataStore(1, 1, 1, 1));
+        clientChannel.OnWrite = server.ProcessNextRequest;
+        var client = new ModbusClient(new RtuTransport(clientChannel, 9600, RtuReceiveMode.ResponseLength));
+        output[0] = 7;
+        Check(client.ExchangePdu(1, output, 1) == 2 && output[0] == 0x87 && output[1] == 1,
+            "FC7 request framing does not enable typed Server support");
     }
 
     // 예상 가능한 잘못된 프레임은 예외 없이 상태로 반환하고 출력 길이·Context를 초기화하며 후속 정상 입력은 처리해야 합니다.
