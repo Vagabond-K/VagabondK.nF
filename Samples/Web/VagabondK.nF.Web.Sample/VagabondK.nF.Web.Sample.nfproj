@@ -14,6 +14,10 @@
     <Reference Include="nanoFramework.System.Security.Cryptography"><HintPath>$(PackagesPath)nanoFramework.System.Security.Cryptography.1.0.43\lib\nanoFramework.System.Security.Cryptography.dll</HintPath><Private>true</Private></Reference>
   </ItemGroup>
   <!-- WebUi 빌드타임 페이지 생성: 셸 + 프로필을 머지/축소/gzip해서 WebPage.g.cs로 만든다. -->
+  <ItemGroup>
+    <None Include="WebUi\shell.html" />
+    <None Include="WebUi\profile.html" />
+  </ItemGroup>
   <PropertyGroup>
     <WebUiShell>$(MSBuildThisFileDirectory)WebUi\shell.html</WebUiShell>
     <WebUiProfile>$(MSBuildThisFileDirectory)WebUi\profile.html</WebUiProfile>
