@@ -1,46 +1,48 @@
 # VagabondK.nF.WebUi
 
-Build-time page composer for nanoGate-style device management UIs. One shared **shell**
-(tabs, login, fetch, dialogs, point editor) plus one small **profile** per gateway are
-merged, validated, minified and embedded as a single C# string resource - no runtime
-reflection, no external assets.
+[Web 그룹](../README.md) · [전체 프로젝트](../../../README.md)
 
-## Files
+nanoGate 스타일 장치 관리 화면을 빌드 타임에 조립하는 페이지 컴포저입니다.
+공용 **셸**(탭·로그인·fetch·다이얼로그·포인트 편집기) 하나와 게이트웨이별 작은 **프로필** 하나를
+머지·검증·축소해 C# 문자열 리소스 하나로 임베드합니다 — 런타임 리플렉션 없음, 외부 자산 없음.
 
-| File | Role |
+장치에서 실행되는 코드는 없으므로 `.nfproj`/DLL이 없습니다. 구성은 MSBuild 태스크(`.targets`)와
+페이지에 주입되는 JS 자산(`Assets/core.js`)뿐이며, 이 자체가 프로젝트의 전부입니다.
+
+## 파일
+
+| 파일 | 역할 |
 |---|---|
-| `Assets/core.js` | Runtime library (injected at `<!--@core-->`): manifest access, form factory, value formatting, micro vDOM. |
-| `VagabondK.nF.WebUi.targets` | MSBuild SDK hook (`WebUiGeneratePage`, runs before `CoreCompile`): merges, validates, minifies, gzips and emits `WebPage.g.cs`. |
+| `Assets/core.js` | 런타임 라이브러리(`<!--@core-->`에 주입): 매니페스트 접근, 폼 팩토리, 값 포맷, 마이크로 vDOM, 컴포넌트 레지스트리 |
+| `VagabondK.nF.WebUi.targets` | MSBuild 훅(`WebUiGeneratePage`, `CoreCompile` 직전 실행): 머지·검증·축소·gzip 후 `WebPage.g.cs` 생성 |
 
-## Markers
+## 마커
 
-`shell.html` must contain, in this order:
+`shell.html`은 다음 순서로 포함해야 합니다:
 `<!--@manifest-->` `<!--@core-->` `<!--@style-->` `<!--@views-->` `<!--@script-->`
 
-`profile.html` must contain: `<!--@manifest-->` `<!--@style-->` `<!--@views-->` `<!--@script-->`
-(`@core` in a profile is an error - the library provides it.)
-A profile may also carry an optional `<!--@slots-->` section (see *Components & slots*).
+`profile.html`은 다음을 포함해야 합니다: `<!--@manifest-->` `<!--@style-->` `<!--@views-->` `<!--@script-->`
+(프로필의 `@core`는 오류입니다 — 라이브러리가 제공합니다.)
+여기에 선택적 `<!--@slots-->` 섹션을 둘 수 있습니다(*컴포넌트와 슬롯* 참조).
 
-## Components & slots
+## 컴포넌트와 슬롯
 
-Two complementary ways for a profile to place its own UI at a fixed shell position,
-Blazor-style, without the shell knowing the profile in advance.
+셸이 프로필을 미리 알지 못한 채로, 프로필이 셸의 고정 위치에 자기 UI를 놓는 두 가지 상호 보완 방식입니다.
+Blazor의 레이아웃/컴포넌트 개념을 정적 페이지에 맞게 축소한 것입니다.
 
-**Runtime function components** (`Assets/core.js`) - a component is a function
-`(props) -> vnode | array | string | null`. `WebUi.h(fn, props)` renders it inline;
-`WebUi.component(name, fn)` registers it by name and `WebUi.slot(name, props)` renders
-whatever is registered. The shell registers a *default* for each named slot it uses, so a
-profile that does nothing keeps working, and a profile that calls `WebUi.component(name, ...)`
-in its `@script` (which runs after the shell) transparently overrides the default.
+**런타임 함수 컴포넌트** (`Assets/core.js`) — 컴포넌트는 `(props) -> vnode | 배열 | 문자열 | null` 함수입니다.
+`WebUi.h(fn, props)`는 인라인으로 렌더하고, `WebUi.component(name, fn)`은 이름으로 등록,
+`WebUi.slot(name, props)`는 등록된 것을 렌더합니다. 셸은 자기가 쓰는 명명 슬롯마다 *기본* 컴포넌트를
+등록하므로 아무것도 하지 않는 프로필은 그대로 동작하고, `@script`(셸 코드보다 나중에 실행)에서
+`WebUi.component(name, ...)`을 호출하는 프로필은 기본을 투명하게 오버라이드합니다.
 
-The shell's cache table uses this: `renderCache` emits
-`WebUi.slot('cacheRow', {p, cc})` for the leading columns and appends the shared
-value/quality cells itself. The default `cacheRow` bridges the legacy `profileCacheRow(p)`
-string-array hook (and the plain-ID fallback), so existing profiles are unaffected; a profile
-can instead return `td` vnodes directly for full markup control.
+셸의 캐시 테이블이 이 방식을 씁니다: `renderCache`가 앞 컬럼을 `WebUi.slot('cacheRow', {p, cc})`로
+렌더하고 공용 값·품질 셀은 셸이 직접 append합니다. 기본 `cacheRow`는 레거시
+`profileCacheRow(p)` 문자열 배열 훅(과 ID 폴백)을 브리지하므로 기존 프로필은 무영향이고,
+프로필이 `td` vnode를 직접 반환해 마크업을 완전히 통제할 수도 있습니다.
 
-**Build-time named slots** (`.targets`) - the shell reserves a position with a whole-line
-token `<!--@slot:NAME-->`. A profile fills it in its `@slots` section:
+**빌드타임 명명 슬롯** (`.targets`) — 셸이 줄 전체 토큰 `<!--@slot:NAME-->`으로 위치를 예약하고,
+프로필이 `@slots` 섹션에서 채웁니다:
 
 ```html
 <!--@slots-->
@@ -48,15 +50,14 @@ token `<!--@slot:NAME-->`. A profile fills it in its `@slots` section:
 <span>이 프로필은 ... 포인트를 바꾼 후에는 재부팅해야 반영됩니다.</span>
 ```
 
-At merge time the generator replaces each shell token with the matching profile block
-(unknown-to-profile tokens are dropped, so a slot is optional per profile). Validation fails
-the build if a profile fills a slot the shell never references. This replaces the old
-`$('pNote').textContent = '...'` JS-injection pattern with static markup - smaller and no
-runtime cost.
+머지 시 생성기가 각 셸 토큰을 대응하는 프로필 블록으로 치환합니다(프로필이 제공하지 않은
+토큰은 삭제되므로 슬롯은 프로필별 선택입니다). 셸이 참조하지 않는 슬롯을 프로필이 채우면
+빌드가 실패합니다. 이는 기존 `$('pNote').textContent = '...'` JS 주입 패턴을 정적 마크업으로
+대체하며, 크기가 작고 런타임 비용이 0입니다.
 
-## Manifest (single source of truth)
+## 매니페스트 (단일 진실 공급원)
 
-The profile's `@manifest` section holds one JSON object:
+프로필의 `@manifest` 섹션은 JSON 객체 하나를 담습니다:
 
 ```json
 {"id":"modbus-to-mqtt","schema":5,
@@ -65,42 +66,41 @@ The profile's `@manifest` section holds one JSON object:
              "addr":{...},"cacheCols":{"head":[...]},"points":false}}
 ```
 
-* `id` - gateway profile string sent to `/api/settings` (`gatewayProfile`).
-* `schema` - integer `ConfigurationSchemaVersion` used by save/backup payloads.
-* `form` - ordered settings fields. `name` must match an input in the profile's `@views`
-  form `#sf`. Optional `fmt`: `ms | pin | secret | bool` drives the change-dialog labels
-  (selects and radio groups resolve their own display text automatically).
-* `features` - whitelist: `points`, `scale`, `name`, `byteOrder`, `access`, `addr`,
-  `cacheCols`. The shell reads them through `WebUi.feat(name, default)`.
+* `id` — `/api/settings`에 `gatewayProfile`로 전송되는 게이트웨이 프로필 문자열.
+* `schema` — 저장·백업 페이로드가 쓰는 정수 `ConfigurationSchemaVersion`.
+* `form` — 순서가 있는 설정 필드. `name`은 프로필 `@views`의 `#sf` 폼 입력과 일치해야 합니다.
+  선택 `fmt`(`ms | pin | secret | bool`)가 변경 다이얼로그 레이블을 결정합니다
+  (select·radio는 표시 텍스트를 자동 해석).
+* `features` — 화이트리스트: `points`, `scale`, `name`, `byteOrder`, `access`, `addr`,
+  `cacheCols`. 셸은 `WebUi.feat(name, 기본값)`으로 읽습니다.
 
-Build-time validation fails the compile on: unknown manifest keys, bad id/schema,
-duplicate or missing form names, form names not present in the views, legacy globals
-(`PROFILE`, `KEYS`, `LABELS`, `profileAddr`, ...) still defined in the profile script,
-and missing required hooks.
+빌드 타임 검증은 다음에서 컴파일을 실패시킵니다: 알 수 없는 매니페스트 키, 잘못된 id/schema,
+form 이름 중복·누락, views에 없는 form 이름, 프로필 스크립트에 남아 있는 레거시 전역
+(`PROFILE`, `KEYS`, `LABELS`, `profileAddr`, ...), 필수 훅 누락, 셸에 없는 슬롯의 프로필 채움.
 
-## Profile hooks
+## 프로필 훅
 
-Required: `profileRender(status)`, `profileTick(uptimeSeconds)`, `checkSettings(values)`,
-`syncForm()`. Optional: `profilePoint()` (new-point defaults), `profileCacheRow(p)`
-(with `features.cacheCols`, bridged by the default `cacheRow` component - a profile may
-instead register `WebUi.component('cacheRow', ...)`), `profileExport/profileImport` are
-provided by the shell, `mapDirty()` for profile-owned editors (e.g. DNP3 range rules).
+필수: `profileRender(status)`, `profileTick(uptimeSeconds)`, `checkSettings(values)`,
+`syncForm()`. 선택: `profilePoint()`(새 포인트 기본값), `profileCacheRow(p)`
+(`features.cacheCols`와 함께. 기본 `cacheRow` 컴포넌트가 브리지 — 대신
+`WebUi.component('cacheRow', ...)`를 등록해도 됨), `mapDirty()`(프로필 소유 편집기,
+예: DNP3 범위 규칙). `profileExport/profileImport`는 셸이 제공합니다.
 
-The shell exposes shared helpers built on the manifest: `formValues()`, `fillForm(s)`,
-`profileDirty()`, `formState(errs)` (errors + change dots + save/undo state),
-`formChanges(v)` (dialog diff lines), `settingsBody(v)` (POST body), `accessList()`,
+셸은 매니페스트 기반 공용 헬퍼를 노출합니다: `formValues()`, `fillForm(s)`,
+`profileDirty()`, `formState(errs)`(오류 + 변경 점 + 저장/취소 상태),
+`formChanges(v)`(다이얼로그 diff 줄), `settingsBody(v)`(POST 본문), `accessList()`,
 `addrCfg(side)`, `feat()`, `MAN`, `PROFILE`, `KEYS`, `LABELS`.
 
-## Micro vDOM
+## 마이크로 vDOM
 
-`WebUi.h(tag, props, ...children)` builds vnode trees (`{key: ...}` for stable diffing,
-`onclick` handlers, `text`, `className`, `hidden`, `style` props supported); when `tag` is a
-function it is treated as a component and called with `props`.
-`WebUi.render(parentEl, vnodes)` patches the DOM in place with minimal mutations.
-`WebUi.component(name, fn)` / `WebUi.slot(name, props)` add the named registry described above.
-Used by the shell for the point and cache tables.
+`WebUi.h(tag, props, ...children)`로 vnode 트리를 만들고(`{key: ...}` 안정적 diff,
+`onclick` 핸들러, `text`·`className`·`hidden`·`style` 프로퍼티 지원), `tag`가 함수면
+컴포넌트로 취급해 `props`로 호출합니다.
+`WebUi.render(parentEl, vnodes)`는 최소 변경으로 DOM을 제자리 패치합니다.
+`WebUi.component(name, fn)` / `WebUi.slot(name, props)`는 위의 명명 레지스트리입니다.
+셸의 포인트·캐시 테이블이 사용합니다.
 
-## Usage (consumer project)
+## 사용법 (소비 프로젝트)
 
 ```xml
 <PropertyGroup>
@@ -111,5 +111,6 @@ Used by the shell for the point and cache tables.
 <Import Project="..\..\VagabondK.nF\Source\Web\VagabondK.nF.WebUi\VagabondK.nF.WebUi.targets" />
 ```
 
-Produces `$(IntermediateOutputPath)WebPage.g.cs` with `WebPage.Html` (the merged page) -
-compile it into the management project like any other source file.
+`$(IntermediateOutputPath)WebPage.g.cs`를 생성합니다. 페이지가 64KB를 넘지 않는 장치를
+배려해 gzip 바이트열을 여러 파트로 나눠 `WebPage.Length` / `PartCount` / `ETag` 상수와
+`WebPage.GetPart(int)` 메서드로 노출하며, 관리 프로젝트의 일반 소스처럼 컴파일됩니다.
