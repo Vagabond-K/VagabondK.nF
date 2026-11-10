@@ -1,0 +1,484 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  VagabondK.nF.WebUi: build-time page composer for nanoFramework management UIs.
+  Imports nothing at compile time of the device app; it only generates a C# class holding the
+  final page as gzipped Base64 parts (so the device never stores the whole page in RAM).
+
+  Usage (in a .nfproj/.csproj, after the language targets):
+    <PropertyGroup>
+      <WebUiShell>path\to\shell.html</WebUiShell>
+      <WebUiProfile>path\to\profile.html</WebUiProfile>
+      <WebUiOutput>$(IntermediateOutputPath)WebPage.g.cs</WebUiOutput>
+      <WebUiNamespace>My.App</WebUiNamespace>   (default: VagabondK.nF.WebUi)
+    </PropertyGroup>
+    <Import Project="...\VagabondK.nF.WebUi.targets" />
+
+  Markers (single-line HTML comments, written below as MARK:NAME):
+    shell.html : MARK-manifest, MARK-core, MARK-style, MARK-views, MARK-script
+    profile.html: MARK-manifest, MARK-style, MARK-views, MARK-script
+    (each MARK-x stands for an HTML comment containing "@x")
+  @manifest holds one compact JSON object:
+    { "id": "profile-id", "schema": 5,
+      "form": [ { "name": "baudRate", "label": "...", "fmt": "ms|pin|secret|bool|text" }, ... ],
+      "features": { "points": true, "scale": true, "name": false, "byteOrder": true,
+                    "access": ["RO","RW"], "addr": { "s": {...}, "t": {...} },
+                    "cacheCols": { "head": ["ID", ...] } } }
+  The task validates the manifest (shape + cross-checks against views/script), injects
+  `const MANIFEST = {...};` and Assets\core.js, then minifies/gzips/hashes the page.
+  Legacy per-profile globals (PROFILE, KEYS, LABELS, formValues, fillForm, profileDirty,
+  profileExport, profileImport, showValue, profileAddr, profileScale, profileAccess,
+  profilePoints, profileName, profileByteOrder, profileCacheCols) are build errors.
+-->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <WebUiCore Condition="'$(WebUiCore)' == ''">$(MSBuildThisFileDirectory)Assets\core.js</WebUiCore>
+    <WebUiNamespace Condition="'$(WebUiNamespace)' == ''">VagabondK.nF.WebUi</WebUiNamespace>
+    <WebUiClassName Condition="'$(WebUiClassName)' == ''">WebPage</WebUiClassName>
+  </PropertyGroup>
+  <UsingTask TaskName="WebUiGeneratePage" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Shell ParameterType="System.String" Required="true" />
+      <Profile ParameterType="System.String" Required="true" />
+      <Core ParameterType="System.String" Required="true" />
+      <Output ParameterType="System.String" Required="true" />
+      <Namespace ParameterType="System.String" />
+      <ClassName ParameterType="System.String" />
+    </ParameterGroup>
+    <Task>
+      <Code Type="Class" Language="cs"><![CDATA[
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.IO.Compression;
+using System.Text;
+using System.Text.RegularExpressions;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Utilities;
+
+public class WebUiGeneratePage : Task
+{
+    [Required] public string Shell { get; set; }
+    [Required] public string Profile { get; set; }
+    [Required] public string Core { get; set; }
+    [Required] public string Output { get; set; }
+    public string Namespace { get; set; }
+    public string ClassName { get; set; }
+
+    static readonly string[] Markers = { "<!--@manifest-->", "<!--@core-->", "<!--@style-->", "<!--@views-->", "<!--@script-->" };
+    static readonly string[] Legacy = { "PROFILE", "KEYS", "LABELS", "formValues", "fillForm", "profileDirty",
+        "profileExport", "profileImport", "showValue", "profileAddr", "profileScale", "profileAccess",
+        "profilePoints", "profileName", "profileByteOrder", "profileCacheCols" };
+    static readonly string[] FeatureNames = { "points", "scale", "name", "byteOrder", "access", "addr", "cacheCols" };
+    static readonly string[] Fmts = { "ms", "pin", "secret", "bool", "text" };
+
+    public override bool Execute()
+    {
+        try { Run(); }
+        catch (Exception e) { Log.LogError(null, null, null, Profile, 0, 0, 0, 0, "WebUi: " + e.Message); }
+        return !Log.HasLoggedErrors;
+    }
+
+    void Fail(string file, string message) { Log.LogError(null, null, null, file, 0, 0, 0, 0, message); }
+    static string MarkerOf(string raw)
+    {
+        string line = raw.Trim();
+        for (int i = 0; i < Markers.Length; i++) if (Markers[i] == line) return line;
+        return null;
+    }
+
+    void Run()
+    {
+        string[] shellLines = File.ReadAllLines(Shell, Encoding.UTF8);
+        var shellAt = new Dictionary<string, int>();
+        for (int i = 0; i < shellLines.Length; i++)
+        {
+            string m = MarkerOf(shellLines[i]);
+            if (m == null) continue;
+            if (shellAt.ContainsKey(m)) { Fail(Shell, "duplicate marker " + m); return; }
+            shellAt[m] = i;
+        }
+        foreach (string m in Markers)
+            if (!shellAt.ContainsKey(m)) { Fail(Shell, "missing marker " + m); return; }
+        if (shellAt["<!--@core-->"] < shellAt["<!--@manifest-->"]) { Fail(Shell, "@core marker must come after @manifest"); return; }
+
+        var sections = new Dictionary<string, List<string>>();
+        string current = null;
+        foreach (string raw in File.ReadAllLines(Profile, Encoding.UTF8))
+        {
+            string m = MarkerOf(raw);
+            if (m != null)
+            {
+                if (m == "<!--@core-->") { Fail(Profile, "@core is provided by the library; remove it from the profile"); return; }
+                if (sections.ContainsKey(m)) { Fail(Profile, "duplicate marker " + m); return; }
+                current = m;
+                sections[m] = new List<string>();
+                continue;
+            }
+            if (current == null) { if (raw.Trim().Length > 0) { Fail(Profile, "content before the first marker"); return; } continue; }
+            sections[current].Add(raw);
+        }
+        foreach (string m in Markers)
+            if (m != "<!--@core-->" && !sections.ContainsKey(m)) { Fail(Profile, "missing marker " + m); return; }
+
+        var parts = new List<string>();
+        foreach (string raw in sections["<!--@manifest-->"]) { string t = raw.Trim(); if (t.Length > 0) parts.Add(t); }
+        object manifest;
+        try { manifest = ParseJson(string.Join(" ", parts.ToArray())); }
+        catch (Exception e) { Fail(Profile, "manifest JSON: " + e.Message); return; }
+        if (!ValidateManifest(manifest)) return;
+
+        string views = string.Join("\n", sections["<!--@views-->"].ToArray());
+        string script = string.Join("\n", sections["<!--@script-->"].ToArray());
+        if (!ValidateCross(manifest, views, script)) return;
+
+        var merged = new List<string>();
+        foreach (string raw in shellLines)
+        {
+            string m = MarkerOf(raw);
+            if (m == null) { merged.Add(raw); continue; }
+            if (m == "<!--@manifest-->") merged.Add("const MANIFEST = " + JsonOut(manifest) + ";");
+            else if (m == "<!--@core-->") merged.AddRange(File.ReadAllLines(Core, Encoding.UTF8));
+            else merged.AddRange(sections[m]);
+        }
+
+        var page = new StringBuilder();
+        foreach (string raw in merged)
+        {
+            string line = raw.Trim();
+            if (line.Length == 0 || line.StartsWith("//") || (line.StartsWith("<!--") && line.EndsWith("-->"))) continue;
+            if (page.Length > 0) page.Append('\n');
+            page.Append(line);
+        }
+
+        byte[] html = new UTF8Encoding(false).GetBytes(page.ToString());
+        byte[] gzip;
+        using (var memory = new MemoryStream())
+        {
+            using (var compressor = new GZipStream(memory, CompressionLevel.Optimal, true))
+                compressor.Write(html, 0, html.Length);
+            gzip = memory.ToArray();
+        }
+        uint hash = 2166136261;
+        unchecked { foreach (byte value in gzip) { hash ^= value; hash *= 16777619; } }
+
+        const int PartBytes = 768;
+        int partCount = (gzip.Length + PartBytes - 1) / PartBytes;
+        string ns = string.IsNullOrEmpty(Namespace) ? "VagabondK.nF.WebUi" : Namespace;
+        string cls = string.IsNullOrEmpty(ClassName) ? "WebPage" : ClassName;
+        var code = new StringBuilder();
+        code.Append("// <auto-generated>\n// Generated by VagabondK.nF.WebUi.targets. Do not edit.\n// </auto-generated>\n");
+        code.Append("namespace ").Append(ns).Append("\n{\n    internal static class ").Append(cls).Append("\n    {\n");
+        code.Append("        internal const int Length = ").Append(gzip.Length).Append(";\n");
+        code.Append("        internal const int PartCount = ").Append(partCount).Append(";\n");
+        code.Append("        internal const string ETag = \"\\\"").Append(hash.ToString("x8")).Append("\\\"\";\n\n");
+        code.Append("        internal static string GetPart(int index)\n        {\n            switch (index)\n            {\n");
+        for (int i = 0; i < partCount; i++)
+        {
+            int offset = i * PartBytes;
+            code.Append("                case ").Append(i).Append(": return \"")
+                .Append(Convert.ToBase64String(gzip, offset, Math.Min(PartBytes, gzip.Length - offset))).Append("\";\n");
+        }
+        code.Append("                default: return string.Empty;\n            }\n        }\n    }\n}\n");
+
+        string text = code.ToString();
+        if (!File.Exists(Output) || File.ReadAllText(Output) != text)
+            File.WriteAllText(Output, text, new UTF8Encoding(true));
+        Log.LogMessage(MessageImportance.High, "WebUi page (" + ((string)((Dictionary<string, object>)manifest)["id"]) + "): " +
+            html.Length + " B minified, " + gzip.Length + " B gzip, " + partCount + " parts.");
+    }
+
+    // ---------- manifest validation ----------
+    bool ValidateManifest(object o)
+    {
+        var m = o as Dictionary<string, object>;
+        if (m == null) { Fail(Profile, "manifest must be a JSON object"); return false; }
+        foreach (string k in m.Keys)
+            if (k != "id" && k != "schema" && k != "form" && k != "features") { Fail(Profile, "unknown manifest key \"" + k + "\""); return false; }
+        string id;
+        if (!m.ContainsKey("id") || (id = m["id"] as string) == null || !Regex.IsMatch(id, "^[a-z0-9][a-z0-9-]*$"))
+        { Fail(Profile, "manifest.id must be a lowercase id (^[a-z0-9][a-z0-9-]*$)"); return false; }
+        double schema;
+        if (!m.ContainsKey("schema") || !(m["schema"] is double) || (schema = (double)m["schema"]) < 1 || schema != Math.Floor(schema))
+        { Fail(Profile, "manifest.schema must be an integer >= 1 (ConfigurationSchemaVersion)"); return false; }
+        var form = m.ContainsKey("form") ? m["form"] as List<object> : null;
+        if (form == null || form.Count == 0) { Fail(Profile, "manifest.form must be a non-empty array"); return false; }
+        var names = new HashSet<string>();
+        foreach (object item in form)
+        {
+            var f = item as Dictionary<string, object>;
+            if (f == null) { Fail(Profile, "form entry must be an object"); return false; }
+            foreach (string k in f.Keys)
+                if (k != "name" && k != "label" && k != "fmt") { Fail(Profile, "unknown form key \"" + k + "\""); return false; }
+            string name = f.ContainsKey("name") ? f["name"] as string : null;
+            if (name == null || !Regex.IsMatch(name, "^[A-Za-z][A-Za-z0-9_]*$")) { Fail(Profile, "form.name invalid: " + JsonOut(f.ContainsKey("name") ? f["name"] : null)); return false; }
+            if (!names.Add(name)) { Fail(Profile, "duplicate form name \"" + name + "\""); return false; }
+            string label = f.ContainsKey("label") ? f["label"] as string : null;
+            if (string.IsNullOrEmpty(label)) { Fail(Profile, "form \"" + name + "\" needs a non-empty label"); return false; }
+            if (f.ContainsKey("fmt"))
+            {
+                string fmt = f["fmt"] as string;
+                bool ok = false;
+                foreach (string x in Fmts) if (x == fmt) ok = true;
+                if (!ok) { Fail(Profile, "form \"" + name + "\" fmt must be one of ms/pin/secret/bool/text"); return false; }
+            }
+        }
+        if (m.ContainsKey("features"))
+        {
+            var feat = m["features"] as Dictionary<string, object>;
+            if (feat == null) { Fail(Profile, "manifest.features must be an object"); return false; }
+            foreach (string k in feat.Keys)
+            {
+                bool known = false;
+                foreach (string x in FeatureNames) if (x == k) known = true;
+                if (!known) { Fail(Profile, "unknown feature \"" + k + "\" (allowed: " + string.Join(",", FeatureNames) + ")"); return false; }
+            }
+            foreach (string flag in new string[] { "points", "scale", "name", "byteOrder" })
+                if (feat.ContainsKey(flag) && !(feat[flag] is bool)) { Fail(Profile, "feature \"" + flag + "\" must be a boolean"); return false; }
+            if (feat.ContainsKey("access"))
+            {
+                var acc = feat["access"] as List<object>;
+                if (acc == null || acc.Count == 0) { Fail(Profile, "feature access must be a non-empty array"); return false; }
+                foreach (object a in acc)
+                {
+                    string s = a as string;
+                    if (s != "RO" && s != "WO" && s != "RW") { Fail(Profile, "feature access values must be RO/WO/RW"); return false; }
+                }
+            }
+            if (feat.ContainsKey("addr"))
+            {
+                var addr = feat["addr"] as Dictionary<string, object>;
+                if (addr == null) { Fail(Profile, "feature addr must be an object"); return false; }
+                foreach (string k in addr.Keys)
+                    if (k != "s" && k != "t") { Fail(Profile, "feature addr sides must be s/t"); return false; }
+                foreach (string side in new string[] { "s", "t" })
+                {
+                    if (!addr.ContainsKey(side)) continue;
+                    var sd = addr[side] as Dictionary<string, object>;
+                    if (sd == null) { Fail(Profile, "feature addr." + side + " must be an object"); return false; }
+                    foreach (string k in sd.Keys)
+                        if (k != "show" && k != "spaces" && k != "d" && k != "a") { Fail(Profile, "unknown addr." + side + " key \"" + k + "\""); return false; }
+                    if (sd.ContainsKey("show"))
+                    {
+                        var show = sd["show"] as List<object>;
+                        if (show == null) { Fail(Profile, "addr." + side + ".show must be an array"); return false; }
+                        foreach (object x in show)
+                        {
+                            string s = x as string;
+                            if (s != "p" && s != "d" && s != "s" && s != "a" && s != "t") { Fail(Profile, "addr." + side + ".show values must be p/d/s/a/t"); return false; }
+                        }
+                    }
+                    if (sd.ContainsKey("spaces"))
+                    {
+                        var sp = sd["spaces"] as List<object>;
+                        if (sp == null || sp.Count == 0) { Fail(Profile, "addr." + side + ".spaces must be a non-empty array"); return false; }
+                        foreach (object x in sp) if (!(x is string)) { Fail(Profile, "addr." + side + ".spaces must be strings"); return false; }
+                    }
+                    foreach (string rng in new string[] { "d", "a" })
+                    {
+                        if (!sd.ContainsKey(rng)) continue;
+                        var rd = sd[rng] as Dictionary<string, object>;
+                        if (rd == null) { Fail(Profile, "addr." + side + "." + rng + " must be an object"); return false; }
+                        foreach (string k in rd.Keys)
+                            if (k != "min" && k != "max" && k != "label") { Fail(Profile, "unknown addr." + side + "." + rng + " key \"" + k + "\""); return false; }
+                        double dummy;
+                        if (!rd.ContainsKey("min") || !(rd["min"] is double) || !rd.ContainsKey("max") || !(rd["max"] is double))
+                        { Fail(Profile, "addr." + side + "." + rng + " needs numeric min/max"); return false; }
+                        dummy = (double)rd["min"] + (double)rd["max"];
+                        if (dummy >= 0 || dummy < 0) { }
+                    }
+                }
+            }
+            if (feat.ContainsKey("cacheCols"))
+            {
+                var cc = feat["cacheCols"] as Dictionary<string, object>;
+                if (cc == null) { Fail(Profile, "feature cacheCols must be an object"); return false; }
+                foreach (string k in cc.Keys)
+                    if (k != "head") { Fail(Profile, "cacheCols may only hold \"head\"; the row function lives in profileCacheRow"); return false; }
+                var head = cc.ContainsKey("head") ? cc["head"] as List<object> : null;
+                if (head == null || head.Count == 0) { Fail(Profile, "cacheCols.head must be a non-empty array"); return false; }
+                foreach (object x in head) if (!(x is string)) { Fail(Profile, "cacheCols.head must be strings"); return false; }
+            }
+        }
+        return true;
+    }
+
+    bool HasDef(string script, string name)
+    {
+        return Regex.IsMatch(script, @"(^|[^A-Za-z0-9_$.])(function|const|let|var)\s+" + name + @"(\s|=|\()");
+    }
+
+    bool ValidateCross(object manifest, string views, string script)
+    {
+        var m = (Dictionary<string, object>)manifest;
+        foreach (string name in Legacy)
+            if (HasDef(script, name)) { Fail(Profile, "\"" + name + "\" is now provided by the shell/WebUi; remove it from the profile"); return false; }
+        foreach (string hook in new string[] { "profileRender", "profileTick", "checkSettings", "syncForm" })
+            if (!HasDef(script, hook)) { Fail(Profile, "profile script must define " + hook); return false; }
+        var feat = m.ContainsKey("features") ? m["features"] as Dictionary<string, object> : null;
+        bool points = feat == null || !feat.ContainsKey("points") || (bool)feat["points"];
+        if (points && !HasDef(script, "profilePoint")) { Fail(Profile, "profile script must define profilePoint (or set features.points=false)"); return false; }
+        if (feat != null && feat.ContainsKey("cacheCols") && !HasDef(script, "profileCacheRow"))
+        { Fail(Profile, "features.cacheCols requires a profileCacheRow(p) function in the profile script"); return false; }
+        var form = (List<object>)m["form"];
+        foreach (object item in form)
+        {
+            string name = (string)((Dictionary<string, object>)item)["name"];
+            if (views.IndexOf("name=\"" + name + "\"", StringComparison.Ordinal) < 0)
+            { Fail(Profile, "form field \"" + name + "\" has no matching name=\"" + name + "\" control in the @views section"); return false; }
+        }
+        return true;
+    }
+
+    // ---------- minimal JSON ----------
+    string json;
+    int pos;
+    object ParseJson(string text)
+    {
+        json = text; pos = 0;
+        object v = ParseValue();
+        SkipWs();
+        if (pos != json.Length) throw new Exception("trailing characters at offset " + pos);
+        return v;
+    }
+    void SkipWs() { while (pos < json.Length && char.IsWhiteSpace(json[pos])) pos++; }
+    char Peek() { SkipWs(); return pos < json.Length ? json[pos] : '\0'; }
+    char Take() { SkipWs(); if (pos >= json.Length) throw new Exception("unexpected end of JSON"); return json[pos++]; }
+    object ParseValue()
+    {
+        char c = Take();
+        if (c == '{')
+        {
+            var d = new Dictionary<string, object>();
+            SkipWs();
+            if (pos < json.Length && json[pos] == '}') { pos++; return d; }
+            while (true)
+            {
+                if (Peek() != '"') throw new Exception("property name expected at offset " + pos);
+                string k = ParseString();
+                if (Take() != ':') throw new Exception("':' expected after \"" + k + "\"");
+                d[k] = ParseValue();
+                char n = Take();
+                if (n == ',') continue;
+                if (n == '}') return d;
+                throw new Exception("',' or '}' expected at offset " + (pos - 1));
+            }
+        }
+        if (c == '[')
+        {
+            var l = new List<object>();
+            SkipWs();
+            if (pos < json.Length && json[pos] == ']') { pos++; return l; }
+            while (true)
+            {
+                l.Add(ParseValue());
+                char n = Take();
+                if (n == ',') continue;
+                if (n == ']') return l;
+                throw new Exception("',' or ']' expected at offset " + (pos - 1));
+            }
+        }
+        if (c == '"') { pos--; return ParseString(); }
+        if (c == 't') { Expect("true"); return true; }
+        if (c == 'f') { Expect("false"); return false; }
+        if (c == 'n') { Expect("null"); return null; }
+        int start = pos - 1;
+        while (pos < json.Length && "+-.eE0123456789".IndexOf(json[pos]) >= 0) pos++;
+        return double.Parse(json.Substring(start, pos - start), CultureInfo.InvariantCulture);
+    }
+    void Expect(string word)
+    {
+        pos--;
+        if (json.Length - pos < word.Length || json.Substring(pos, word.Length) != word) throw new Exception(word + " expected at offset " + pos);
+        pos += word.Length;
+    }
+    string ParseString()
+    {
+        var sb = new StringBuilder();
+        SkipWs();
+        if (pos >= json.Length || json[pos] != '"') throw new Exception("string expected at offset " + pos);
+        pos++;
+        while (true)
+        {
+            if (pos >= json.Length) throw new Exception("unterminated string");
+            char c = json[pos++];
+            if (c == '"') return sb.ToString();
+            if (c != '\\') { sb.Append(c); continue; }
+            if (pos >= json.Length) throw new Exception("unterminated escape");
+            char e = json[pos++];
+            if (e == 'u')
+            {
+                if (pos + 4 > json.Length) throw new Exception("bad \\u escape");
+                sb.Append((char)int.Parse(json.Substring(pos, 4), NumberStyles.HexNumber, CultureInfo.InvariantCulture));
+                pos += 4;
+            }
+            else if (e == 'n') sb.Append('\n');
+            else if (e == 'r') sb.Append('\r');
+            else if (e == 't') sb.Append('\t');
+            else if (e == 'b') sb.Append('\b');
+            else if (e == 'f') sb.Append('\f');
+            else sb.Append(e);
+        }
+    }
+    static string JsonOut(object v)
+    {
+        if (v == null) return "null";
+        var d = v as Dictionary<string, object>;
+        if (d != null)
+        {
+            var sb = new StringBuilder("{");
+            bool first = true;
+            foreach (KeyValuePair<string, object> kv in d)
+            {
+                if (!first) sb.Append(',');
+                first = false;
+                sb.Append(Quote(kv.Key)).Append(':').Append(JsonOut(kv.Value));
+            }
+            return sb.Append('}').ToString();
+        }
+        var l = v as List<object>;
+        if (l != null)
+        {
+            var sb = new StringBuilder("[");
+            for (int i = 0; i < l.Count; i++) { if (i > 0) sb.Append(','); sb.Append(JsonOut(l[i])); }
+            return sb.Append(']').ToString();
+        }
+        if (v is bool) return ((bool)v) ? "true" : "false";
+        if (v is double)
+        {
+            double x = (double)v;
+            if (x == Math.Floor(x) && Math.Abs(x) < 1e15) return ((long)x).ToString(CultureInfo.InvariantCulture);
+            return x.ToString("R", CultureInfo.InvariantCulture);
+        }
+        return Quote((string)v);
+    }
+    static string Quote(string s)
+    {
+        var sb = new StringBuilder("\"");
+        foreach (char c in s)
+        {
+            if (c == '"' || c == '\\') { sb.Append('\\').Append(c); }
+            else if (c == '\n') sb.Append("\\n");
+            else if (c == '\r') sb.Append("\\r");
+            else if (c == '\t') sb.Append("\\t");
+            else if (c < ' ') sb.Append("\\u").Append(((int)c).ToString("x4", CultureInfo.InvariantCulture));
+            else sb.Append(c);
+        }
+        return sb.Append('"').ToString();
+    }
+}
+]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="WebUiGeneratePage" Inputs="$(WebUiShell);$(WebUiProfile);$(WebUiCore);$(MSBuildThisFileFullPath)" Outputs="$(WebUiOutput)">
+    <MakeDir Directories="$(MSBuildProjectDirectory)\$(IntermediateOutputPath)" />
+    <WebUiGeneratePage Shell="$(WebUiShell)" Profile="$(WebUiProfile)" Core="$(WebUiCore)" Output="$(WebUiOutput)" Namespace="$(WebUiNamespace)" ClassName="$(WebUiClassName)" />
+    <Touch Files="$(WebUiOutput)" />
+  </Target>
+  <Target Name="WebUiIncludePage" BeforeTargets="CoreCompile" DependsOnTargets="WebUiGeneratePage">
+    <ItemGroup>
+      <Compile Include="$(WebUiOutput)" />
+      <FileWrites Include="$(WebUiOutput)" />
+    </ItemGroup>
+  </Target>
+</Project>
