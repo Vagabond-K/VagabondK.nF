@@ -43,8 +43,11 @@ WebUi\components\
 ```
 
 폴더명과 파일명이 같아야 합니다(`note/note.html`). 기본 경로는 프로젝트의 `WebUi\components`이며
-`$(WebUiComponents)`로 바꿀 수 있습니다. 컴포넌트는 셸·프로필과 함께 `AdditionalFiles`로 전달되어
-파일 수정 시 증분 재생성됩니다. 미지정 이름이나 순환 참조는 WUI001 빌드 오류가 됩니다.
+`$(WebUiComponents)`로 바꿀 수 있습니다. 세미콜론으로 여러 루트를 지정하면 전부 훑습니다
+(예: 공용 셸을 쓰는 프로젝트군에서 `$(MSBuildProjectDirectory)\WebUi\components;$(공유)\WebUi\components`).
+컴포넌트 HTML 안의 `<!--@slot:name-->` 토큰도 셸과 똑같이 프로필 슬롯 내용으로 채워집니다.
+컴포넌트는 셸·프로필과 함께 `AdditionalFiles`로 전달되어 파일 수정 시 증분 재생성됩니다.
+미지정 이름이나 순환 참조는 WUI001 빌드 오류가 됩니다.
 
 ## 컴포넌트와 슬롯
 

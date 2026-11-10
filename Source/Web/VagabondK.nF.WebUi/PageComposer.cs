@@ -39,7 +39,8 @@ namespace VagabondK.nF.WebUi
         string componentsRoot;
         Dictionary<string, ComponentFiles> components;
         List<string> useOrder;
-        HashSet<string> useDone, useVisiting;
+        HashSet<string> useDone, useVisiting, compSlots;
+        Dictionary<string, List<string>> slotMap;
         static readonly string[] Legacy = { "PROFILE", "KEYS", "LABELS", "formValues", "fillForm", "profileDirty",
             "profileExport", "profileImport", "showValue", "profileAddr", "profileScale", "profileAccess",
             "profilePoints", "profileName", "profileByteOrder", "profileCacheCols" };
@@ -85,8 +86,9 @@ namespace VagabondK.nF.WebUi
         {
             res = new Result();
             var result = res;
-            this.componentsRoot = componentsRoot ?? string.Empty;
+            this.componentsRoot = (componentsRoot ?? string.Empty).Replace('|', ';');
             this.components = components ?? new Dictionary<string, ComponentFiles>(StringComparer.Ordinal);
+            this.compSlots = new HashSet<string>(StringComparer.Ordinal);
             string[] shellLines = ReadLines(shellText);
             var shellAt = new Dictionary<string, int>();
             var shellSlots = new HashSet<string>();
@@ -139,7 +141,7 @@ namespace VagabondK.nF.WebUi
             if (!ValidateManifest(manifest, profilePath)) return result;
 
             // Parse the profile @slots section into name -> markup lines; validate against shell positions.
-            var slotMap = new Dictionary<string, List<string>>();
+            slotMap = new Dictionary<string, List<string>>();
             string curSlot = null;
             foreach (string raw in slotSection)
             {
@@ -154,8 +156,7 @@ namespace VagabondK.nF.WebUi
                 if (curSlot == null) { if (raw.Trim().Length > 0) { Fail(profilePath, "slot content before the first @slot:NAME token in @slots"); return result; } continue; }
                 slotMap[curSlot].Add(raw);
             }
-            foreach (string k in slotMap.Keys)
-                if (!shellSlots.Contains(k)) { Fail(profilePath, "profile fills slot \"" + k + "\" but the shell has no <!--@slot:" + k + "--> position for it"); return result; }
+            // 슬롯 위치 검증은 아래 @use 확장 루프 이후에 수행한다(컴포넌트 안의 슬롯 토큰도 위치가 될 수 있으므로).
 
             // @use 컴포넌트 발견·확장: useOrder는 서브→부모 순서(자식이 먼저 나열되어 CSS 우선순위가 올바르게 겹침).
             useOrder = new List<string>();
@@ -171,10 +172,12 @@ namespace VagabondK.nF.WebUi
             foreach (string name in useOrder)
             {
                 ComponentFiles c = components[name];
-                expanded[name] = ExpandTokens(c.Html, expanded).ToArray();
+                expanded[name] = ExpandComponent(c.Html, expanded);
                 compCss.AddRange(c.Css);
                 compJs.AddRange(c.Js);
             }
+            foreach (string k in slotMap.Keys)
+                if (!shellSlots.Contains(k) && !compSlots.Contains(k)) { Fail(profilePath, "profile fills slot \"" + k + "\" but neither the shell nor a @use component has a <!--@slot:" + k + "--> position for it"); return result; }
 
             var allViews = new List<string>(ExpandTokens(sections["<!--@views-->"], expanded));
             var allScript = new List<string>(sections["<!--@script-->"]);
@@ -289,10 +292,38 @@ namespace VagabondK.nF.WebUi
             foreach (string raw in lines)
             {
                 Match um = UseToken.Match(raw.Trim());
-                if (um.Success) outLines.AddRange(expanded[um.Groups[1].Value]);
+                string[] e;
+                if (um.Success && expanded.TryGetValue(um.Groups[1].Value, out e)) outLines.AddRange(e);
                 else outLines.Add(raw);
             }
             return outLines;
+        }
+
+        // 컴포넌트 html 한 벌을 최종 줄로 확장: @use는 expanded에서, @slot은 slotMap에서 대체(없으면 빈 줄 제거처럼 사라짐).
+        string[] ExpandComponent(string[] html, Dictionary<string, string[]> expanded)
+        {
+            var outLines = new List<string>();
+            foreach (string raw in html)
+            {
+                string t = raw.Trim();
+                Match um = UseToken.Match(t);
+                if (um.Success)
+                {
+                    string[] e;
+                    if (expanded.TryGetValue(um.Groups[1].Value, out e)) outLines.AddRange(e);
+                    continue;
+                }
+                Match sm = SlotToken.Match(t);
+                if (sm.Success)
+                {
+                    compSlots.Add(sm.Groups[1].Value);
+                    List<string> body;
+                    if (slotMap.TryGetValue(sm.Groups[1].Value, out body)) outLines.AddRange(ExpandTokens(body, expanded));
+                    continue;
+                }
+                outLines.Add(raw);
+            }
+            return outLines.ToArray();
         }
 
         // ---------- manifest validation ----------

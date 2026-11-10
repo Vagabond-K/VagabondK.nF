@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
+using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -53,7 +54,9 @@ namespace VagabondK.nF.WebUi
 
             string shellText = null, profileText = null, coreText = null;
             string shellResolved = Resolve(shellPath), profileResolved = Resolve(profilePath), coreResolved = Resolve(corePath);
-            string componentsRoot = Resolve(opts.components);
+            // WebUiComponents는 세미콜론(또는 globalconfig용 '|' 인코딩)으로 여러 루트(프로젝트 로컬 + 공유 폴더)를 지정할 수 있다.
+            string[] compRoots = opts.components.Split(new[] { ';', '|' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(Resolve).Where(r => r.Length > 0).ToArray();
             var componentFiles = new Dictionary<string, PageComposer.ComponentFiles>(StringComparer.OrdinalIgnoreCase);
             foreach (var f in files)
             {
@@ -61,10 +64,9 @@ namespace VagabondK.nF.WebUi
                 if (p == shellResolved) shellText = f.text;
                 else if (p == profileResolved) profileText = f.text;
                 else if (p == coreResolved) coreText = f.text;
-                else if (componentsRoot.Length > 0 && IsUnder(p, componentsRoot))
+                else if (compRoots.Length > 0 && IsUnderAny(p, compRoots, out string rel))
                 {
                     // components\<name>\<name>.{html,js,css}: 루트 바로 아래 이름 폴더 하나, 파일명은 폴더명과 같아야 함.
-                    string rel = p.Substring(componentsRoot.Length + 1);
                     string[] seg = rel.Split(Path.DirectorySeparatorChar);
                     if (seg.Length != 2) continue;
                     string name = seg[0];
@@ -106,6 +108,14 @@ namespace VagabondK.nF.WebUi
         {
             return path.Length > root.Length && path[root.Length] == Path.DirectorySeparatorChar
                 && path.StartsWith(root, Path.DirectorySeparatorChar == '/' ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase);
+        }
+
+        static bool IsUnderAny(string path, string[] roots, out string rel)
+        {
+            foreach (string root in roots)
+                if (IsUnder(path, root)) { rel = path.Substring(root.Length + 1); return true; }
+            rel = null;
+            return false;
         }
 
         static string Resolve(string path)
