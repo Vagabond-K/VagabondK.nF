@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup><ProjectGuid>{C8C1DACD-56A6-427D-BE40-1E4163447C99}</ProjectGuid></PropertyGroup>
+  <Import Project="..\..\..\Build\Library.props" />
+  <Import Project="..\..\..\Build\Network.props" />
+  <PropertyGroup><OutputType>Exe</OutputType><StartupObject>VagabondK.nF.Web.Sample.Program</StartupObject></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Source\Web\VagabondK.nF.WebAuth\VagabondK.nF.WebAuth.nfproj" />
+    <Reference Include="mscorlib"><HintPath>$(PackagesPath)nanoFramework.CoreLibrary.1.17.11\lib\mscorlib.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="System.IO.FileSystem"><HintPath>$(PackagesPath)nanoFramework.System.IO.FileSystem.1.1.96\lib\System.IO.FileSystem.dll</HintPath><Private>true</Private></Reference>
+<Reference Include="System.Collections"><HintPath>$(PackagesPath)nanoFramework.System.Collections.1.5.75\lib\nanoFramework.System.Collections.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="System.Net.Http"><HintPath>$(PackagesPath)nanoFramework.System.Net.Http.Server.1.5.214\lib\System.Net.Http.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="nanoFramework.WebServer"><HintPath>$(PackagesPath)nanoFramework.WebServer.1.2.162\lib\nanoFramework.WebServer.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="nanoFramework.System.Security.Cryptography"><HintPath>$(PackagesPath)nanoFramework.System.Security.Cryptography.1.0.43\lib\nanoFramework.System.Security.Cryptography.dll</HintPath><Private>true</Private></Reference>
+  </ItemGroup>
+  <!-- WebUi 빌드타임 페이지 생성: 셸 + 프로필을 머지/축소/gzip해서 WebPage.g.cs로 만든다. -->
+  <PropertyGroup>
+    <WebUiShell>$(MSBuildThisFileDirectory)WebUi\shell.html</WebUiShell>
+    <WebUiProfile>$(MSBuildThisFileDirectory)WebUi\profile.html</WebUiProfile>
+    <WebUiOutput>$(MSBuildProjectDirectory)\$(IntermediateOutputPath)WebPage.g.cs</WebUiOutput>
+    <WebUiNamespace>VagabondK.nF.Web.Sample</WebUiNamespace>
+    <WebUiClassName>WebPage</WebUiClassName>
+  </PropertyGroup>
+  <Import Project="..\..\..\Source\Web\VagabondK.nF.WebUi\VagabondK.nF.WebUi.targets" />
+  <Import Project="..\..\..\Build\Library.targets" />
+</Project>
+
+

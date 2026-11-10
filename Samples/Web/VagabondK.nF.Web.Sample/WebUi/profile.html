@@ -1,0 +1,46 @@
+<!--@manifest-->
+{"id":"web-sample","schema":1,
+ "form":[{"name":"deviceName","label":"장치 이름","fmt":"text"},
+         {"name":"pollMs","label":"폴링 주기","fmt":"ms"},
+         {"name":"debug","label":"진단 모드","fmt":"bool"}],
+ "features":{"points":false}}
+<!--@style-->
+#pv{border-top:1px solid #334155;margin-top:12px;padding-top:4px}
+.age{color:var(--mut);font-size:12px}
+<!--@views-->
+<section id="v-settings" hidden>
+<h1>설정</h1>
+<form id="sf" autocomplete="off">
+<label class="row"><span>장치 이름</span><input name="deviceName" maxlength="30"></label>
+<label class="row"><span>폴링 주기</span><input name="pollMs" inputmode="numeric"></label>
+<label class="row"><span>진단 모드</span><select name="debug"><option value="0">아니요</option><option value="1">예</option></select></label>
+</form>
+<p>
+<button id="sfSave" class="act" disabled>저장</button>
+<button id="sfUndo" class="gh" disabled>되돌리기</button>
+<span id="sfState" class="msg"></span>
+</p>
+</section>
+<!--@script-->
+'use strict';
+function profileRender(s) {
+WebUi.render($('pv'), [
+WebUi.h('h2', null, '프로필 패널 · ' + MAN.id),
+WebUi.h('dl', null,
+WebUi.h('dt', null, '장치 이름'), WebUi.h('dd', {key: 'dn', text: s.deviceName}),
+WebUi.h('dt', null, '폴링 주기'), WebUi.h('dd', {key: 'pm', text: WebUi.showValue($('sf'), 'pollMs', s.pollMs)}),
+WebUi.h('dt', null, '진단 모드'), WebUi.h('dd', {key: 'db', text: s.debug === '1' ? '켜짐 (디버그 출력에 기록)' : '꺼짐'})),
+WebUi.h('p', {key: 'age', className: 'age', text: ''})
+]);
+}
+function profileTick(uptime) {
+const a = $('pv').querySelector('.age');
+if (a) a.textContent = '가동 ' + Math.floor(uptime) + '초 · tick은 매초 실행';
+}
+function checkSettings(v) {
+const e = {};
+if (!v.deviceName || v.deviceName.length > 30) e.deviceName = '1~30자로 입력하세요.';
+if (!/^\d+$/.test(v.pollMs) || +v.pollMs < 200 || +v.pollMs > 60000) e.pollMs = '200~60000 사이 정수여야 합니다.';
+return e;
+}
+function syncForm() { formState(checkSettings(formValues())); }
