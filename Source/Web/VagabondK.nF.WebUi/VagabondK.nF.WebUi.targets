@@ -66,6 +66,8 @@ public class WebUiGeneratePage : Task
     public string ClassName { get; set; }
 
     static readonly string[] Markers = { "<!--@manifest-->", "<!--@core-->", "<!--@style-->", "<!--@views-->", "<!--@script-->" };
+    const string SlotsMarker = "<!--@slots-->";
+    static readonly Regex SlotToken = new Regex(@"^<!--@slot:([A-Za-z0-9_-]+)-->$", RegexOptions.Compiled);
     static readonly string[] Legacy = { "PROFILE", "KEYS", "LABELS", "formValues", "fillForm", "profileDirty",
         "profileExport", "profileImport", "showValue", "profileAddr", "profileScale", "profileAccess",
         "profilePoints", "profileName", "profileByteOrder", "profileCacheCols" };
@@ -91,10 +93,16 @@ public class WebUiGeneratePage : Task
     {
         string[] shellLines = File.ReadAllLines(Shell, Encoding.UTF8);
         var shellAt = new Dictionary<string, int>();
+        var shellSlots = new HashSet<string>();
         for (int i = 0; i < shellLines.Length; i++)
         {
             string m = MarkerOf(shellLines[i]);
-            if (m == null) continue;
+            if (m == null)
+            {
+                Match sm = SlotToken.Match(shellLines[i].Trim());
+                if (sm.Success) shellSlots.Add(sm.Groups[1].Value);
+                continue;
+            }
             if (shellAt.ContainsKey(m)) { Fail(Shell, "duplicate marker " + m); return; }
             shellAt[m] = i;
         }
@@ -103,18 +111,24 @@ public class WebUiGeneratePage : Task
         if (shellAt["<!--@core-->"] < shellAt["<!--@manifest-->"]) { Fail(Shell, "@core marker must come after @manifest"); return; }
 
         var sections = new Dictionary<string, List<string>>();
+        var slotSection = new List<string>();
+        bool inSlots = false;
         string current = null;
         foreach (string raw in File.ReadAllLines(Profile, Encoding.UTF8))
         {
+            string sline = raw.Trim();
+            if (sline == SlotsMarker) { if (inSlots) { Fail(Profile, "duplicate @slots marker"); return; } inSlots = true; current = null; continue; }
             string m = MarkerOf(raw);
             if (m != null)
             {
+                inSlots = false;
                 if (m == "<!--@core-->") { Fail(Profile, "@core is provided by the library; remove it from the profile"); return; }
                 if (sections.ContainsKey(m)) { Fail(Profile, "duplicate marker " + m); return; }
                 current = m;
                 sections[m] = new List<string>();
                 continue;
             }
+            if (inSlots) { slotSection.Add(raw); continue; }
             if (current == null) { if (raw.Trim().Length > 0) { Fail(Profile, "content before the first marker"); return; } continue; }
             sections[current].Add(raw);
         }
@@ -132,11 +146,35 @@ public class WebUiGeneratePage : Task
         string script = string.Join("\n", sections["<!--@script-->"].ToArray());
         if (!ValidateCross(manifest, views, script)) return;
 
+        // Parse the profile @slots section into name -> markup lines; validate against shell positions.
+        var slotMap = new Dictionary<string, List<string>>();
+        string curSlot = null;
+        foreach (string raw in slotSection)
+        {
+            Match sm = SlotToken.Match(raw.Trim());
+            if (sm.Success)
+            {
+                curSlot = sm.Groups[1].Value;
+                if (slotMap.ContainsKey(curSlot)) { Fail(Profile, "duplicate slot definition \"" + curSlot + "\""); return; }
+                slotMap[curSlot] = new List<string>();
+                continue;
+            }
+            if (curSlot == null) { if (raw.Trim().Length > 0) { Fail(Profile, "slot content before the first @slot:NAME token in @slots"); return; } continue; }
+            slotMap[curSlot].Add(raw);
+        }
+        foreach (string k in slotMap.Keys)
+            if (!shellSlots.Contains(k)) { Fail(Profile, "profile fills slot \"" + k + "\" but the shell has no <!--@slot:" + k + "--> position for it"); return; }
+
         var merged = new List<string>();
         foreach (string raw in shellLines)
         {
             string m = MarkerOf(raw);
-            if (m == null) { merged.Add(raw); continue; }
+            if (m == null)
+            {
+                Match sm = SlotToken.Match(raw.Trim());
+                if (sm.Success) { List<string> body; if (slotMap.TryGetValue(sm.Groups[1].Value, out body)) merged.AddRange(body); continue; }
+                merged.Add(raw); continue;
+            }
             if (m == "<!--@manifest-->") merged.Add("const MANIFEST = " + JsonOut(manifest) + ";");
             else if (m == "<!--@core-->") merged.AddRange(File.ReadAllLines(Core, Encoding.UTF8));
             else merged.AddRange(sections[m]);
@@ -318,8 +356,9 @@ public class WebUiGeneratePage : Task
         var feat = m.ContainsKey("features") ? m["features"] as Dictionary<string, object> : null;
         bool points = feat == null || !feat.ContainsKey("points") || (bool)feat["points"];
         if (points && !HasDef(script, "profilePoint")) { Fail(Profile, "profile script must define profilePoint (or set features.points=false)"); return false; }
-        if (feat != null && feat.ContainsKey("cacheCols") && !HasDef(script, "profileCacheRow"))
-        { Fail(Profile, "features.cacheCols requires a profileCacheRow(p) function in the profile script"); return false; }
+        if (feat != null && feat.ContainsKey("cacheCols") && !HasDef(script, "profileCacheRow")
+            && Regex.IsMatch(script, @"component\s*\(\s*['""]cacheRow['""]") == false)
+        { Fail(Profile, "features.cacheCols requires a profileCacheRow(p) function or a WebUi.component(\"cacheRow\", ...) in the profile script"); return false; }
         var form = (List<object>)m["form"];
         foreach (object item in form)
         {

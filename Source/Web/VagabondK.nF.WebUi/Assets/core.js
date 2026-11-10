@@ -20,11 +20,21 @@ else if (el && !el.tagName) { for (i = 0; i < el.length; i++) if (el[i].value ==
 return v;
 }
 // ---- micro vDOM ----
-function h(tag, props) { var n = { t: tag, p: props || {}, k: [] }; for (var i = 2; i < arguments.length; i++) add(n, arguments[i]); return n; }
+// A component is a function (props) -> vnode | array | string | null. h() calls it when the
+// tag is a function, so h(Comp, props) renders inline. component()/slot() add a name registry
+// so the shell can render a profile-provided component at a fixed position (WebUi.slot('name', props)).
+var REG = {};
+function component(name, fn) { REG[name] = fn; return fn; }
+function norm(c) { return (typeof c === 'string' || typeof c === 'number') ? { t: '#', v: String(c) } : c; }
+function slot(name, props) { var f = REG[name]; return f ? f(props || {}) : null; }
+function h(tag, props) {
+if (typeof tag === 'function') return tag(props || {});
+var n = { t: tag, p: props || {}, k: [] }; for (var i = 2; i < arguments.length; i++) add(n, arguments[i]); return n;
+}
 function add(n, c) {
 if (c == null || c === false) return;
 if (Object.prototype.toString.call(c) === '[object Array]') { for (var i = 0; i < c.length; i++) add(n, c[i]); return; }
-n.k.push(typeof c === 'string' || typeof c === 'number' ? { t: '#', v: String(c) } : c);
+n.k.push(norm(c));
 }
 function mk(n) {
 if (n.t === '#') return document.createTextNode(n.v);
@@ -51,6 +61,9 @@ function patch(node, n) {
 if (!same(node, n)) { var r = mk(n); node.parentNode.replaceChild(r, node); return r; }
 if (n.t === '#') { if (node.data !== n.v) node.data = n.v; return node; }
 prop(node, n);
+// A text prop owns the element's whole content (textContent replaces all children),
+// so skip the child diff; otherwise the loop below would delete the text node just set.
+if (n.p.text !== undefined) return node;
 var kids = n.k, i;
 for (i = 0; i < kids.length; i++) { var c = node.childNodes[i]; if (c) patch(c, kids[i]); else node.appendChild(mk(kids[i])); }
 while (node.childNodes.length > kids.length) node.removeChild(node.lastChild);
@@ -73,5 +86,5 @@ if (node !== want) parent.insertBefore(node, want || null);
 }
 while (parent.childNodes.length > list.length) parent.removeChild(parent.lastChild);
 }
-return { M: M, KEYS: KEYS, LABELS: LABELS, feat: feat, values: values, fill: fill, changed: changed, showValue: showValue, h: h, render: render };
+return { M: M, KEYS: KEYS, LABELS: LABELS, feat: feat, values: values, fill: fill, changed: changed, showValue: showValue, h: h, render: render, component: component, slot: slot };
 })();
