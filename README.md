@@ -2,7 +2,7 @@
 
 본 리포지토리는 제가 개인적으로 .NET nanoFramework를 사용할 때 편리하게 활용하기 위해 필요한 기능을 만들어 놓은 라이브러리 세트입니다.
 
-현재는 Modbus, DNP3, BACnet/IP, SNMP, MMS, IEC 61850, MQTT·Sparkplug 통신 기능을 제공합니다.
+현재는 Modbus, DNP3, BACnet/IP, SNMP, MMS, IEC 61850, MQTT·Sparkplug 통신 기능과 웹 인증을 제공합니다.
 역할과 전송 계층을 나누어 필요한 구성만 선택할 수 있습니다. 객체 매핑 생성기를 선택하면 PC에서
 빌드할 때 정적 C# 코드를 생성하므로 MCU에서 리플렉션을 사용하지 않습니다.
 
@@ -24,6 +24,7 @@
 | MMS | 제한형 일반 MMS Client·Server, Read/Write·탐색·명명 목록·보고, 객체 매핑 | [MMS 안내](Source/MMS/README.md) |
 | IEC 61850 | MMS 기반 제한형 Client·Server, DataSet·URCB·SPC/DPC/APC 제어, 매핑·SCL 생성 | [IEC 61850 안내](Source/IEC61850/README.md) |
 | MQTT·Sparkplug | MQTT 3.1/3.1.1/5 클라이언트, QoS0/1/2·TLS·RAM 세션, 제한형 Sparkplug B, JSON·메트릭 정적 매핑 | [MQTT 안내](Source/MQTT/README.md) |
+| Web | 관리자 비밀번호 해시·RAM 세션·API 키·로그인 잠금이 있는 임베디드 웹 인증 | [Web 안내](Source/Web/README.md) |
 
 프로토콜 간 자동 동기화 엔진은 제공하지 않습니다.
 MMS는 IEC 61850에 의존하지 않으며 IEC 61850이 MMS를 참조합니다. 나머지 프로토콜도 서로 독립입니다.

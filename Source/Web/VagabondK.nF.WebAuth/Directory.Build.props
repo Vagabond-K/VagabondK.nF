@@ -1,0 +1,13 @@
+<Project>
+  <!--
+    PC 미러(csproj)용 빌드 산출물 경로 분리.
+    Microsoft.Common.props 가져오기 이전 단계에서 평가되어야 하므로 이 파일에 둔다.
+    obj 루트에 project.assets.json이 남으면 nfproj 빌드(NuGet targets)와 충돌한다.
+  -->
+  <!-- nfproj는 레거시 형식이지만 Microsoft.Common.props经由로 이 파일도 자동 평가되므로
+       PC 미러(csproj)에만 적용하도록 확장자로 가드한다. -->
+  <PropertyGroup Condition="'$(MSBuildProjectExtension)' == '.csproj'">
+    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)obj\pc\</BaseIntermediateOutputPath>
+    <MSBuildProjectExtensionsPath>$(MSBuildThisFileDirectory)obj\pc\</MSBuildProjectExtensionsPath>
+  </PropertyGroup>
+</Project>
