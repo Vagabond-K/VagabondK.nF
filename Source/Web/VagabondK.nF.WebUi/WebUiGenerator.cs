@@ -38,26 +38,44 @@ namespace VagabondK.nF.WebUi
                 }
                 return (
                     ns: Get("webui_namespace"), cls: Get("webui_class_name"),
-                    shell: Get("webui_shell"), profile: Get("webui_profile"), core: Get("webui_core"));
+                    shell: Get("webui_shell"), profile: Get("webui_profile"), core: Get("webui_core"),
+                    components: Get("webui_components"));
             });
 
             var input = files.Combine(options);
             context.RegisterSourceOutput(input, static (spc, pair) => Execute(spc, pair.Left, pair.Right));
         }
 
-        static void Execute(SourceProductionContext spc, ImmutableArray<(string path, string text)> files, (string ns, string cls, string shell, string profile, string core) opts)
+        static void Execute(SourceProductionContext spc, ImmutableArray<(string path, string text)> files, (string ns, string cls, string shell, string profile, string core, string components) opts)
         {
             string ns = opts.ns, cls = opts.cls;
             string shellPath = opts.shell, profilePath = opts.profile, corePath = opts.core;
 
             string shellText = null, profileText = null, coreText = null;
             string shellResolved = Resolve(shellPath), profileResolved = Resolve(profilePath), coreResolved = Resolve(corePath);
+            string componentsRoot = Resolve(opts.components);
+            var componentFiles = new Dictionary<string, PageComposer.ComponentFiles>(StringComparer.OrdinalIgnoreCase);
             foreach (var f in files)
             {
                 string p = Resolve(f.path);
                 if (p == shellResolved) shellText = f.text;
                 else if (p == profileResolved) profileText = f.text;
                 else if (p == coreResolved) coreText = f.text;
+                else if (componentsRoot.Length > 0 && IsUnder(p, componentsRoot))
+                {
+                    // components\<name>\<name>.{html,js,css}: 루트 바로 아래 이름 폴더 하나, 파일명은 폴더명과 같아야 함.
+                    string rel = p.Substring(componentsRoot.Length + 1);
+                    string[] seg = rel.Split(Path.DirectorySeparatorChar);
+                    if (seg.Length != 2) continue;
+                    string name = seg[0];
+                    if (Path.GetFileNameWithoutExtension(seg[1]) != name) continue;
+                    PageComposer.ComponentFiles c;
+                    if (!componentFiles.TryGetValue(name, out c)) { c = new PageComposer.ComponentFiles(); componentFiles[name] = c; }
+                    string ext = Path.GetExtension(seg[1]).ToLowerInvariant();
+                    if (ext == ".html") { c.HtmlPath = f.path; c.Html = PageComposer.ReadLines(f.text); }
+                    else if (ext == ".js") c.Js = PageComposer.ReadLines(f.text);
+                    else if (ext == ".css") c.Css = PageComposer.ReadLines(f.text);
+                }
             }
 
             if (shellText == null) { spc.ReportDiagnostic(Diagnostic.Create(MissingInput, Location.None, shellPath + " (WebUiShell)")); return; }
@@ -67,7 +85,7 @@ namespace VagabondK.nF.WebUi
             PageComposer.Result r;
             try
             {
-                r = PageComposer.Compose(shellText, profileText, coreText, shellPath, profilePath, ns, cls);
+                r = PageComposer.Compose(shellText, profileText, coreText, shellPath, profilePath, ns, cls, opts.components, componentFiles);
             }
             catch (Exception e)
             {
@@ -82,6 +100,12 @@ namespace VagabondK.nF.WebUi
             }
             spc.ReportDiagnostic(Diagnostic.Create(Info, Location.None, r.Info));
             spc.AddSource("WebPage.g.cs", SourceText.From(r.Source, Encoding.UTF8));
+        }
+
+        static bool IsUnder(string path, string root)
+        {
+            return path.Length > root.Length && path[root.Length] == Path.DirectorySeparatorChar
+                && path.StartsWith(root, Path.DirectorySeparatorChar == '/' ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase);
         }
 
         static string Resolve(string path)

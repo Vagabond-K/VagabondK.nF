@@ -25,6 +25,21 @@ namespace VagabondK.nF.WebUi
         static readonly string[] Markers = { "<!--@manifest-->", "<!--@core-->", "<!--@style-->", "<!--@views-->", "<!--@script-->" };
         const string SlotsMarker = "<!--@slots-->";
         static readonly Regex SlotToken = new Regex(@"^<!--@slot:([A-Za-z0-9_-]+)-->$", RegexOptions.Compiled);
+        static readonly Regex UseToken = new Regex(@"^<!--@use:([A-Za-z0-9_-]+)-->$", RegexOptions.Compiled);
+
+        /// <summary>components\&lt;name&gt;\&lt;name&gt;.{html,js,css} 한 벌. Html은 필수, 나머지는 선택.</summary>
+        internal sealed class ComponentFiles
+        {
+            public string HtmlPath;
+            public string[] Html;
+            public string[] Js = new string[0];
+            public string[] Css = new string[0];
+        }
+
+        string componentsRoot;
+        Dictionary<string, ComponentFiles> components;
+        List<string> useOrder;
+        HashSet<string> useDone, useVisiting;
         static readonly string[] Legacy = { "PROFILE", "KEYS", "LABELS", "formValues", "fillForm", "profileDirty",
             "profileExport", "profileImport", "showValue", "profileAddr", "profileScale", "profileAccess",
             "profilePoints", "profileName", "profileByteOrder", "profileCacheCols" };
@@ -35,7 +50,7 @@ namespace VagabondK.nF.WebUi
 
         PageComposer() { }
 
-        static string[] ReadLines(string text)
+        internal static string[] ReadLines(string text)
         {
             // File.ReadAllLines와 동일하게: 줄바꿈으로 자르고 마지막 빈 원소는 버린다.
             if (text.Length == 0) return new string[0];
@@ -49,10 +64,11 @@ namespace VagabondK.nF.WebUi
             return lines;
         }
 
-        internal static Result Compose(string shellText, string profileText, string coreText, string shellPath, string profilePath, string ns, string cls)
+        internal static Result Compose(string shellText, string profileText, string coreText, string shellPath, string profilePath, string ns, string cls,
+            string componentsRoot, Dictionary<string, ComponentFiles> components)
         {
             var c = new PageComposer();
-            return c.Run(shellText, profileText, coreText, shellPath, profilePath, ns, cls);
+            return c.Run(shellText, profileText, coreText, shellPath, profilePath, ns, cls, componentsRoot, components);
         }
 
         void Fail(string file, string message) { res.ErrorFile = file; res.ErrorMessage = message; }
@@ -64,10 +80,13 @@ namespace VagabondK.nF.WebUi
             return null;
         }
 
-        Result Run(string shellText, string profileText, string coreText, string shellPath, string profilePath, string ns, string cls)
+        Result Run(string shellText, string profileText, string coreText, string shellPath, string profilePath, string ns, string cls,
+            string componentsRoot, Dictionary<string, ComponentFiles> components)
         {
             res = new Result();
             var result = res;
+            this.componentsRoot = componentsRoot ?? string.Empty;
+            this.components = components ?? new Dictionary<string, ComponentFiles>(StringComparer.Ordinal);
             string[] shellLines = ReadLines(shellText);
             var shellAt = new Dictionary<string, int>();
             var shellSlots = new HashSet<string>();
@@ -119,10 +138,6 @@ namespace VagabondK.nF.WebUi
             catch (Exception e) { Fail(profilePath, "manifest JSON: " + e.Message); return result; }
             if (!ValidateManifest(manifest, profilePath)) return result;
 
-            string views = string.Join("\n", sections["<!--@views-->"].ToArray());
-            string script = string.Join("\n", sections["<!--@script-->"].ToArray());
-            if (!ValidateCross(manifest, views, script, profilePath)) return result;
-
             // Parse the profile @slots section into name -> markup lines; validate against shell positions.
             var slotMap = new Dictionary<string, List<string>>();
             string curSlot = null;
@@ -142,6 +157,36 @@ namespace VagabondK.nF.WebUi
             foreach (string k in slotMap.Keys)
                 if (!shellSlots.Contains(k)) { Fail(profilePath, "profile fills slot \"" + k + "\" but the shell has no <!--@slot:" + k + "--> position for it"); return result; }
 
+            // @use 컴포넌트 발견·확장: useOrder는 서브→부모 순서(자식이 먼저 나열되어 CSS 우선순위가 올바르게 겹침).
+            useOrder = new List<string>();
+            useDone = new HashSet<string>(StringComparer.Ordinal);
+            useVisiting = new HashSet<string>(StringComparer.Ordinal);
+            if (!DiscoverUses(shellLines, shellPath)) return result;
+            if (!DiscoverUses(sections["<!--@views-->"], profilePath)) return result;
+            foreach (List<string> body in slotMap.Values)
+                if (!DiscoverUses(body, profilePath)) return result;
+            var expanded = new Dictionary<string, string[]>(StringComparer.Ordinal);
+            var compCss = new List<string>();
+            var compJs = new List<string>();
+            foreach (string name in useOrder)
+            {
+                ComponentFiles c = components[name];
+                expanded[name] = ExpandTokens(c.Html, expanded).ToArray();
+                compCss.AddRange(c.Css);
+                compJs.AddRange(c.Js);
+            }
+
+            var allViews = new List<string>(ExpandTokens(sections["<!--@views-->"], expanded));
+            var allScript = new List<string>(sections["<!--@script-->"]);
+            foreach (string name in useOrder)
+            {
+                allViews.AddRange(expanded[name]);
+                allScript.AddRange(components[name].Js);
+            }
+            string views = string.Join("\n", allViews.ToArray());
+            string script = string.Join("\n", allScript.ToArray());
+            if (!ValidateCross(manifest, views, script, profilePath)) return result;
+
             var merged = new List<string>();
             foreach (string raw in shellLines)
             {
@@ -149,12 +194,21 @@ namespace VagabondK.nF.WebUi
                 if (m == null)
                 {
                     Match sm = SlotToken.Match(raw.Trim());
-                    if (sm.Success) { List<string> body; if (slotMap.TryGetValue(sm.Groups[1].Value, out body)) merged.AddRange(body); continue; }
+                    if (sm.Success)
+                    {
+                        List<string> body;
+                        if (slotMap.TryGetValue(sm.Groups[1].Value, out body)) merged.AddRange(ExpandTokens(body, expanded));
+                        continue;
+                    }
+                    Match um = UseToken.Match(raw.Trim());
+                    if (um.Success) { merged.AddRange(expanded[um.Groups[1].Value]); continue; }
                     merged.Add(raw); continue;
                 }
                 if (m == "<!--@manifest-->") merged.Add("const MANIFEST = " + MiniJson.JsonOut(manifest) + ";");
                 else if (m == "<!--@core-->") merged.AddRange(ReadLines(coreText));
-                else merged.AddRange(sections[m]);
+                else if (m == "<!--@style-->") { merged.AddRange(compCss); merged.AddRange(sections[m]); }
+                else if (m == "<!--@script-->") { merged.AddRange(compJs); merged.AddRange(sections[m]); }
+                else merged.AddRange(ExpandTokens(sections[m], expanded));
             }
 
             var page = new StringBuilder();
@@ -201,6 +255,44 @@ namespace VagabondK.nF.WebUi
                 html.Length.ToString(CultureInfo.InvariantCulture) + " B minified, " + gzip.Length.ToString(CultureInfo.InvariantCulture) + " B gzip, " +
                 partCount.ToString(CultureInfo.InvariantCulture) + " parts.";
             return result;
+        }
+
+        // ---------- @use components ----------
+        bool DiscoverUses(IEnumerable<string> lines, string origin)
+        {
+            foreach (string raw in lines)
+            {
+                Match um = UseToken.Match(raw.Trim());
+                if (!um.Success) continue;
+                string name = um.Groups[1].Value;
+                if (useDone.Contains(name)) continue;
+                if (useVisiting.Contains(name)) { Fail(origin, "circular @use reference: \"" + name + "\""); return false; }
+                ComponentFiles c;
+                if (!components.TryGetValue(name, out c) || c.Html == null)
+                {
+                    Fail(origin, "@use \"" + name + "\" not found: expected " + name + Path.DirectorySeparatorChar + name + ".html under " +
+                        (componentsRoot.Length == 0 ? "(WebUiComponents is not set)" : componentsRoot));
+                    return false;
+                }
+                useVisiting.Add(name);
+                if (!DiscoverUses(c.Html, c.HtmlPath)) return false;
+                useVisiting.Remove(name);
+                useDone.Add(name);
+                useOrder.Add(name);
+            }
+            return true;
+        }
+
+        static List<string> ExpandTokens(IEnumerable<string> lines, Dictionary<string, string[]> expanded)
+        {
+            var outLines = new List<string>();
+            foreach (string raw in lines)
+            {
+                Match um = UseToken.Match(raw.Trim());
+                if (um.Success) outLines.AddRange(expanded[um.Groups[1].Value]);
+                else outLines.Add(raw);
+            }
+            return outLines;
         }
 
         // ---------- manifest validation ----------

@@ -21,6 +21,7 @@
   <ItemGroup>
     <None Include="WebUi\shell.html" />
     <None Include="WebUi\profile.html" />
+    <None Include="WebUi\components\**\*" />
   </ItemGroup>
   <PropertyGroup>
     <WebUiShell>$(MSBuildThisFileDirectory)WebUi\shell.html</WebUiShell>

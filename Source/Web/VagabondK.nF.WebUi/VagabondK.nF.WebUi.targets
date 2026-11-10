@@ -20,6 +20,9 @@
     shell.html : MARK-manifest, MARK-core, MARK-style, MARK-views, MARK-script, MARK-slots(positions)
     profile.html: MARK-manifest, MARK-style, MARK-views, MARK-script (+ optional MARK-slots definitions)
     (each MARK-x stands for an HTML comment containing "@x")
+  Components: $(WebUiComponents)\<name>\<name>.html(.js/.css)를 두고 어디든
+    한 줄 토큰 MARK-use:NAME으로 삽입. html은 그 자리 인라인, css는 MARK-style
+    앞쪽, js는 MARK-script 앞쪽에 자동 병합(자식→부모 순, 프로필이 오버라이드 가능).
   @manifest holds one compact JSON object:
     { "id": "profile-id", "schema": 5,
       "form": [ { "name": "baudRate", "label": "...", "fmt": "ms|pin|secret|bool|text" }, ... ],
@@ -38,16 +41,21 @@
     <WebUiCore Condition="'$(WebUiCore)' == ''">$(MSBuildThisFileDirectory)Assets\core.js</WebUiCore>
     <WebUiNamespace Condition="'$(WebUiNamespace)' == ''">VagabondK.nF.WebUi</WebUiNamespace>
     <WebUiClassName Condition="'$(WebUiClassName)' == ''">WebPage</WebUiClassName>
+    <WebUiComponents Condition="'$(WebUiComponents)' == ''">$(MSBuildProjectDirectory)\WebUi\components</WebUiComponents>
   </PropertyGroup>
   <ItemGroup>
     <AdditionalFiles Include="$(WebUiShell)" Condition="'$(WebUiShell)' != ''" />
     <AdditionalFiles Include="$(WebUiProfile)" Condition="'$(WebUiProfile)' != ''" />
     <AdditionalFiles Include="$(WebUiCore)" />
+    <!-- @use 컴포넌트 조각: components\<name>\<name>.{html,js,css} (폴더가 없으면 빈 glob) -->
+    <AdditionalFiles Include="$(WebUiComponents)\**\*.html" />
+    <AdditionalFiles Include="$(WebUiComponents)\**\*.js" />
+    <AdditionalFiles Include="$(WebUiComponents)\**\*.css" />
   </ItemGroup>
   <Target Name="WebUiWriteGeneratorConfig" BeforeTargets="CoreCompile">
     <PropertyGroup>
       <_WebUiCfgPath>$(IntermediateOutputPath)webui.generator.globalconfig</_WebUiCfgPath>
-      <_WebUiCfgDesired>is_global=true&#xa;webui_namespace=$(WebUiNamespace)&#xa;webui_class_name=$(WebUiClassName)&#xa;webui_shell=$(WebUiShell)&#xa;webui_profile=$(WebUiProfile)&#xa;webui_core=$(WebUiCore)</_WebUiCfgDesired>
+      <_WebUiCfgDesired>is_global=true&#xa;webui_namespace=$(WebUiNamespace)&#xa;webui_class_name=$(WebUiClassName)&#xa;webui_shell=$(WebUiShell)&#xa;webui_profile=$(WebUiProfile)&#xa;webui_core=$(WebUiCore)&#xa;webui_components=$(WebUiComponents)</_WebUiCfgDesired>
       <_WebUiCfgExisting Condition="Exists('$(_WebUiCfgPath)')">$([System.String]::Copy($([System.IO.File]::ReadAllText('$(_WebUiCfgPath)'))).Trim())</_WebUiCfgExisting>
     </PropertyGroup>
     <MakeDir Directories="$(IntermediateOutputPath)" />
