@@ -168,7 +168,8 @@ namespace VagabondK.nF.Web.Sample
                 ",\"loggedIn\":" + (logged ? "true" : "false") +
                 ",\"lockedOut\":" + (g.IsLockedOut ? "true" : "false") +
                 ",\"remaining\":" + g.RemainingAttempts.ToString() +
-                ",\"lockSec\":" + g.LockoutSecondsRemaining.ToString() + "}");
+                ",\"lockSec\":" + g.LockoutSecondsRemaining.ToString() +
+                ",\"csrfHeader\":\"" + CsrfMarker + "\"}");
         }
 
         [Route("api/auth/login")]

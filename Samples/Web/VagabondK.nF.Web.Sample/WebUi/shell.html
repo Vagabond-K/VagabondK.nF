@@ -102,7 +102,13 @@ if (e instanceof TypeError) throw new Error('장치에 연결할 수 없습니�
 throw e;
 } finally { clearTimeout(timer); }
 }
-const post = (path, body) => api(path, {method: 'POST', headers: {'X-WebSample': '1', 'Content-Type': 'application/x-www-form-urlencoded'}, body: body || ''});
+let csrfH = '';
+// CSRF 마커 헤더명은 서버(CsrfMarker)가 단일 출처다: /api/auth/status로 받아 쓴다.
+async function csrf() {
+if (!csrfH) { try { csrfH = ((await api('/api/auth/status', null, 4000)).csrfHeader) || ''; } catch (e) {} }
+return csrfH;
+}
+const post = async (path, body) => api(path, {method: 'POST', headers: {[await csrf()]: '1', 'Content-Type': 'application/x-www-form-urlencoded'}, body: body || ''});
 function toast(text, bad) {
 const t = el('div', 'toast' + (bad ? ' bad' : ''), text);
 $('toasts').append(t);
@@ -111,6 +117,7 @@ setTimeout(() => t.remove(), bad ? 7000 : 3500);
 function showLogin(msg) { authed = false; $('login').hidden = false; $('loginMsg').textContent = msg || ''; }
 async function checkAuth() {
 const a = await api('/api/auth/status');
+if (a.csrfHeader) csrfH = a.csrfHeader;
 authed = !a.authEnabled || a.loggedIn;
 $('btnOut').hidden = !a.authEnabled || !a.loggedIn;
 $('login').hidden = authed;
