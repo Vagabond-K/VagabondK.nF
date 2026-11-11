@@ -28,3 +28,110 @@
 - 이름은 공개 API입니다. 삭제·개명 없이 추가만 권장(호환).
 - 새 컴포넌트는 범용성(프로토콜·제품 무관)을 먼저 확인하고, 제품 고유 조각은 각 프로젝트에 둡니다.
 - js/css는 html과 **같은 폴더**에 있어야 짝으로 인식됩니다(생성기 규칙).
+
+## NuGet 배포 (2026-11 스파이크 검증 완료)
+
+이 라이브러리는 NuGet 패키지(`VagabondK.nF.WebUi.Components`)로 배포하는 방식을 채택합니다.
+복사본 생성 없이 동작하도록 다음 구조로 만듭니다(스래치 소비자 nfproj로 전 과정 실측 검증).
+
+```
+VagabondK.nF.WebUi.Components.0.1.0/
+├─ build/
+│  └─ VagabondK.nF.WebUi.Components.targets   # $(WebUiComponents) 뒤에 패키지 루트를 추가
+└─ components/
+   ├─ note.nf.html ...                        # 라이브러리 컴포넌트 원본(읽기 전용)
+```
+
+- targets는 파일을 프로젝트로 복사하지 않고 `$(MSBuildThisFileDirectory)..\components`를
+  **후미(trailing) 루트로 추가**만 합니다. 따라서 프로젝트 로컬 컴포넌트가 패키지를 섀도잉하는
+  규칙이 그대로 유지되고, 미사용 컴포넌트는 기존과 동일하게 0바이트로 번들되지 않습니다.
+- targets는 `$(WebUiComponents)`가 비어 있으면 기본값(`$(MSBuildProjectDirectory)\WebUi`)도
+  함께 설정하므로 import 순서와 무관하게 동작합니다. 프로젝트에서 패키지 경로를 수동으로
+  `WebUiComponents`에 추가하면 중복 루트가 되니 하지 마십시오.
+- 소비자는 packages.config 복원(nfproj의 표준 방식) + 파일 맨 끝의 패키지 targets import면 끝입니다.
+  생성기 자체(`VagabondK.nF.WebUi` analyzer)는 이번 스파이크 범위 밖이며 기존처럼
+  ProjectReference/dotnet tool로 배포합니다. 필요 시 별도 패키지로 분리합니다.
+- 패키지 업그레이드는 곧 ETag 갱신입니다(해시가 페이지 최종 html 기준이라 자동 무효화).
+
+스파이크에서 함께 고쳐진 생성기 동작 두 가지:
+1. 페이지 모드에서 `<!--@manifest-->` 마커 생략 가능(README 약속과 달리 파싱 오류 나던 것 수정).
+2. `<form>` 마크업이 전혀 없는 표시 전용 페이지는 form 필드 요구에서 면제
+   (note/sysinfo 같은 표시 컴포넌트만으로 구성한 페이지가 합법).
+
+## 로드맵 (유명 프레임워크 카탈로그 매핑, 2026-11 검토)
+
+Bootstrap·Material·Ant Design·Fluent/WinUI·IBM Carbon·shadcn·Grafana 컴포넌트 카탈로그를
+MCU 제약(외부 JS/CSS 금지, vanilla + WebUi 버스, 힙 절약)으로 필터링한 결과 45종.
+형태 표기: 인라인 = 기존 인라인 병합, 인스턴스 = `<!--@instance-->` 반복 사용형.
+
+### A. 표시·정보
+| 우선 | 이름 | 참조 | 형태 | 내용 |
+|---|---|---|---|---|
+| 상 | alert | Bootstrap/Ant | 인스턴스 | note의 일반화(severity 변형) |
+| 상 | statistic | Ant/Carbon | 인스턴스 | 큰 숫자+라벨+변화율 |
+| 상 | descriptions | Ant | 인스턴스 | kv의 다단 버전(data-keys) |
+| 상 | progress | 전 프레임워크 | 인스턴스 | 바형 진행률(저장·업로드) |
+| 중 | badge | Bootstrap/MUI | 인라인 | 카운트·상태 뱃지 |
+| 중 | chip | MUI/Ant | 인스턴스 | 라벨+선택/삭제 태그 |
+| 중 | spinner | Bootstrap/MUI | 인스턴스 | CSS-only 회전 |
+| 중 | skeleton | MUI/shadcn | 인스턴스 | 로딩 자리받기(CSS-only) |
+| 중 | empty | Ant | 인스턴스 | 데이터 없음 상태 |
+| 상 | result | Ant | 인스턴스 | 성공/실패 전페이지 안내 |
+| 하 | tooltip | 전 | 인스턴스 | title 속성 폴백 포함 |
+| 하 | timeline | Ant/MUI | 인스턴스 | 이벤트 로그 스트립 |
+
+### B. 내비게이션
+| 우선 | 이름 | 참조 | 형태 | 내용 |
+|---|---|---|---|---|
+| 상 | tabs | 전 | 인스턴스 | 헤더+라우팅 승격(해시 연동) |
+| 중 | navbar | Bootstrap | 인스턴스 | 제목·연결점·로그아웃 슬롯 헤더 |
+| 중 | pagination | 전 | 인스턴스 | 표와 결합 |
+| 중 | steps | MUI/Ant | 인스턴스 | 설정 마법사·업데이트 단계 |
+| 중 | collapse | Bootstrap | 인스턴스 | 아코디언(CSS max-height) |
+| 하 | breadcrumb | Ant/MUI | 인스턴스 | 낮은 우선순위 |
+
+### C. 폼·입력
+| 우선 | 이름 | 참조 | 형태 | 내용 |
+|---|---|---|---|---|
+| 1순위 | form | Ant Form | 인라인 | MANIFEST.form 자동 렌더 — 설정 페이지가 한 줄이 됨 |
+| 상 | switch | MUI/Ant | 인스턴스 | 불리언 토글의 일반화 |
+| 상 | segmented | Ant/Fluent | 인스턴스 | 라디오 그룹 버튼형(RTU/ASCII 선택 등) |
+| 중 | input-group | Bootstrap | 인스턴스 | 입력+단위/버튼 결합 |
+| 중 | number | Ant InputNumber | 인스턴스 | +/- 스테퍼 숫자 |
+| 중 | search | Carbon | 인스턴스 | 필터 입력 |
+| 하 | password | Bootstrap | 인스턴스 | show/hide 포함 |
+| 상 | file | Ant Upload | 인스턴스 | 백업 가져오기(nanoGate 업로드 경험 승격) |
+| 상 | validate | shadcn | 인라인 | 필드 에러 메시지 규약(form과 짝) |
+
+### D. 피드백·레이아웃
+| 우선 | 이름 | 참조 | 형태 | 내용 |
+|---|---|---|---|---|
+| 상 | modal | 전 | 인스턴스 | ask의 일반화(pointdlg 패턴) |
+| 중 | drawer | MUI/Ant | 인스턴스 | 우측 상세 패널 |
+| 상 | card | 전 | 인스턴스 | 제목+본문 컨테이너(section 승격) |
+| 중 | list-group | Bootstrap | 인스턴스 | 행 목록+액션 |
+| 하 | divider | MUI/Ant | 인라인 | 구분선+라벨 |
+| 하 | grid | Bootstrap/MUI | 인라인 | CSS grid 유틸 클래스 |
+
+### E. 장치·ops 특화(우리 니치)
+| 우선 | 이름 | 참조/출처 | 형태 | 내용 |
+|---|---|---|---|---|
+| 상 | conn-dot | Grafana | 인스턴스 | tick 신선도 기반 연결 상태 |
+| 상 | uptime | Grafana 헤더 | 인스턴스 | heartbeat 일반화 |
+| 상 | heap-gauge | Grafana | 인스턴스 | 남은 힙 게이지 |
+| 상 | reboot | 라우터 UI | 인라인 | 카운트다운 재부팅 |
+| 상 | firmware | ESP Web Flasher | 인스턴스 | 펌웨어 업데이트(file+progress+result 조합) |
+| 상 | export-import | phpMyAdmin | 인스턴스 | 설정 백업 내보내기/가져오기 |
+| 중 | log-tail | Portainer | 인스턴스 | 로그 스트리밍 뷰어(poll) |
+| 중 | register-view | Modbus Tool | 인스턴스 | 레지스터 라이브 표 |
+| 중 | wifi-form | 라우터 UI | 인스턴스 | network 승격(API 규약 주입식) |
+| 중 | sparkline | Grafana | 인스턴스 | canvas 값 추이(20줄 내외) |
+| 상 | ap-banner | nanoGate | 인라인 | 설정 AP 모드 경고 |
+| 하 | clock | — | 인스턴스 | 시계(DNP3 타임스탬프용) |
+
+### 제외(MCU 비용 대비 가치 낮음)
+carousel·calendar·datepicker(네이티브 `<input type=date>` 대체)·tree·transfer·mentions·
+speed-dial·affix/scrollspy·image-lightbox·colorpicker
+
+### 권장 착수 순서
+form → tabs → modal(ask 일반화) → conn-dot·uptime·heap-gauge → segmented → firmware

@@ -163,8 +163,11 @@ namespace VagabondK.nF.WebUi
 
             var parts = new List<string>();
             foreach (string raw in sections[ManifestMarker]) { string t = raw.Trim(); if (t.Length > 0) parts.Add(t); }
+            string manifestJson = string.Join(" ", parts.ToArray());
+            // 페이지 모드에서 @manifest 마커는 선택이다(README 약속): 마커가 없으면 빈 manifest로 본다.
+            if (pageMode && manifestJson.Trim().Length == 0) manifestJson = "{}";
             object manifest;
-            try { manifest = new MiniJson().Parse(string.Join(" ", parts.ToArray())); }
+            try { manifest = new MiniJson().Parse(manifestJson); }
             catch (Exception e) { Fail(contentPath, "manifest JSON: " + e.Message); return result; }
             if (pageMode)
             {
@@ -493,7 +496,14 @@ namespace VagabondK.nF.WebUi
             }
 
             if (manual == null && derived.Count == 0)
-            { Fail(origin, "no form fields: declare manifest.form or add data-label/data-fmt to form controls"); return false; }
+            {
+                // 표시 전용 페이지(<form> 마크업 자체가 없음)는 합법. form 마크업이 있는데 필드가 0개일 때만 누락으로 본다.
+                string markup = string.Join("\n", viewLines.ToArray());
+                if (markup.IndexOf("<form", StringComparison.OrdinalIgnoreCase) >= 0)
+                { Fail(origin, "no form fields: declare manifest.form or add data-label/data-fmt to form controls"); return false; }
+                m["form"] = new List<object>();
+                return true;
+            }
             if (derived.Count > 0)
             {
                 var final = manual != null ? new List<object>(manual) : new List<object>();
