@@ -24,10 +24,17 @@ namespace VagabondK.nF.WebUi
 
         static readonly string[] Markers = { "<!--@manifest-->", "<!--@core-->", "<!--@style-->", "<!--@views-->", "<!--@script-->" };
         const string SlotsMarker = "<!--@slots-->";
+        const string InstanceMarker = "<!--@instance-->";
         static readonly Regex SlotToken = new Regex(@"^<!--@slot:([A-Za-z0-9_-]+)-->$", RegexOptions.Compiled);
         static readonly Regex UseToken = new Regex(@"^<!--@use:([A-Za-z0-9_-]+)-->$", RegexOptions.Compiled);
+        // <name/> 문법: 비-void 요소의 자기종결은 HTML 금기 표기라 줄 전체가 마커다(Phase 2 로드맵).
+        static readonly Regex SelfCloseTag = new Regex(@"^<([a-z][a-z0-9-]*)\s*/>$", RegexOptions.Compiled);
+        static readonly HashSet<string> VoidNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+            "br", "hr", "img", "input", "link", "meta", "base", "area", "embed", "col", "param", "source", "track", "wbr" };
+        // 폼 컨트롤과 data-label/data-fmt 속성 스캔용(마크업 → manifest.form 자동 유도).
+        static readonly Regex ControlTag = new Regex(@"<(?:input|select|textarea)\b[^>]*>", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        /// <summary>components\&lt;name&gt;\&lt;name&gt;.{html,js,css} 한 벌. Html은 필수, 나머지는 선택.</summary>
+        /// <summary>&lt;name&gt;.html과 같은 폴더의 &lt;name&gt;.{js,css} 한 벌. Html은 필수, 나머지는 선택.</summary>
         internal sealed class ComponentFiles
         {
             public string HtmlPath;
@@ -66,10 +73,10 @@ namespace VagabondK.nF.WebUi
         }
 
         internal static Result Compose(string shellText, string profileText, string coreText, string shellPath, string profilePath, string ns, string cls,
-            string componentsRoot, Dictionary<string, ComponentFiles> components)
+            string id, string componentsRoot, Dictionary<string, ComponentFiles> components)
         {
             var c = new PageComposer();
-            return c.Run(shellText, profileText, coreText, shellPath, profilePath, ns, cls, componentsRoot, components);
+            return c.Run(shellText, profileText, coreText, shellPath, profilePath, ns, cls, id, componentsRoot, components);
         }
 
         void Fail(string file, string message) { res.ErrorFile = file; res.ErrorMessage = message; }
@@ -82,7 +89,7 @@ namespace VagabondK.nF.WebUi
         }
 
         Result Run(string shellText, string profileText, string coreText, string shellPath, string profilePath, string ns, string cls,
-            string componentsRoot, Dictionary<string, ComponentFiles> components)
+            string id, string componentsRoot, Dictionary<string, ComponentFiles> components)
         {
             res = new Result();
             var result = res;
@@ -138,6 +145,21 @@ namespace VagabondK.nF.WebUi
             object manifest;
             try { manifest = new MiniJson().Parse(string.Join(" ", parts.ToArray())); }
             catch (Exception e) { Fail(profilePath, "manifest JSON: " + e.Message); return result; }
+            // WebUiId(msbuild 속성)는 manifest.id를 대체한다: 주입 시 선두로 옮기고, 값이 다르면 오류(단일 출처 강제).
+            if (!string.IsNullOrEmpty(id))
+            {
+                var md = manifest as Dictionary<string, object>;
+                if (md != null)
+                {
+                    object cur;
+                    if (md.TryGetValue("id", out cur) && (cur as string) != id)
+                    { Fail(profilePath, "manifest.id conflicts with WebUiId \"" + id + "\"; keep one source"); return result; }
+                    var nd = new Dictionary<string, object>();
+                    nd["id"] = id;
+                    foreach (string k in md.Keys) if (k != "id") nd[k] = md[k];
+                    manifest = nd;
+                }
+            }
             if (!ValidateManifest(manifest, profilePath)) return result;
 
             // Parse the profile @slots section into name -> markup lines; validate against shell positions.
@@ -169,25 +191,50 @@ namespace VagabondK.nF.WebUi
             var expanded = new Dictionary<string, string[]>(StringComparer.Ordinal);
             var compCss = new List<string>();
             var compJs = new List<string>();
+            var templates = new List<string>();
+            var instBody = new Dictionary<string, string[]>(StringComparer.Ordinal);
             foreach (string name in useOrder)
             {
                 ComponentFiles c = components[name];
-                expanded[name] = ExpandComponent(c.Html, expanded);
-                compCss.AddRange(c.Css);
-                compJs.AddRange(c.Js);
+                string[] body = ExpandComponent(c.Html, expanded);
+                if (IsInstance(c.Html))
+                {
+                    // 인스턴스 컴포넌트: html은 <template>으로 보내고 @use 자리는 <wui-name> 태그가 된다.
+                    // js/css는 커스텀 엘리먼트 정의에 포장되어 인스턴스마다 shadow root 안에서 실행되므로
+                    // id가 인스턴스별로 격리되고 여러 위치에서 안전하게 재사용할 수 있다.
+                    string tag = "wui-" + name.ToLowerInvariant();
+                    instBody[name] = body;
+                    expanded[name] = new string[] { "<" + tag + "></" + tag + ">" };
+                    templates.Add("<template id=\"wui-t-" + name + "\">");
+                    templates.AddRange(body);
+                    templates.Add("</template>");
+                    string jsArg = c.Js.Length > 0
+                        ? "function (root, document, $) {\n" + string.Join("\n", c.Js) + "\n}"
+                        : "null";
+                    string cssArg = c.Css.Length > 0 ? ", " + MiniJson.JsonOut(string.Join("\n", c.Css)) : "";
+                    compJs.Add("WUI.def(" + MiniJson.JsonOut(name) + ", " + jsArg + cssArg + ");");
+                }
+                else
+                {
+                    expanded[name] = body;
+                    compCss.AddRange(c.Css);
+                    compJs.AddRange(c.Js);
+                }
             }
             foreach (string k in slotMap.Keys)
-                if (!shellSlots.Contains(k) && !compSlots.Contains(k)) { Fail(profilePath, "profile fills slot \"" + k + "\" but neither the shell nor a @use component has a <!--@slot:" + k + "--> position for it"); return result; }
+                if (!shellSlots.Contains(k) && !compSlots.Contains(k)) { Fail(profilePath, "profile fills slot \"" + k + "\" but neither the shell nor a component has a <!--@slot:" + k + "--> position for it"); return result; }
 
             var allViews = new List<string>(ExpandTokens(sections["<!--@views-->"], expanded));
             var allScript = new List<string>(sections["<!--@script-->"]);
             foreach (string name in useOrder)
             {
-                allViews.AddRange(expanded[name]);
+                string[] b;
+                allViews.AddRange(instBody.TryGetValue(name, out b) ? b : expanded[name]);
                 allScript.AddRange(components[name].Js);
             }
             string views = string.Join("\n", allViews.ToArray());
             string script = string.Join("\n", allScript.ToArray());
+            if (!DeriveForm(manifest, allViews, profilePath)) return result;
             if (!ValidateCross(manifest, views, script, profilePath)) return result;
 
             var merged = new List<string>();
@@ -203,8 +250,8 @@ namespace VagabondK.nF.WebUi
                         if (slotMap.TryGetValue(sm.Groups[1].Value, out body)) merged.AddRange(ExpandTokens(body, expanded));
                         continue;
                     }
-                    Match um = UseToken.Match(raw.Trim());
-                    if (um.Success) { merged.AddRange(expanded[um.Groups[1].Value]); continue; }
+                    string uref = UseRef(raw.Trim());
+                    if (uref != null) { merged.AddRange(expanded[uref]); continue; }
                     merged.Add(raw); continue;
                 }
                 if (m == "<!--@manifest-->") merged.Add("const MANIFEST = " + MiniJson.JsonOut(manifest) + ";");
@@ -212,6 +259,12 @@ namespace VagabondK.nF.WebUi
                 else if (m == "<!--@style-->") { merged.AddRange(compCss); merged.AddRange(sections[m]); }
                 else if (m == "<!--@script-->") { merged.AddRange(compJs); merged.AddRange(sections[m]); }
                 else merged.AddRange(ExpandTokens(sections[m], expanded));
+            }
+            if (templates.Count > 0)
+            {
+                int at = merged.FindIndex(l => l.Trim() == "<script>");
+                if (at < 0) at = merged.Count;
+                merged.InsertRange(at, templates);
             }
 
             var page = new StringBuilder();
@@ -261,19 +314,36 @@ namespace VagabondK.nF.WebUi
         }
 
         // ---------- @use components ----------
+        static bool IsInstance(string[] lines)
+        {
+            foreach (string raw in lines)
+                if (raw.Trim() == InstanceMarker) return true;
+            return false;
+        }
+
+        // 컴포넌트 참조 판정: 줄 전체가 <!--@use:name-->이거나 <name/>(비-void)면 이름 반환.
+        // void 요소(<br/> 등)는 HTML 그대로이므로 null(=참조 아님).
+        static string UseRef(string trimmed)
+        {
+            Match um = UseToken.Match(trimmed);
+            if (um.Success) return um.Groups[1].Value;
+            Match sc = SelfCloseTag.Match(trimmed);
+            if (sc.Success && !VoidNames.Contains(sc.Groups[1].Value)) return sc.Groups[1].Value;
+            return null;
+        }
+
         bool DiscoverUses(IEnumerable<string> lines, string origin)
         {
             foreach (string raw in lines)
             {
-                Match um = UseToken.Match(raw.Trim());
-                if (!um.Success) continue;
-                string name = um.Groups[1].Value;
+                string name = UseRef(raw.Trim());
+                if (name == null) continue;
                 if (useDone.Contains(name)) continue;
-                if (useVisiting.Contains(name)) { Fail(origin, "circular @use reference: \"" + name + "\""); return false; }
+                if (useVisiting.Contains(name)) { Fail(origin, "circular component reference: \"" + name + "\""); return false; }
                 ComponentFiles c;
                 if (!components.TryGetValue(name, out c) || c.Html == null)
                 {
-                    Fail(origin, "@use \"" + name + "\" not found: expected " + name + Path.DirectorySeparatorChar + name + ".html under " +
+                    Fail(origin, "component \"" + name + "\" not found (from @use or <" + name + "/>): expected " + name + ".nf.html (any folder) under " +
                         (componentsRoot.Length == 0 ? "(WebUiComponents is not set)" : componentsRoot));
                     return false;
                 }
@@ -291,9 +361,9 @@ namespace VagabondK.nF.WebUi
             var outLines = new List<string>();
             foreach (string raw in lines)
             {
-                Match um = UseToken.Match(raw.Trim());
+                string uref = UseRef(raw.Trim());
                 string[] e;
-                if (um.Success && expanded.TryGetValue(um.Groups[1].Value, out e)) outLines.AddRange(e);
+                if (uref != null && expanded.TryGetValue(uref, out e)) outLines.AddRange(e);
                 else outLines.Add(raw);
             }
             return outLines;
@@ -306,11 +376,11 @@ namespace VagabondK.nF.WebUi
             foreach (string raw in html)
             {
                 string t = raw.Trim();
-                Match um = UseToken.Match(t);
-                if (um.Success)
+                string uref = UseRef(t);
+                if (uref != null)
                 {
                     string[] e;
-                    if (expanded.TryGetValue(um.Groups[1].Value, out e)) outLines.AddRange(e);
+                    if (expanded.TryGetValue(uref, out e)) outLines.AddRange(e);
                     continue;
                 }
                 Match sm = SlotToken.Match(t);
@@ -326,6 +396,75 @@ namespace VagabondK.nF.WebUi
             return outLines.ToArray();
         }
 
+        // ---------- form 자동 유도 (Phase 1: manifest 소멸 로드맵의 첫 단계) ----------
+        // 마크업의 data-label/data-fmt 속성이 manifest.form의 새 고향이다.
+        // 컨트롤 태그(input/select/textarea)에 두 속성 중 하나라도 있으면 form 항목으로 유도하고,
+        // 수동 manifest.form과 이름이 충돌하면 빌드 오류(단일 출처 강제). 수동 항목은 유도 전에
+        // 이름 집합으로 제외하므로 기존 프로젝트(속성 없음)는 동작이 그대로다.
+        bool DeriveForm(object manifest, List<string> viewLines, string origin)
+        {
+            var m = (Dictionary<string, object>)manifest;
+            var manual = m.ContainsKey("form") ? (List<object>)m["form"] : null;
+            var manualNames = new HashSet<string>(StringComparer.Ordinal);
+            if (manual != null)
+                foreach (object it in manual) manualNames.Add((string)((Dictionary<string, object>)it)["name"]);
+
+            var derived = new List<object>();
+            var seen = new Dictionary<string, string>(StringComparer.Ordinal); // name → label+fmt 서명(중복·불일치 검사)
+            foreach (string raw in viewLines)
+            {
+                foreach (Match tm in ControlTag.Matches(raw))
+                {
+                    string tag = tm.Value;
+                    string label = Attr(tag, "data-label"), fmt = Attr(tag, "data-fmt");
+                    if (label == null && fmt == null) continue;
+                    string name = Attr(tag, "name");
+                    if (name == null) { Fail(origin, "control with data-label/data-fmt has no name: " + tag); return false; }
+                    if (fmt != null)
+                    {
+                        bool ok = false;
+                        foreach (string x in Fmts) if (x == fmt) ok = true;
+                        if (!ok) { Fail(origin, "data-fmt \"" + fmt + "\" on \"" + name + "\" must be one of ms/pin/secret/bool/text"); return false; }
+                    }
+                    if (manualNames.Contains(name))
+                    { Fail(origin, "form field \"" + name + "\" is defined in both manifest.form and markup data-label/data-fmt; keep one source"); return false; }
+                    string effLabel = label ?? name;
+                    if (effLabel.Length == 0) { Fail(origin, "data-label on \"" + name + "\" is empty"); return false; }
+                    string sig = effLabel + "\n" + (fmt ?? string.Empty);
+                    string prev;
+                    if (seen.TryGetValue(name, out prev))
+                    {
+                        // 같은 컴포넌트가 인라인+검증용 병합으로 두 번 보이는 경우(동일 서명)는 정상. 불일치만 오류.
+                        if (prev != sig) { Fail(origin, "form field \"" + name + "\" has conflicting data-label/data-fmt in markup"); return false; }
+                        continue;
+                    }
+                    seen[name] = sig;
+                    var e = new Dictionary<string, object>();
+                    e["name"] = name;
+                    e["label"] = effLabel;
+                    if (fmt != null) e["fmt"] = fmt;
+                    derived.Add(e);
+                }
+            }
+
+            if (manual == null && derived.Count == 0)
+            { Fail(origin, "no form fields: declare manifest.form or add data-label/data-fmt to form controls"); return false; }
+            if (derived.Count > 0)
+            {
+                var final = manual != null ? new List<object>(manual) : new List<object>();
+                final.AddRange(derived);
+                m["form"] = final;
+            }
+            return true;
+        }
+
+        static string Attr(string tag, string name)
+        {
+            // 속성은 태그명 직후나 다른 속성 뒤 공백으로 시작하므로 (?:^|\s)로 data-name 같은 부분일치를 막는다.
+            Match x = Regex.Match(tag, "(?:^|\\s)" + name + "=\"([^\"]*)\"");
+            return x.Success ? x.Groups[1].Value : null;
+        }
+
         // ---------- manifest validation ----------
         bool ValidateManifest(object o, string profilePath)
         {
@@ -335,14 +474,14 @@ namespace VagabondK.nF.WebUi
                 if (k != "id" && k != "schema" && k != "form" && k != "features") { Fail(profilePath, "unknown manifest key \"" + k + "\""); return false; }
             string id;
             if (!m.ContainsKey("id") || (id = m["id"] as string) == null || !Regex.IsMatch(id, "^[a-z0-9][a-z0-9-]*$"))
-            { Fail(profilePath, "manifest.id must be a lowercase id (^[a-z0-9][a-z0-9-]*$)"); return false; }
+            { Fail(profilePath, "manifest.id must be a lowercase id (^[a-z0-9][a-z0-9-]*$) or set the WebUiId project property"); return false; }
             double schema;
             if (!m.ContainsKey("schema") || !(m["schema"] is double) || (schema = (double)m["schema"]) < 1 || schema != Math.Floor(schema))
             { Fail(profilePath, "manifest.schema must be an integer >= 1 (ConfigurationSchemaVersion)"); return false; }
             var form = m.ContainsKey("form") ? m["form"] as List<object> : null;
-            if (form == null || form.Count == 0) { Fail(profilePath, "manifest.form must be a non-empty array"); return false; }
+            if (m.ContainsKey("form") && (form == null || form.Count == 0)) { Fail(profilePath, "manifest.form, if present, must be a non-empty array (or omit it to derive from data-label/data-fmt)"); return false; }
             var names = new HashSet<string>();
-            foreach (object item in form)
+            foreach (object item in form ?? new List<object>())
             {
                 var f = item as Dictionary<string, object>;
                 if (f == null) { Fail(profilePath, "form entry must be an object"); return false; }

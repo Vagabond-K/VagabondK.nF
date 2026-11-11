@@ -14,7 +14,9 @@ VagabondK.nF.Web.Sample\
 ├── Controllers.cs                    라우트 핸들러(페이지/인증/상태/설정) + 설정·인증 파일 영속화
 └── WebUi\
     ├── shell.html                    미니 셸(로그인 오버레이 + 상태/설정 탭 + 5개 머지 마커)
-    └── profile.html                  프로필 "web-sample"(manifest + 폼 + 4개 훅)
+    ├── profile.html                  프로필 "web-sample"(manifest + 폼 + 4개 훅) — `<heartbeat/>` 인스턴스 포함
+    ├── heartbeat.nf.{html,js,css}    @use 컴포넌트 한 벌: 가동 시간 카드. 안에 `<!--@use:note-->`(중첩 데모)
+    └── note.nf.{html,css}            heartbeat가 쓰는 조각(js 없음) — 이름 = `.nf` 앞 stem, 폴더는 자유
 ```
 
 - **빌드 시점**: `VagabondK.nF.WebUi.targets`가 셸+프로필을 머지·검증·축소·gzip해서

@@ -88,3 +88,43 @@ while (parent.childNodes.length > list.length) parent.removeChild(parent.lastChi
 }
 return { M: M, KEYS: KEYS, LABELS: LABELS, feat: feat, values: values, fill: fill, changed: changed, showValue: showValue, h: h, render: render, component: component, slot: slot };
 })();
+// ---- WUI: instance components (Web Components) ----
+// A component whose html contains <!--@instance--> is emitted as a <template id="wui-t-NAME"> plus
+// <wui-name> tags at each @use position. def() registers the custom element: every tag gets its own
+// shadow root with the template cloned in, so ids are scoped per instance and init runs once per
+// instance as init.call(host, root, scopedDocument, $). The page's merged <style> is adopted as a
+// base sheet so global rules still apply inside the shadow; the component's own css follows it.
+var WUI = (function () {
+var roots = [], base = null, baseCss = '';
+function makeSheet(text) { try { var s = new CSSStyleSheet(); s.replaceSync(text); return s; } catch (e) { return null; } }
+function scope(root) {
+return {
+getElementById: function (id) { return root.getElementById(id); },
+querySelector: function (s) { return root.querySelector(s); },
+querySelectorAll: function (s) { return root.querySelectorAll(s); },
+createElement: function (t) { return document.createElement(t); },
+addEventListener: function () { return document.addEventListener.apply(document, arguments); }
+};
+}
+function def(name, init, css) {
+var own = css == null ? null : { tried: false, sheet: null };
+customElements.define('wui-' + name.toLowerCase(), class extends HTMLElement {
+connectedCallback() {
+if (this.__wui) return;
+this.__wui = 1;
+var sr = this.attachShadow({ mode: 'open' });
+var t = document.getElementById('wui-t-' + name);
+if (t) sr.appendChild(t.content.cloneNode(true));
+if (base === null) { var s = document.querySelector('style'); baseCss = s ? s.textContent : ''; base = makeSheet(baseCss) || false; }
+if (own && !own.tried) { own.tried = true; own.sheet = makeSheet(css); }
+var ok = base !== null && base !== false && (!own || own.sheet);
+if (ok) { try { sr.adoptedStyleSheets = own ? [base, own.sheet] : [base]; } catch (e) { ok = false; } }
+if (!ok) { var st = document.createElement('style'); st.textContent = baseCss + (css ? '\n' + css : ''); sr.insertBefore(st, sr.firstChild); }
+roots.push(sr);
+this.shadow = sr;
+if (init) init.call(this, sr, scope(sr), function (id) { return sr.getElementById(id); });
+}
+});
+}
+return { def: def, roots: roots };
+})();

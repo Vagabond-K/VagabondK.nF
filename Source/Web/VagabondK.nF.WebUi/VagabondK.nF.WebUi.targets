@@ -20,17 +20,31 @@
     shell.html : MARK-manifest, MARK-core, MARK-style, MARK-views, MARK-script, MARK-slots(positions)
     profile.html: MARK-manifest, MARK-style, MARK-views, MARK-script (+ optional MARK-slots definitions)
     (each MARK-x stands for an HTML comment containing "@x")
-  Components: $(WebUiComponents)\<name>\<name>.html(.js/.css)를 두고 어디든
-    한 줄 토큰 MARK-use:NAME으로 삽입. html은 그 자리 인라인, css는 MARK-style
+  Components: $(WebUiComponents) 루트(기본: 프로젝트의 WebUi 폴더) 아래 어디든
+    <name>.nf.html = 컴포넌트. 같은 이름 <name>.nf.js/.nf.css가 같은 폴더에 있으면 한 벌.
+    일반 .html/.js/.css는 루트 아래에 있어도 컴포넌트가 아니다(shell·profile은 명시 경로).
+    어디든 한 줄 토큰 MARK-use:NAME으로 삽입. html은 그 자리 인라인, css는 MARK-style
     앞쪽, js는 MARK-script 앞쪽에 자동 병합(자식→부모 순, 프로필이 오버라이드 가능).
-    $(WebUiComponents)는 세미콜론으로 여러 루트(프로젝트 로컬 + 공유 폴더)를 받을 수 있다.
+    $(WebUiComponents)는 세미콜론 루트 목록 — 앞 루트(프로젝트 로컬)가 뒤 루트(공유)를
+    섀도잉하고, 같은 루트 내 이름 중복은 오류.
     컴포넌트 html 안의 MARK-slot:NAME 토큰도 프로필 슬롯 내용으로 채워진다.
+    html 첫 줄에 MARK-instance 마커가 있으면 인스턴스 컴포넌트: @use 자리는 <wui-name>
+    태그, 마크업은 <template id="wui-t-name">로, js는 WUI.def init(root,document,$)으로
+    번들링(shadow DOM, id 격리, 인스턴스별 상태). 마커 없으면 위 인라인 방식 그대로.
   @manifest holds one compact JSON object:
     { "id": "profile-id", "schema": 5,
       "form": [ { "name": "baudRate", "label": "...", "fmt": "ms|pin|secret|bool|text" }, ... ],
       "features": { "points": true, "scale": true, "name": false, "byteOrder": true,
                     "access": ["RO","RW"], "addr": { "s": {...}, "t": {...} },
                     "cacheCols": { "head": ["ID", ...] } } }
+  "form"은 선택입니다. @views의 input/select/textarea에 data-label="..." / data-fmt="ms"를
+  붙이면 생성기가 문서 순서로 form 항목을 자동 유도합니다(label 없으면 name 사용).
+  수동 form과 data-* 병존 가능하지만 같은 name이 양쪽에 있으면 빌드 오류("keep one source").
+  수동 항목 먼저 + 유도 항목 뒤. 유도 여부와 무관하게 MANIFEST에는 합쳐져 주입됩니다.
+  <name/> 문법: name.nf.html 컴포넌트는 줄 전체로 쓸 때 @use 주석 대신 <name/> 태그로 참조할 수
+  있습니다(br/img 등 void 요소명은 HTML로 통과, 미정의 이름은 빌드 오류). 두 표기는 혼용 가능.
+  WebUiId 속성: 설정하면 manifest의 "id"를 대체합니다(선두 주입). manifest.id도 있고 값이 다르면
+  빌드 오류, 같으면 무해. 둘 다 없으면 빌드 오류. 미설정이면 manifest.id가 그대로 쓰입니다.
   The generator validates the manifest (shape + cross-checks against views/script), injects
   `const MANIFEST = {...};` and Assets\core.js, then minifies/gzips/hashes the page.
   Validation failures surface as WUI001/WUI002 build errors pointing at the offending file.
@@ -43,26 +57,26 @@
     <WebUiCore Condition="'$(WebUiCore)' == ''">$(MSBuildThisFileDirectory)Assets\core.js</WebUiCore>
     <WebUiNamespace Condition="'$(WebUiNamespace)' == ''">VagabondK.nF.WebUi</WebUiNamespace>
     <WebUiClassName Condition="'$(WebUiClassName)' == ''">WebPage</WebUiClassName>
-    <WebUiComponents Condition="'$(WebUiComponents)' == ''">$(MSBuildProjectDirectory)\WebUi\components</WebUiComponents>
+    <WebUiComponents Condition="'$(WebUiComponents)' == ''">$(MSBuildProjectDirectory)\WebUi</WebUiComponents>
   </PropertyGroup>
   <ItemGroup>
     <AdditionalFiles Include="$(WebUiShell)" Condition="'$(WebUiShell)' != ''" />
     <AdditionalFiles Include="$(WebUiProfile)" Condition="'$(WebUiProfile)' != ''" />
     <AdditionalFiles Include="$(WebUiCore)" />
-    <!-- @use 컴포넌트 조각: components\<name>\<name>.{html,js,css} (폴더가 없으면 빈 glob).
+    <!-- @use 컴포넌트 조각: 루트 아래 어디든 <name>.nf.{html,js,css} (없으면 빈 glob).
          WebUiComponents가 세미콜론 목록이므로 타깃 실행 시점에 루트별로 배치한다(평가 시점 glob은 세미콜론에서 깨짐). -->
   </ItemGroup>
   <Target Name="WebUiWriteGeneratorConfig" BeforeTargets="CoreCompile">
     <ItemGroup>
       <_WebUiCompRoots Include="$(WebUiComponents)" />
-      <AdditionalFiles Include="%(_WebUiCompRoots.Identity)\**\*.html" />
-      <AdditionalFiles Include="%(_WebUiCompRoots.Identity)\**\*.js" />
-      <AdditionalFiles Include="%(_WebUiCompRoots.Identity)\**\*.css" />
+      <AdditionalFiles Include="%(_WebUiCompRoots.Identity)\**\*.nf.html" />
+      <AdditionalFiles Include="%(_WebUiCompRoots.Identity)\**\*.nf.js" />
+      <AdditionalFiles Include="%(_WebUiCompRoots.Identity)\**\*.nf.css" />
     </ItemGroup>
     <PropertyGroup>
       <_WebUiCfgPath>$(IntermediateOutputPath)webui.generator.globalconfig</_WebUiCfgPath>
       <!-- 값의 세미콜론은 WriteLinesToFile이 줄 구분자로 삼으므로 '|'로 인코딩해 저장한다. -->
-      <_WebUiCfgDesired>is_global=true&#xa;webui_namespace=$(WebUiNamespace)&#xa;webui_class_name=$(WebUiClassName)&#xa;webui_shell=$(WebUiShell)&#xa;webui_profile=$(WebUiProfile)&#xa;webui_core=$(WebUiCore)&#xa;webui_components=$([System.String]::Copy('$(WebUiComponents)').Replace(';', '|'))</_WebUiCfgDesired>
+      <_WebUiCfgDesired>is_global=true&#xa;webui_namespace=$(WebUiNamespace)&#xa;webui_class_name=$(WebUiClassName)&#xa;webui_shell=$(WebUiShell)&#xa;webui_profile=$(WebUiProfile)&#xa;webui_core=$(WebUiCore)&#xa;webui_components=$([System.String]::Copy('$(WebUiComponents)').Replace(';', '|'))&#xa;webui_id=$(WebUiId)</_WebUiCfgDesired>
       <_WebUiCfgExisting Condition="Exists('$(_WebUiCfgPath)')">$([System.String]::Copy($([System.IO.File]::ReadAllText('$(_WebUiCfgPath)'))).Trim())</_WebUiCfgExisting>
     </PropertyGroup>
     <MakeDir Directories="$(IntermediateOutputPath)" />

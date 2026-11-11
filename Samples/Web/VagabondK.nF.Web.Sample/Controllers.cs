@@ -236,8 +236,12 @@ namespace VagabondK.nF.Web.Sample
                 ",\"heapFree\":" + nanoFramework.Runtime.Native.GC.Run(false).ToString() +
                 ",\"ip\":\"" + LocalAddress + "\"" +
                 ",\"requests\":" + requests.ToString() +
-                ",\"authEnabled\":" + (SampleAuth.Guard.IsEnabled ? "true" : "false") + "," +
-                SampleConfig.Json().Substring(1)); // deviceName/pollMs/debug 병합
+                ",\"authEnabled\":" + (SampleAuth.Guard.IsEnabled ? "true" : "false") +
+                // 서버 자기서술(Phase 2 설계): capabilities는 manifest.features의 최종 고향, settingsKeys는
+                // 이 서버가 실제로 받는 설정 키(폼 검증 상실 방어). manifest 소멸 로드맵의 additive groundwork.
+                ",\"capabilities\":{\"points\":false}" +
+                ",\"settingsKeys\":[\"deviceName\",\"pollMs\",\"debug\"]" +
+                "," + SampleConfig.Json().Substring(1)); // deviceName/pollMs/debug 병합
         }
 
         [Route("api/settings")]

@@ -31,23 +31,62 @@ nanoGate 스타일 장치 관리 화면을 빌드 타임에 조립하는 페이�
 
 ## @use 컴포넌트 번들링
 
-조각 HTML을 파일로 분리해 빌드 타임에 조립합니다. 위치는 한 줄 주석 토큰 `<!--@use:name-->` —
+조각 HTML을 파일로 분리해 빌드 타임에 조립합니다. 참조 표기는 두 가지(혼용 가능):
+한 줄 주석 토큰 `<!--@use:name-->` 또는 자기종결 태그 `<name/>`(줄 전체일 때만 성립).
 셸/프로필의 마크업(뷰·슬롯) 어디에든, 또 컴포넌트 HTML 안에도 넣을 수 있습니다(중첩, 순환 검출).
+`<name/>`은 `br`, `hr`, `img`, `input`, `link`, `meta` 등 HTML void 요소명이면 참조로 보지 않고
+그대로 HTML로 통과시킵니다. 그 외 이름은 반드시 `name.nf.html` 컴포넌트로 존재해야 합니다.
 
 ```
-WebUi\components\
-  heartbeat\
-    heartbeat.html   ← 필수: @use 자리 인라인, 내부에 <!--@use:다른이름--> 가능
-    heartbeat.css    ← 선택: @style 섹션 *앞쪽*에 병합(프로필이 오버라이드 가능)
-    heartbeat.js     ← 선택: @script 섹션 *앞쪽*에 병합(프로필이 오버라이드 가능)
+WebUi\
+  heartbeat.nf.html   ← 필수: 이름 = .nf 앞 파일명. @use 자리 인라인, 내부에 <!--@use:다른이름--> 가능
+  widgets\
+    gauge.nf.css      ← 선택: @style 섹션 *앞쪽*에 병합(프로필이 오버라이드 가능). gauge.nf.html과 같은 폴더라 짝
+    gauge.nf.js       ← 선택: @script 섹션 *앞쪽*에 병합(프로필이 오버라이드 가능)
 ```
 
-폴더명과 파일명이 같아야 합니다(`note/note.html`). 기본 경로는 프로젝트의 `WebUi\components`이며
-`$(WebUiComponents)`로 바꿀 수 있습니다. 세미콜론으로 여러 루트를 지정하면 전부 훑습니다
-(예: 공용 셸을 쓰는 프로젝트군에서 `$(MSBuildProjectDirectory)\WebUi\components;$(공유)\WebUi\components`).
+컴포넌트 파일은 **`이름.nf.html` / `이름.nf.js` / `이름.nf.css`** 이중 확장자 규격이고,
+루트(`WebUi\`) 아래 어디든 재귀로 수집됩니다. 폴더는 기능별 보관용일 뿐 이름에 영향을 주지
+않습니다. 같은 이름의 `.js`/`.css`는 html과 **같은 폴더**에 있을 때만 한 벌로 묶이며,
+같은 이름 html이 두 곳에 있으면 빌드 오류입니다. `.nf.` 없는 일반 `.html`/`.js`/`.css`는
+컴포넌트로 수집되지 않으므로 루트 안에 셸·프로필 같은 일반 페이지를 함께 두어도 됩니다.
+기본 경로는 프로젝트의 `WebUi\`이며 `$(WebUiComponents)`로 바꿀 수 있습니다.
+세미콜론으로 여러 루트를 지정하면 앞 루트(프로젝트 로컬)가 뒤 루트(공유)의 같은 이름
+컴포넌트를 **섀도잉**합니다
+(예: `$(MSBuildProjectDirectory)\WebUi;$(공유)\WebUi`).
 컴포넌트 HTML 안의 `<!--@slot:name-->` 토큰도 셸과 똑같이 프로필 슬롯 내용으로 채워집니다.
 컴포넌트는 셸·프로필과 함께 `AdditionalFiles`로 전달되어 파일 수정 시 증분 재생성됩니다.
 미지정 이름이나 순환 참조는 WUI001 빌드 오류가 됩니다.
+
+## @instance 컴포넌트 (Web Components)
+
+컴포넌트 HTML 첫 줄에 주석 마커 `<!--@instance-->`를 두면 인라인 병합 대신
+**인스턴스 컴포넌트**로 번들링됩니다. 각 `<!--@use:name-->` 자리는 빈 커스텀
+엘리먼트 `<wui-name>` 태그가 되고, 마크업은 페이지 끝의 `<template id="wui-t-name">`에
+한 번만 들어갑니다(중복 없음). 런타임에 `WUI.def`이 태그마다 shadow root를 만들어
+템플릿을 복제하므로 **id가 인스턴스별로 격리**되고, 짝 `.js`의 최상위 변수가
+**인스턴스별 클로저 상태**가 됩니다. 같은 컴포넌트를 여러 곳에 두어도 서로 독립입니다.
+
+```
+WebUi\counter\           ← 폴더는 보관용, 이름은 파일 stem이 결정
+  counter.nf.html    ← <!--@instance--> 마커 필수(한 줄 주석). 마커 없으면 기존 인라인 방식
+  counter.nf.js      ← function (root, document, $) 바디로 실행. document/$ 는 그림자 스코프
+  counter.nf.css     ← adoptedStyleSheets로 페이지 css(베이스) 뒤에 추가. 실패 시 <style> 폴백
+```
+
+```html
+<!--@use:counter-->  <!-- 두 번 쓰면 카운터 2개, 상태 각각 독립 -->
+<!--@use:counter-->
+```
+
+* `:root` 커스텀 프로퍼티(`--ac` 등)와 페이지 css는 shadow 안에서도 상속/적용됩니다.
+* 셸 전역(`api`, `toast`, `WebUi` 등)은 init에서 그대로 사용 가능하지만,
+  셸이 id로 직접 만지는 DOM(`$('v-…')` 등)과는 격리되므로 **기존 셸 결합 컴포넌트는
+  마커 없이 인라인 유지**가 맞습니다. 마커는 옵트인입니다.
+* init은 엘리먼트가 DOM에 붙는 시점에 실행되므로 프로필 `@script`의 함수를 호출하면
+  안 됩니다(초기화 순서). 이벤트 핸들러 안에서 참조는 안전합니다.
+* `<!--@slot:name-->`은 템플릿 생성 시 1회 채워져 모든 인스턴스가 같은 내용을 봅니다.
+* 인스턴스 안에서 다른 컴포넌트 `@use`는 중첩 가능: 인스턴스는 태그, 레거시는 인라인.
 
 ## 컴포넌트와 슬롯
 
@@ -91,15 +130,35 @@ Blazor의 레이아웃/컴포넌트 개념을 정적 페이지에 맞게 축소�
 ```
 
 * `id` — `/api/settings`에 `gatewayProfile`로 전송되는 게이트웨이 프로필 문자열.
+  프로젝트 속성 `$(WebUiId)`를 설정하면 manifest의 `id`를 대체합니다(선두 주입). 둘 다 있고
+  값이 다르면 빌드 오류("keep one source"), 같으면 무해. 둘 다 없으면 빌드 오류.
 * `schema` — 저장·백업 페이로드가 쓰는 정수 `ConfigurationSchemaVersion`.
-* `form` — 순서가 있는 설정 필드. `name`은 프로필 `@views`의 `#sf` 폼 입력과 일치해야 합니다.
-  선택 `fmt`(`ms | pin | secret | bool`)가 변경 다이얼로그 레이블을 결정합니다
+* `form` — 순서가 있는 설정 필드. **생략 가능**: `@views`의 입력(`input`/`select`/`textarea`)에
+  `data-label`/`data-fmt` 속성을 붙이면 생성기가 문서 순서로 자동 유도한다(아래 참조).
+  수동으로 적을 경우 `name`은 프로필 `@views`의 `#sf` 폼 입력과 일치해야 합니다.
+  선택 `fmt`(`ms | pin | secret | bool | text`)가 변경 다이얼로그 레이블을 결정합니다
   (select·radio는 표시 텍스트를 자동 해석).
 * `features` — 화이트리스트: `points`, `scale`, `name`, `byteOrder`, `access`, `addr`,
   `cacheCols`. 셸은 `WebUi.feat(name, 기본값)`으로 읽습니다.
 
+### form 자동 유도 (data-label / data-fmt)
+
+`@views` 마크업의 컨트롤에 두 속성 중 하나라도 있으면 그 필드가 form 항목으로 유도됩니다:
+
+```html
+<input id="sf_deviceName" name="deviceName" data-label="장치 이름" data-fmt="text">
+<input id="sf_pollMs" name="pollMs" type="number" data-label="폴링 주기" data-fmt="ms">
+```
+
+* `label`은 `data-label`, 없으면 `name`으로 결정되고, `fmt`는 `data-fmt` 값입니다.
+* 수동 `manifest.form`과 병존할 수 있습니다. 같은 `name`이 양쪽에 있으면 빌드 실패
+  ("keep one source"). 수동 항목이 먼저, 유도 항목이 문서 순서로 뒤에 배치됩니다.
+* 유도된 항목은 빌드 결과의 MANIFEST에 기존 form과 구분 없이 합쳐져 주입되므로
+  런타임(core.js)은 차이를 모릅니다.
+
 빌드 타임 검증은 다음에서 컴파일을 실패시킵니다: 알 수 없는 매니페스트 키, 잘못된 id/schema,
-form 이름 중복·누락, views에 없는 form 이름, 프로필 스크립트에 남아 있는 레거시 전역
+WebUiId·manifest.id 충돌, form 이름 중복·누락, views에 없는 form 이름, 수동 form과 data-*의 이름 충돌,
+`data-fmt` 오탈자, 미정의 컴포넌트 이름(`@use`/`<name/>`)·순환 참조, 레거시 전역
 (`PROFILE`, `KEYS`, `LABELS`, `profileAddr`, ...), 필수 훅 누락, 셸에 없는 슬롯의 프로필 채움.
 
 ## 프로필 훅

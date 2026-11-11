@@ -2,5 +2,5 @@
 var _hbT0 = Date.now();
 setInterval(function () {
     var e = $('hb');
-    if (e) e.textContent = '@use 번들링 데모 · 가동 ' + Math.floor((Date.now() - _hbT0) / 1000) + '초';
+    if (e) e.textContent = '<heartbeat/> 컴포넌트 데모 · 가동 ' + Math.floor((Date.now() - _hbT0) / 1000) + '초';
 }, 1000);

@@ -21,13 +21,17 @@
   <ItemGroup>
     <None Include="WebUi\shell.html" />
     <None Include="WebUi\profile.html" />
-    <None Include="WebUi\components\**\*" />
+    <None Include="WebUi\**\*.nf.html" />
+    <None Include="WebUi\**\*.nf.js" />
+    <None Include="WebUi\**\*.nf.css" />
   </ItemGroup>
   <PropertyGroup>
     <WebUiShell>$(MSBuildThisFileDirectory)WebUi\shell.html</WebUiShell>
     <WebUiProfile>$(MSBuildThisFileDirectory)WebUi\profile.html</WebUiProfile>
     <WebUiNamespace>VagabondK.nF.Web.Sample</WebUiNamespace>
     <WebUiClassName>WebPage</WebUiClassName>
+    <!-- manifest의 "id" 대신 프로젝트 속성으로 페이지 id를 선언한다(Phase 2: manifest 소멸 로드맵). -->
+    <WebUiId>web-sample</WebUiId>
   </PropertyGroup>
   <Import Project="..\..\..\Source\Web\VagabondK.nF.WebUi\VagabondK.nF.WebUi.targets" />
   <Import Project="..\..\..\Build\Library.targets" />

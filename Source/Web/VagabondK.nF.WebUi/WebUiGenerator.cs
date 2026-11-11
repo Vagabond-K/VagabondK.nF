@@ -40,16 +40,16 @@ namespace VagabondK.nF.WebUi
                 return (
                     ns: Get("webui_namespace"), cls: Get("webui_class_name"),
                     shell: Get("webui_shell"), profile: Get("webui_profile"), core: Get("webui_core"),
-                    components: Get("webui_components"));
+                    components: Get("webui_components"), id: Get("webui_id"));
             });
 
             var input = files.Combine(options);
             context.RegisterSourceOutput(input, static (spc, pair) => Execute(spc, pair.Left, pair.Right));
         }
 
-        static void Execute(SourceProductionContext spc, ImmutableArray<(string path, string text)> files, (string ns, string cls, string shell, string profile, string core, string components) opts)
+        static void Execute(SourceProductionContext spc, ImmutableArray<(string path, string text)> files, (string ns, string cls, string shell, string profile, string core, string components, string id) opts)
         {
-            string ns = opts.ns, cls = opts.cls;
+            string ns = opts.ns, cls = opts.cls, id = opts.id;
             string shellPath = opts.shell, profilePath = opts.profile, corePath = opts.core;
 
             string shellText = null, profileText = null, coreText = null;
@@ -57,27 +57,54 @@ namespace VagabondK.nF.WebUi
             // WebUiComponents는 세미콜론(또는 globalconfig용 '|' 인코딩)으로 여러 루트(프로젝트 로컬 + 공유 폴더)를 지정할 수 있다.
             string[] compRoots = opts.components.Split(new[] { ';', '|' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(Resolve).Where(r => r.Length > 0).ToArray();
-            var componentFiles = new Dictionary<string, PageComposer.ComponentFiles>(StringComparer.OrdinalIgnoreCase);
+            // 컴포넌트 인식: <name>.nf.html = 컴포넌트 정의(이름 = .nf 앞 stem. 폴더/깊이 자유).
+            // 같은 이름의 <name>.nf.js/.nf.css가 같은 폴더에 있으면 한 벌. 일반 .html/.js/.css는
+            // 루트 아래에 있어도 컴포넌트가 아니므로 무시(shell·profile은 명시 경로로 별도 처리).
+            // 여러 루트에서 같은 이름이 나오면 앞 루트(프로젝트 로컬)가 뒤 루트(공유)를 섀도잉하고,
+            // 같은 루트 안 이름 중복은 모호하므로 빌드 오류.
+            var compEntries = new List<(int root, string dir, string stem, string ext, string path, string text)>();
             foreach (var f in files)
             {
                 string p = Resolve(f.path);
                 if (p == shellResolved) shellText = f.text;
                 else if (p == profileResolved) profileText = f.text;
                 else if (p == coreResolved) coreText = f.text;
-                else if (compRoots.Length > 0 && IsUnderAny(p, compRoots, out string rel))
+                else if (compRoots.Length > 0 && IsUnderAny(p, compRoots, out string rel, out int rootIdx))
                 {
-                    // components\<name>\<name>.{html,js,css}: 루트 바로 아래 이름 폴더 하나, 파일명은 폴더명과 같아야 함.
-                    string[] seg = rel.Split(Path.DirectorySeparatorChar);
-                    if (seg.Length != 2) continue;
-                    string name = seg[0];
-                    if (Path.GetFileNameWithoutExtension(seg[1]) != name) continue;
-                    PageComposer.ComponentFiles c;
-                    if (!componentFiles.TryGetValue(name, out c)) { c = new PageComposer.ComponentFiles(); componentFiles[name] = c; }
-                    string ext = Path.GetExtension(seg[1]).ToLowerInvariant();
-                    if (ext == ".html") { c.HtmlPath = f.path; c.Html = PageComposer.ReadLines(f.text); }
-                    else if (ext == ".js") c.Js = PageComposer.ReadLines(f.text);
-                    else if (ext == ".css") c.Css = PageComposer.ReadLines(f.text);
+                    string stem = ComponentStem(rel);
+                    if (stem == null) continue;
+                    string ext = Path.GetExtension(rel).ToLowerInvariant();
+                    compEntries.Add((rootIdx, Path.GetDirectoryName(rel) ?? string.Empty, stem, ext, f.path, f.text));
                 }
+            }
+            var componentFiles = new Dictionary<string, PageComposer.ComponentFiles>(StringComparer.OrdinalIgnoreCase);
+            var owner = new Dictionary<string, (int root, string dir)>(StringComparer.OrdinalIgnoreCase);
+            foreach (var e in compEntries)
+            {
+                if (e.ext != ".html") continue;
+                (int root, string dir) cur;
+                if (owner.TryGetValue(e.stem, out cur))
+                {
+                    if (cur.root == e.root)
+                    {
+                        spc.ReportDiagnostic(Diagnostic.Create(Error, Location.None,
+                            "duplicate component \"" + e.stem + "\" in the same root: " + componentFiles[e.stem].HtmlPath + " and " + e.path));
+                        return;
+                    }
+                    if (e.root > cur.root) continue; // 앞 루트가 이미 이김(섀도잉)
+                }
+                componentFiles[e.stem] = new PageComposer.ComponentFiles { HtmlPath = e.path, Html = PageComposer.ReadLines(e.text) };
+                owner[e.stem] = (e.root, e.dir);
+            }
+            foreach (var e in compEntries)
+            {
+                if (e.ext == ".html") continue;
+                (int root, string dir) o;
+                if (!owner.TryGetValue(e.stem, out o)) continue; // 같은 이름 html 없음 = 고아 파일, 무시
+                if (o.root != e.root || !string.Equals(o.dir, e.dir, StringComparison.OrdinalIgnoreCase)) continue; // 같은 폴더만 짝
+                PageComposer.ComponentFiles c = componentFiles[e.stem];
+                if (e.ext == ".js") c.Js = PageComposer.ReadLines(e.text);
+                else c.Css = PageComposer.ReadLines(e.text);
             }
 
             if (shellText == null) { spc.ReportDiagnostic(Diagnostic.Create(MissingInput, Location.None, shellPath + " (WebUiShell)")); return; }
@@ -87,7 +114,7 @@ namespace VagabondK.nF.WebUi
             PageComposer.Result r;
             try
             {
-                r = PageComposer.Compose(shellText, profileText, coreText, shellPath, profilePath, ns, cls, opts.components, componentFiles);
+                r = PageComposer.Compose(shellText, profileText, coreText, shellPath, profilePath, ns, cls, id, opts.components, componentFiles);
             }
             catch (Exception e)
             {
@@ -104,17 +131,28 @@ namespace VagabondK.nF.WebUi
             spc.AddSource("WebPage.g.cs", SourceText.From(r.Source, Encoding.UTF8));
         }
 
+        // <name>.nf.{html,js,css} → name. 그 외(일반 .html 등)는 null = 컴포넌트 아님.
+        static string ComponentStem(string rel)
+        {
+            string lower = rel.ToLowerInvariant();
+            if (lower.EndsWith(".nf.html", StringComparison.Ordinal)) return rel.Substring(0, rel.Length - 8);
+            if (lower.EndsWith(".nf.css", StringComparison.Ordinal)) return rel.Substring(0, rel.Length - 7);
+            if (lower.EndsWith(".nf.js", StringComparison.Ordinal)) return rel.Substring(0, rel.Length - 6);
+            return null;
+        }
+
         static bool IsUnder(string path, string root)
         {
             return path.Length > root.Length && path[root.Length] == Path.DirectorySeparatorChar
                 && path.StartsWith(root, Path.DirectorySeparatorChar == '/' ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase);
         }
 
-        static bool IsUnderAny(string path, string[] roots, out string rel)
+        static bool IsUnderAny(string path, string[] roots, out string rel, out int rootIdx)
         {
-            foreach (string root in roots)
-                if (IsUnder(path, root)) { rel = path.Substring(root.Length + 1); return true; }
+            for (int i = 0; i < roots.Length; i++)
+                if (IsUnder(path, roots[i])) { rel = path.Substring(roots[i].Length + 1); rootIdx = i; return true; }
             rel = null;
+            rootIdx = -1;
             return false;
         }
 
