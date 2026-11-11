@@ -91,6 +91,20 @@ WebUi\
 컴포넌트는 셸·프로필과 함께 `AdditionalFiles`로 전달되어 파일 수정 시 증분 재생성됩니다.
 미지정 이름이나 순환 참조는 WUI001 빌드 오류가 됩니다.
 
+### 컴포넌트 라이브러리
+
+페이지가 참조한 컴포넌트만 번들에 들어하므로(위 DFS), 미리 만들어 둔 컴포넌트를 별도
+**라이브러리 루트**에 모아두면 사용하는 것만 장치에 올라갑니다(미사용 = 0바이트).
+이 저장소가 그런 예입니다: [`VagabondK.nF.WebUi.Components`](../VagabondK.nF.WebUi.Components/README.md)
+(note·sysinfo·panel). 프로젝트는 두 번째 루트로 지정하기만 하면 됩니다:
+
+```xml
+<WebUiComponents>$(MSBuildThisFileDirectory)WebUi;$(저장소)\Source\Web\VagabondK.nF.WebUi.Components</WebUiComponents>
+```
+
+Web 샘플이 실제로 이 라이브러리를 참조하며, 로컬 `panel.nf.html`로 라이브러리 `panel`을
+섀도잉하여 같은 이름의 제품별 대체가 동작함을 보여줍니다.
+
 ## @instance 컴포넌트 (Web Components)
 
 컴포넌트 HTML 첫 줄에 주석 마커 `<!--@instance-->`를 두면 인라인 병합 대신
