@@ -178,7 +178,8 @@ WebUi\counter\           ← 폴더는 보관용, 이름은 파일 stem이 결�
 
 ```json
 {"id":"modbus-to-mqtt","schema":5,
- "form":[{"name":"timeout","label":"응답 대기 시간","fmt":"ms"}, ...],
+ "form":[{"name":"timeout","label":"응답 대기 시간","fmt":"ms"},
+         {"name":"mode","label":"동작 모드","fmt":"seg","options":[{"value":"0","label":"간이"},{"value":"1","label":"표준"}]}, ...],
  "features":{"byteOrder":true,"access":["RO","RW"],"name":false,
              "addr":{...},"cacheCols":{"head":[...]},"points":false}}
 ```
@@ -190,8 +191,9 @@ WebUi\counter\           ← 폴더는 보관용, 이름은 파일 stem이 결�
 * `form` — 순서가 있는 설정 필드. **생략 가능**: `@views`의 입력(`input`/`select`/`textarea`)에
   `data-label`/`data-fmt` 속성을 붙이면 생성기가 문서 순서로 자동 유도한다(아래 참조).
   수동으로 적을 경우 `name`은 프로필 `@views`의 `#sf` 폼 입력과 일치해야 합니다.
-  선택 `fmt`(`ms | pin | secret | bool | text`)가 변경 다이얼로그 레이블을 결정합니다
-  (select·radio는 표시 텍스트를 자동 해석).
+  선택 `fmt`(`ms | pin | secret | bool | switch | text | seg`)가 변경 다이얼로그 레이블을 결정합니다
+  (select·radio는 표시 텍스트를 자동 해석). `seg`는 `options`(문자열 배열 또는 `{value,label}` 객체 배열)가
+  필수이고 `data-fmt` 자동 유도로는 쓸 수 없으며(수동 manifest 전용), `switch`는 `bool`과 동일하게 토글로 렌더됩니다.
 * `features` — 화이트리스트: `points`, `scale`, `name`, `byteOrder`, `access`, `addr`,
   `cacheCols`. 셸은 `WebUi.feat(name, 기본값)`으로 읽습니다.
 

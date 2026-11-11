@@ -55,7 +55,7 @@ namespace VagabondK.nF.WebUi
             "profileExport", "profileImport", "showValue", "profileAddr", "profileScale", "profileAccess",
             "profilePoints", "profileName", "profileByteOrder", "profileCacheCols" };
         static readonly string[] FeatureNames = { "points", "scale", "name", "byteOrder", "access", "addr", "cacheCols" };
-        static readonly string[] Fmts = { "ms", "pin", "secret", "bool", "text" };
+        static readonly string[] Fmts = { "ms", "pin", "secret", "bool", "text", "seg", "switch" };
 
         Result res;
 
@@ -573,7 +573,7 @@ namespace VagabondK.nF.WebUi
                 var f = item as Dictionary<string, object>;
                 if (f == null) { Fail(profilePath, "form entry must be an object"); return false; }
                 foreach (string k in f.Keys)
-                    if (k != "name" && k != "label" && k != "fmt") { Fail(profilePath, "unknown form key \"" + k + "\""); return false; }
+                    if (k != "name" && k != "label" && k != "fmt" && k != "options") { Fail(profilePath, "unknown form key \"" + k + "\""); return false; }
                 string name = f.ContainsKey("name") ? f["name"] as string : null;
                 if (name == null || !Regex.IsMatch(name, "^[A-Za-z][A-Za-z0-9_]*$")) { Fail(profilePath, "form.name invalid: " + MiniJson.JsonOut(f.ContainsKey("name") ? f["name"] : null)); return false; }
                 if (!names.Add(name)) { Fail(profilePath, "duplicate form name \"" + name + "\""); return false; }
@@ -584,7 +584,19 @@ namespace VagabondK.nF.WebUi
                     string fmt = f["fmt"] as string;
                     bool ok = false;
                     foreach (string x in Fmts) if (x == fmt) ok = true;
-                    if (!ok) { Fail(profilePath, "form \"" + name + "\" fmt must be one of ms/pin/secret/bool/text"); return false; }
+                    if (!ok) { Fail(profilePath, "form \"" + name + "\" fmt must be one of ms/pin/secret/bool/text/seg/switch"); return false; }
+                    if (fmt == "seg")
+                    {
+                        var opts = f.ContainsKey("options") ? f["options"] as List<object> : null;
+                        if (opts == null || opts.Count == 0) { Fail(profilePath, "form \"" + name + "\" fmt \"seg\" needs a non-empty options array"); return false; }
+                        foreach (object ov in opts)
+                        {
+                            if (ov is string) continue;
+                            var oo = ov as Dictionary<string, object>;
+                            if (oo == null || !(oo.ContainsKey("value") || oo.ContainsKey("label"))) { Fail(profilePath, "form \"" + name + "\" options entries must be strings or {value,label} objects"); return false; }
+                        }
+                    }
+                    else if (f.ContainsKey("options")) { Fail(profilePath, "form \"" + name + "\" has options but fmt is not \"seg\""); return false; }
                 }
             }
             if (m.ContainsKey("features"))

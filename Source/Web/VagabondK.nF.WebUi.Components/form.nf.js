@@ -9,7 +9,17 @@ WebUi.autoForm = function (opts) {
   var F = WebUi.M.form || [], html = '', i;
   for (i = 0; i < F.length; i++) {
     var it = F[i], k = it.name, lab = it.label || k, fmt = it.fmt || 'text', ctl;
-    if (fmt === 'bool') ctl = '<select name="' + k + '"><option value="0">아니요</option><option value="1">예</option></select>';
+    if (fmt === 'bool' || fmt === 'switch') ctl = '<span class="sw"><label><input type="radio" name="' + k + '" value="0"></label><label><input type="radio" name="' + k + '" value="1"></label><i></i></span>';
+    else if (fmt === 'seg') {
+      var os = it.options || [], j, ov, ol;
+      ctl = '<span class="sg">';
+      for (j = 0; j < os.length; j++) {
+        ov = os[j]; ol = String(ov);
+        if (ov && typeof ov === 'object') { ol = ov.label; ov = ov.value; }
+        ctl += '<label><input type="radio" name="' + k + '" value="' + ov + '"><span>' + ol + '</span></label>';
+      }
+      ctl += '</span>';
+    }
     else if (fmt === 'secret') ctl = '<input type="password" name="' + k + '" autocomplete="new-password">';
     else if (fmt === 'ms' || fmt === 'num' || fmt === 'int') ctl = '<input name="' + k + '" inputmode="numeric">';
     else ctl = '<input name="' + k + '">';

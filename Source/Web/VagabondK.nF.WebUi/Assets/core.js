@@ -16,7 +16,7 @@ function fill(form, s) { var e = form.elements, base = {}; for (var i = 0; i < K
 function changed(base, v) { var c = []; if (!base) return c; for (var i = 0; i < KEYS.length; i++) { var k = KEYS[i]; if (v[k] !== base[k]) c.push(k); } return c; }
 function showValue(form, k, v) {
 var f = BY[k], el = form.elements[k], o, i;
-if (f) { if (f.fmt === 'ms') return v + ' ms'; if (f.fmt === 'pin') return 'GPIO ' + v; if (f.fmt === 'secret') return v ? '\u2022\u2022\u2022\u2022' : v; if (f.fmt === 'bool') return v === '1' ? '\uc608' : '\uc544\ub2c8\uc694'; }
+if (f) { if (f.fmt === 'ms') return v + ' ms'; if (f.fmt === 'pin') return 'GPIO ' + v; if (f.fmt === 'secret') return v ? '\u2022\u2022\u2022\u2022' : v; if (f.fmt === 'bool' || f.fmt === 'switch') return v === '1' ? '\uc608' : '\uc544\ub2c8\uc694'; }
 if (!f || !f.fmt) {
 if (el && el.querySelector) { o = el.querySelector('option[value="' + v + '"]'); if (o) return o.text; }
 else if (el && !el.tagName) { for (i = 0; i < el.length; i++) if (el[i].value === v) { o = el[i].parentNode.querySelector ? el[i].parentNode.querySelector('span') : null; if (o) return o.textContent; } }

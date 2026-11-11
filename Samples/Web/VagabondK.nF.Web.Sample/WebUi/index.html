@@ -4,6 +4,7 @@
      heartbeat는 @instance 마커로 반복 인스턴스 예시(상태 탭 + 설정 탭에서 재사용).
      tabs/form/modal은 라이브러리 컴포넌트: 내비·라우팅, 설정 폼 렌더, 확인 대화상자를 대신 담당한다.
      conn-dot/uptime/heap-gauge는 ops 표시 인스턴스(Grafana 스타일): 속성으로 임계값·문구를 조절한다.
+     statistic/progress 인스턴스와 form의 seg/switch fmt(Ant/Fluent 스타일)로 설정 폼과 상태판이 풍부해진다.
      들여쓰기는 자유롭게: 빌드 시 줄 앞뒤 공백과 주석은 모두 제거된다. -->
 <html lang="ko">
 <head>
@@ -82,6 +83,14 @@
       <p>
         <heap-gauge/>
       </p>
+      <p class="ops">
+        <statistic label="요청 수" key="requests"/>
+        <statistic label="남은 힙" key="heapFree" fmt="kb"/>
+      </p>
+      <p class="ops">
+        <progress label="대기 중"/>
+        <button id="pgDemo" class="gh" type="button">진행 데모</button>
+      </p>
       <sysinfo/>
       <status-card/>
       <panel/>
@@ -92,7 +101,7 @@
   <modal/>
   <div id="toasts"></div>
   <script>
-    <!--@manifest--> {"features": {"points": false}, "form": [{"name": "deviceName", "label": "장치 이름", "fmt": "text"}, {"name": "pollMs", "label": "폴링 주기", "fmt": "ms"}, {"name": "debug", "label": "진단 모드", "fmt": "bool"}]}
+    <!--@manifest--> {"features": {"points": false}, "form": [{"name": "deviceName", "label": "장치 이름", "fmt": "text"}, {"name": "pollMs", "label": "폴링 주기", "fmt": "ms"}, {"name": "mode", "label": "동작 모드", "fmt": "seg", "options": [{"value": "0", "label": "간이"}, {"value": "1", "label": "표준"}, {"value": "2", "label": "상세"}]}, {"name": "debug", "label": "진단 모드", "fmt": "bool"}]}
     <!--@core-->
     'use strict';
     const $ = id => document.getElementById(id);
@@ -125,6 +134,16 @@
     setInterval(() => WebUi.tick(), 1000);
     setInterval(refresh, 2000);
     refresh();
+
+    // progress 인스턴스 데모: wui:progress 이벤트 한 방으로 바가 갱신된다(firmware/export가 같은 규약).
+    $('pgDemo').onclick = function () {
+      var v = 0;
+      var t = setInterval(function () {
+        v += 10;
+        document.dispatchEvent(new CustomEvent('wui:progress', { detail: { value: v, label: v >= 100 ? '완료' : '전송 중…' } }));
+        if (v >= 100) clearInterval(t);
+      }, 120);
+    };
     <!--@script-->
   </script>
 </body>

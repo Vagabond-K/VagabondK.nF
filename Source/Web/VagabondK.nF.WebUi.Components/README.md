@@ -28,6 +28,8 @@
 | `conn-dot` | html+js+css | `<conn-dot timeout="6"/>` Grafana식 연결 점. `wui:tick`의 age가 timeout 이하면 초록 "연결", 초과하면 빨간 점멸 "무응답 Xs". 인스턴스. |
 | `uptime` | html+js+css | `<uptime/>` heartbeat의 일반화(장치 기준 payload 외삽). `long` 속성으로 "X시간 X분 X초" 3단 표시. heartbeat와 병기해 페이지/장치 기준 비교 예시 가능. 인스턴스. |
 | `heap-gauge` | html+js+css | `<heap-gauge max="…"/>` 남은 힙 게이지. `wui:status`의 heapFree 표시, max 생략 시 관측 peak로 자동 스케일, 20% 미만 빨간. 인스턴스. |
+| `statistic` | html+js+css | `<statistic key="reqCount" label="요청 수"/>` Ant/Carbon식 큰 숫자+라벨. `wui:status`의 `key` 값을 `fmt`(kb·ms·pct)로 포맷해 표시. 인스턴스. |
+| `progress` | html+js+css | `<progress max="100" label="저장 중"/>` 바형 진행률. `wui:progress`의 `{value,max,label}` 구독, 도달 시 host에 `done`(초록). 저장·업로드·펌웨어와 짝. 인스턴스. |
 
 ### form 컴포넌트 사용 예
 
@@ -39,7 +41,10 @@
 WebUi.autoForm({ check(v) {...}, save(v) { return WebUi.post('/api/settings', ...); } });
 ```
 
-`fmt` 값: `text`(기본)·`ms`/`num`/`int`(숫자 키패드)·`bool`(예/아니요 select)·`secret`(비밀번호).
+`fmt` 값: `text`(기본)·`ms`/`num`/`int`(숫자 키패드)·`bool`/`switch`(토글 스위치)·`secret`(비밀번호)·
+`seg`(세그먼트 컨트롤. `options` 필수 — 문자열 배열 또는 `{"value":"0","label":"간이"}` 객체 배열.
+장치 값이 숫자 문자열이면 value를 label과 따로 줘야 fill이 맞는다).
+`seg`/`switch`는 라디오 그룹으로 렌더되므로 `form.elements[k].value` 왕복이 네이티브로 동작한다(bindForm 무변경).
 표시는 core.js `showValue`가 같은 `fmt`로 일관되게 처리한다.
 
 ### ops 컴포넌트 사용 예 (인스턴스 속성 문법)
@@ -105,9 +110,9 @@ MCU 제약(외부 JS/CSS 금지, vanilla + WebUi 버스, 힙 절약)으로 필�
 | 우선 | 이름 | 참조 | 형태 | 내용 |
 |---|---|---|---|---|
 | 상 | alert | Bootstrap/Ant | 인스턴스 | note의 일반화(severity 변형) |
-| 상 | statistic | Ant/Carbon | 인스턴스 | 큰 숫자+라벨+변화율 |
+| 상 | statistic | Ant/Carbon | ✅ 인스턴스 | 큰 숫자+라벨(status key 구독, fmt kb/ms/pct) |
 | 상 | descriptions | Ant | 인스턴스 | kv의 다단 버전(data-keys) |
-| 상 | progress | 전 프레임워크 | 인스턴스 | 바형 진행률(저장·업로드) |
+| 상 | progress | 전 프레임워크 | ✅ 인스턴스 | 바형 진행률(wui:progress bus 이벤트. 저장·업로드) |
 | 중 | badge | Bootstrap/MUI | 인라인 | 카운트·상태 뱃지 |
 | 중 | chip | MUI/Ant | 인스턴스 | 라벨+선택/삭제 태그 |
 | 중 | spinner | Bootstrap/MUI | 인스턴스 | CSS-only 회전 |
@@ -131,8 +136,8 @@ MCU 제약(외부 JS/CSS 금지, vanilla + WebUi 버스, 힙 절약)으로 필�
 | 우선 | 이름 | 참조 | 형태 | 내용 |
 |---|---|---|---|---|
 | ✅ 완료 | form | Ant Form | 인라인 | MANIFEST.form 자동 렌더 — 설정 페이지가 한 줄이 됨 |
-| 상 | switch | MUI/Ant | 인스턴스 | 불리언 토글의 일반화 |
-| 상 | segmented | Ant/Fluent | 인스턴스 | 라디오 그룹 버튼형(RTU/ASCII 선택 등) |
+| 상 | switch | MUI/Ant | ✅ form fmt | `fmt:"switch"`(bool과 동일). 라디오 쌍 토글 |
+| 상 | segmented | Ant/Fluent | ✅ form fmt | `fmt:"seg"`+options. 라디오 그룹 버튼형(RTU/ASCII 선택 등) |
 | 중 | input-group | Bootstrap | 인스턴스 | 입력+단위/버튼 결합 |
 | 중 | number | Ant InputNumber | 인스턴스 | +/- 스테퍼 숫자 |
 | 중 | search | Carbon | 인스턴스 | 필터 입력 |
@@ -171,4 +176,5 @@ carousel·calendar·datepicker(네이티브 `<input type=date>` 대체)·tree·t
 speed-dial·affix/scrollspy·image-lightbox·colorpicker
 
 ### 권장 착수 순서
-~~form → tabs → modal~~(2026-11 완료) → ~~conn-dot·uptime·heap-gauge~~(2026-11 완료) → segmented → firmware
+~~form → tabs → modal~~(2026-11 완료) → ~~conn-dot·uptime·heap-gauge~~(2026-11 완료) →
+~~segmented·switch·statistic·progress~~(2026-11 완료) → firmware·export-import → alert·result·card

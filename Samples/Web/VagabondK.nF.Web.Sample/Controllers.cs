@@ -15,11 +15,12 @@ namespace VagabondK.nF.Web.Sample
         public const string Path = "I:\\web-sample.cfg";
 
         // 검증 한계값의 단일 출처. /api/auth/status의 limits로 클라이언트에 전달된다.
-        public const int NameMax = 30, PollMin = 200, PollMax = 60000, Schema = 1;
+        public const int NameMax = 30, PollMin = 200, PollMax = 60000, Schema = 1, ModeMax = 2;
 
         public static string DeviceName = "ESP32 샘플";
         public static int PollMs = 1000;
         public static bool Debug = false;
+        public static int Mode = 1; // segmented 데모: 0=간이 1=표준 2=상세
 
         public static void Load()
         {
@@ -36,6 +37,7 @@ namespace VagabondK.nF.Web.Sample
                     if (key == "deviceName" && val.Length > 0 && val.Length <= NameMax) DeviceName = val;
                     else if (key == "pollMs") { int v; if (int.TryParse(val, out v) && v >= PollMin && v <= PollMax) PollMs = v; }
                     else if (key == "debug") Debug = val == "1";
+                    else if (key == "mode") { int v; if (int.TryParse(val, out v) && v >= 0 && v <= ModeMax) Mode = v; }
                 }
             }
             catch (Exception) { /* 기본값 유지 */ }
@@ -44,7 +46,7 @@ namespace VagabondK.nF.Web.Sample
         public static void Save()
         {
             string tmp = Path + ".tmp";
-            string body = "deviceName=" + DeviceName + "\r\npollMs=" + PollMs.ToString() + "\r\ndebug=" + (Debug ? "1" : "0") + "\r\n";
+            string body = "deviceName=" + DeviceName + "\r\npollMs=" + PollMs.ToString() + "\r\ndebug=" + (Debug ? "1" : "0") + "\r\nmode=" + Mode.ToString() + "\r\n";
             if (File.Exists(tmp)) File.Delete(tmp);
             File.WriteAllText(tmp, body);
             if (File.Exists(Path)) File.Delete(Path);
@@ -54,7 +56,7 @@ namespace VagabondK.nF.Web.Sample
         public static string Json()
         {
             return "{\"deviceName\":\"" + WebApi.JsonEscape(DeviceName) + "\",\"pollMs\":\"" + PollMs.ToString() +
-                   "\",\"debug\":\"" + (Debug ? "1" : "0") + "\"}";
+                   "\",\"debug\":\"" + (Debug ? "1" : "0") + "\",\"mode\":\"" + Mode.ToString() + "\"}";
         }
     }
 
@@ -240,7 +242,7 @@ namespace VagabondK.nF.Web.Sample
                 // 서버 자기서술(Phase 2 설계): capabilities는 manifest.features의 최종 고향, settingsKeys는
                 // 이 서버가 실제로 받는 설정 키(폼 검증 상실 방어). manifest 소멸 로드맵의 additive groundwork.
                 ",\"capabilities\":{\"points\":false}" +
-                ",\"settingsKeys\":[\"deviceName\",\"pollMs\",\"debug\"]" +
+                ",\"settingsKeys\":[\"deviceName\",\"pollMs\",\"debug\",\"mode\"]" +
                 "," + SampleConfig.Json().Substring(1)); // deviceName/pollMs/debug 병합
         }
 
@@ -259,16 +261,19 @@ namespace VagabondK.nF.Web.Sample
         {
             if (CsrfGuard.Check(e.Context, CsrfMarker, LocalAddress)) return;
             FormReader f = new FormReader(e.Context.Request, 4096);
-            string name = f.Get("deviceName"), poll = f.Get("pollMs"), dbg = f.Get("debug");
+            string name = f.Get("deviceName"), poll = f.Get("pollMs"), dbg = f.Get("debug"), mode = f.Get("mode");
 
             int pollMs;
             if (name == null || name.Length < 1 || name.Length > SampleConfig.NameMax) { WebApi.Error(e.Context.Response, 400, "deviceName 오류"); return; }
             if (poll == null || !int.TryParse(poll, out pollMs) || pollMs < SampleConfig.PollMin || pollMs > SampleConfig.PollMax) { WebApi.Error(e.Context.Response, 400, "pollMs 오류"); return; }
             if (dbg != "0" && dbg != "1") { WebApi.Error(e.Context.Response, 400, "debug 오류"); return; }
+            int modeV;
+            if (mode == null || !int.TryParse(mode, out modeV) || modeV < 0 || modeV > SampleConfig.ModeMax) { WebApi.Error(e.Context.Response, 400, "mode 오류"); return; }
 
             SampleConfig.DeviceName = name;
             SampleConfig.PollMs = pollMs;
             SampleConfig.Debug = dbg == "1";
+            SampleConfig.Mode = modeV;
             SampleConfig.Save();
             WebApi.Json(e.Context.Response, 200, "{\"ok\":true}");
         }
