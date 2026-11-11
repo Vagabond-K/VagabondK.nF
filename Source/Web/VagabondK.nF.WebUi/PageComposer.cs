@@ -215,10 +215,12 @@ namespace VagabondK.nF.WebUi
                     templates.Add("<template id=\"wui-t-" + name + "\">");
                     templates.AddRange(body);
                     templates.Add("</template>");
+                    // js/css 조각은 한 줄 문자열로 합쳐지므로 최종 Trim이 끝부분만 건드린다.
+                    // 여기서 미리 각 줄을 Trim해 들여쓰기 공백을 없앤다(JS에서 줄 앞 공백은 무의미).
                     string jsArg = c.Js.Length > 0
-                        ? "function (root, document, $) {\n" + string.Join("\n", c.Js) + "\n}"
+                        ? "function (root, document, $) {\n" + string.Join("\n", TrimLines(c.Js)) + "\n}"
                         : "null";
-                    string cssArg = c.Css.Length > 0 ? ", " + MiniJson.JsonOut(string.Join("\n", c.Css)) : "";
+                    string cssArg = c.Css.Length > 0 ? ", " + MiniJson.JsonOut(string.Join("\n", TrimLines(c.Css))) : "";
                     compJs.Add("WUI.def(" + MiniJson.JsonOut(name) + ", " + jsArg + cssArg + ");");
                 }
                 else
@@ -269,11 +271,48 @@ namespace VagabondK.nF.WebUi
                 merged.InsertRange(at, templates);
             }
 
+            // 최종 축소: 줄 앞뒤 공백 제거 + 온줄 주석 제거. 소스는 들여쓰기 자유롭게 써도
+            // 결과에서는 공백·주석이 사라진다(nF 문자열 힙 절약). 여러 줄로 퍼진 <!-- -->와
+            // /* */ 주석도 상태 추적 제거; script 안의 <!-- 는 JS 레거시 온줄 주석으로 다룬다.
             var page = new StringBuilder();
+            bool inScript = false, skipHtmlComment = false, skipBlockComment = false;
             foreach (string raw in merged)
             {
                 string line = raw.Trim();
-                if (line.Length == 0 || line.StartsWith("//") || (line.StartsWith("<!--") && line.EndsWith("-->"))) continue;
+                if (skipHtmlComment)
+                {
+                    int end = line.IndexOf("-->", StringComparison.Ordinal);
+                    if (end < 0) continue;
+                    skipHtmlComment = false;
+                    line = line.Substring(end + 3).Trim();
+                    if (line.Length == 0) continue;
+                }
+                if (skipBlockComment)
+                {
+                    int end = line.IndexOf("*/", StringComparison.Ordinal);
+                    if (end < 0) continue;
+                    skipBlockComment = false;
+                    line = line.Substring(end + 2).Trim();
+                    if (line.Length == 0) continue;
+                }
+                if (line.Length == 0 || line.StartsWith("//")) continue;
+                if (line.StartsWith("<!--"))
+                {
+                    if (inScript) continue;
+                    int end = line.IndexOf("-->", StringComparison.Ordinal);
+                    if (end < 0) { skipHtmlComment = true; continue; }
+                    line = line.Substring(end + 3).Trim();
+                    if (line.Length == 0) continue;
+                }
+                else if (line.StartsWith("/*"))
+                {
+                    int end = line.IndexOf("*/", StringComparison.Ordinal);
+                    if (end < 0) { skipBlockComment = true; continue; }
+                    line = line.Substring(end + 2).Trim();
+                    if (line.Length == 0) continue;
+                }
+                if (line.StartsWith("<script") && line.EndsWith(">")) inScript = true;
+                else if (line.StartsWith("</script")) inScript = false;
                 if (page.Length > 0) page.Append('\n');
                 page.Append(line);
             }
@@ -325,6 +364,14 @@ namespace VagabondK.nF.WebUi
             foreach (string raw in lines)
                 if (raw.Trim() == InstanceMarker) return true;
             return false;
+        }
+
+        // 문자열로 합쳐질 조각들의 줄 앞뒤 공백 제거(최종 Trim은 합쳐진 한 줄의 끝만 건드림).
+        static string[] TrimLines(string[] lines)
+        {
+            var r = new string[lines.Length];
+            for (int i = 0; i < lines.Length; i++) r[i] = lines[i].Trim();
+            return r;
         }
 
         // 컴포넌트 참조 판정: 줄 전체가 <!--@use:name-->이거나 <name/>(비-void)면 이름 반환.
