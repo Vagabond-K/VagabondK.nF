@@ -1,0 +1,2 @@
+#login{position:fixed;inset:0;background:#000a;display:flex;align-items:center;justify-content:center;z-index:10}
+#login form{background:var(--card);padding:22px;border-radius:10px;display:grid;gap:10px;min-width:300px}

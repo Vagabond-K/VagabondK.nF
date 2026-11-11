@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<!-- 루트 페이지(WebUiPage 모드): 얇은 셸. 폼/패널 기계장치는 settings/panel 컴포넌트가,
-     transport·bindForm·이벤트는 core.js(WebUi)가 담당한다. 이 파일은 마크업과 폴러만 남긴다. -->
+<!-- 루트 페이지(WebUiPage 모드): 얇은 셸. 화면 조각은 login/sysinfo/settings/panel 컴포넌트가,
+     transport·bindForm·이벤트는 core.js(WebUi)가 담당한다. 이 파일은 조립과 폴러만 남긴다.
+     heartbeat는 @instance 마커로 반복 인스턴스 예시(상태 탭 + 설정 탭에서 재사용). -->
 <html lang="ko">
 <head>
 <meta charset="utf-8">
@@ -30,8 +31,6 @@ button.gh{background:none;border:1px solid #334155;color:var(--mut);font:inherit
 .msg{color:var(--mut);margin:6px 0}
 .bad{color:var(--bad)}
 .dot::after{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--in);margin-left:5px;vertical-align:middle}
-#login{position:fixed;inset:0;background:#000a;display:flex;align-items:center;justify-content:center;z-index:10}
-#login form{background:var(--card);padding:22px;border-radius:10px;display:grid;gap:10px;min-width:300px}
 #toasts{position:fixed;bottom:14px;right:14px;display:grid;gap:8px;z-index:20}
 .toast{background:#334155;padding:8px 12px;border-radius:8px}
 .toast.bad{background:#7f1d1d}
@@ -55,41 +54,20 @@ button.gh{background:none;border:1px solid #334155;color:var(--mut);font:inherit
 <main>
 <section id="v-status">
 <h1>장치 상태</h1>
-<dl id="sysDl"></dl>
+<sysinfo/>
 <status-card/>
 <panel/>
 </section>
 <settings/>
 </main>
-<div id="login" hidden>
-<form id="loginForm">
-<b>관리자 비밀번호</b>
-<input type="password" id="pw" autocomplete="current-password">
-<p id="loginMsg" class="bad"></p>
-<button class="act">로그인</button>
-</form>
-</div>
+<login/>
 <div id="toasts"></div>
 <script>
 <!--@manifest--> {"features":{"points":false}}
 <!--@core-->
 'use strict';
 const $ = id => document.getElementById(id);
-const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 let authed = false, failures = 0, SRV = {};
-function dur(sec) {
-sec = Math.max(0, Math.floor(sec));
-const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60);
-return h ? h + '시간 ' + m + '분' : m ? m + '분 ' + (sec % 60) + '초' : sec + '초';
-}
-const kb = v => (v / 1024).toFixed(1) + ' KB';
-function fillDl(id, rows) {
-const d = $(id);
-d.textContent = '';
-for (const [k, v] of rows) d.append(el('dt', '', k), el('dd', '', String(v)));
-}
-function showLogin(msg) { authed = false; $('login').hidden = false; $('loginMsg').textContent = msg || ''; }
-WebUi.on('wui:unauth', () => showLogin('세션이 만료되었습니다. 다시 로그인하세요.'));
 async function checkAuth() {
 const a = await WebUi.api('/api/auth/status');
 if (a.csrfHeader) WebUi.csrf(a.csrfHeader);
@@ -110,11 +88,8 @@ $('t-settings').classList.toggle('on', v === 'settings');
 addEventListener('hashchange', route);
 $('t-status').onclick = () => location.hash = '';
 $('t-settings').onclick = () => location.hash = 'settings';
-// 헤더와 상태 목록도 다른 컴포넌트와 똑같이 이벤트를 구독한다(페이지가 버스 바깥에 있지 않다).
+// 헤더도 다른 컴포넌트와 똑같이 이벤트를 구독한다(페이지가 버스 바깥에 있지 않다).
 WebUi.on('wui:status', s => { $('hIp').textContent = s.ip; });
-WebUi.on('wui:tick', d => {
-fillDl('sysDl', [['가동 시간', dur(d.uptime)], ['남은 힙', kb(WebUi.ST.heapFree)], ['요청 수', WebUi.ST.requests], ['프로필', WebUi.M.id]]);
-});
 async function refresh() {
 try {
 if (!await checkAuth()) return;
@@ -124,18 +99,6 @@ failures = 0;
 if (++failures >= 2 && !e.unauth) $('hIp').textContent = '연결 끊김';
 }
 }
-$('loginForm').onsubmit = async ev => {
-ev.preventDefault();
-try {
-await WebUi.post('/api/auth/login', 'password=' + encodeURIComponent($('pw').value));
-$('pw').value = '';
-failures = 0;
-// 서버가 세션 쿠키를 거부(브라우저 차단 등)하면 창이 다시 나타나므로 원인을 안내한다.
-if (!await checkAuth()) showLogin('로그인되었으나 세션 쿠키가 유지되지 않습니다. 브라우저의 쿠키 차단 설정을 확인하세요.');
-else refresh();
-} catch (err) { $('loginMsg').textContent = err.message; }
-};
-$('btnOut').onclick = async () => { try { await WebUi.post('/api/auth/logout', ''); } catch (e) {} location.reload(); };
 setInterval(() => WebUi.tick(), 1000);
 setInterval(refresh, 2000);
 route();

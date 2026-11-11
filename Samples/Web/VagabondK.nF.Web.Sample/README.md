@@ -9,17 +9,24 @@
 
 ```
 VagabondK.nF.Web.Sample\
-├── VagabondK.nF.Web.Sample.nfproj   WebUi targets를 import하는 최소 nfproj
+├── VagabondK.nF.Web.Sample.nfproj   WebUi targets를 import하는 최소 nfproj(WebUiPage=index.html)
 ├── Program.cs                        네트워크 대기 → GuardedWebServer(80) 시작
 ├── Controllers.cs                    라우트 핸들러(페이지/인증/상태/설정) + 설정·인증 파일 영속화
 └── WebUi\
-    ├── shell.html                    미니 셸(로그인 오버레이 + 상태/설정 탭 + 5개 머지 마커)
-    ├── profile.html                  프로필 "web-sample"(manifest + 폼 + 4개 훅) — `<heartbeat/>` 인스턴스 포함
-    ├── heartbeat.nf.{html,js,css}    @use 컴포넌트 한 벌: 가동 시간 카드. 안에 `<!--@use:note-->`(중첩 데모)
-    └── note.nf.{html,css}            heartbeat가 쓰는 조각(js 없음) — 이름 = `.nf` 앞 stem, 폴더는 자유
+    ├── index.html                    루트 페이지: 얇은 셸(CSS + 헤더/탭 + 조립 + 폴러만 남김)
+    ├── login.nf.{html,js,css}        로그인 오버레이. showLogin은 페이지의 checkAuth도 호출(함수 호이스트)
+    ├── sysinfo.nf.{html,js}          상태 목록: wui:tick 구독해 dl 채우기. dur/kb/fillDl가 여기 속함
+    ├── settings.nf.{html,js}         설정 폼: data-label/data-fmt 스키마 유도, 기계장치는 WebUi.bindForm
+    ├── panel.nf.{html,js}            프로필 패널: 훅 대신 wui:status/wui:tick 이벤트 구독
+    ├── status-card.nf.html           줄 하나가 `<heartbeat/>` 전부 — 컴포넌트를 조합하는 별칭 예시
+    ├── heartbeat.nf.{html,js,css}    @instance 컴포넌트: 상태 탭·설정 탭 두 곳에서 재사용(태그마다 shadow root)
+    └── note.nf.{html,css}            heartbeat 안의 조각(js 없음) — 이름 = `.nf` 앞 stem, 폴더는 자유
 ```
 
-- **빌드 시점**: `VagabondK.nF.WebUi.targets`가 셸+프로필을 머지·검증·축소·gzip해서
+- **반복 인스턴스**: heartbeat.nf.html 첫 줄의 `<!--@instance-->` 마커가 있으면 인라인 병합 대신
+  `<wui-heartbeat>` 태그 + `<template>`으로 바뀌고, WUI 런타임이 태그마다 shadow root와
+  클로저 상태를 만든다. 같은 컴포넌트를 여러 곳에 써도 id가 충돌하지 않는다(아래 설정 탭에도 하나 더 있음).
+- **빌드 시점**: `VagabondK.nF.WebUi.targets`가 페이지+컴포넌트를 머지·검증·축소·gzip해서
   `obj\...\WebPage.g.cs`(internal static class)로 생성한다. 마커/manifest 규칙 위반은 컴파일 실패로 드러난다.
 - **런타임**: `GET /`는 ETag 재검증 후 gzip 파트를 스트림에 직접 쓴다.
   `[PublicEndpoint]`가 없는 `api/*`는 `GuardedWebServer`가 자동 401 차단(fail-closed).
@@ -49,17 +56,19 @@ nanoff --image Samples\Web\VagabondK.nF.Web.Sample\bin\Release\VagabondK.nF.Web.
 | 화면 | API | 설명 |
 |---|---|---|
 | 로그인 오버레이 | `POST api/auth/login` | 비밀번호 → 세션 쿠키(`wsauth`) 발급. 실패 5회 시 60초 잠금 |
-| 상태 탭 | `GET api/status` | 가동 시간·힙·요청 수 + 프로필 패널(`profileRender`/`profileTick`) |
-| 설정 탭 | `GET/POST api/settings` | 폼 변경 감지·저장 확인(`checkSettings`/`syncForm`), `I:\web-sample.cfg` 영속화 |
+| 상태 탭 | `GET api/status` | sysinfo(가동/힙/요청 수) + heartbeat 인스턴스 + panel(프로필 패널) |
+| 설정 탭 | `GET/POST api/settings` | 폼 변경 감지·저장 확인은 `WebUi.bindForm`, `I:\web-sample.cfg` 영속화 |
 | 로그아웃 | `POST api/auth/logout` | 세션 폐기 + 쿠키 삭제 |
 
 ## 내 프로젝트로 확장하기
 
-1. `WebUi\profile.html`의 manifest `id`와 form 필드를 바꾼다(폼 name은 `@views`에 그대로 존재해야 함).
-2. `@script`의 4개 훅(`profileRender`/`profileTick`/`checkSettings`/`syncForm`)을 새 필드에 맞게 고친다.
-   포인트 테이블이 필요하면 `features.points`를 켜고 `profilePoint`를 추가한다.
+1. `WebUi\index.html`의 manifest(`<!--@manifest-->`) `id`와 탭 구성을 바꾼다.
+   폼 필드는 컴포넌트 markup의 `data-label`/`data-fmt`에서 빌드 타임에 유도된다.
+2. 화면 조각은 `이름.nf.html`(+선택 `.nf.js`/`.nf.css`) 컴포넌트로 빼고
+   페이지에서 `<이름/>` 한 줄로 조립한다. 여러 곳에서 쓸 컴포넌트는 `<!--@instance-->` 마커를 붙인다.
 3. `Controllers.cs`의 `SampleConfig`/`Status`/`SettingsPost`를 실제 장치 값에 맞춰 확장한다.
-4. 셸(`shell.html`)은 보통 그대로 두고 프로필만 교체하는 것이 WebUi의 의도다.
+4. 페이지 코드에는 폴러(`refresh`/`tick`)와 조립만 남기고, 기계장치(bindForm·transport)는
+   core.js가 담당하므로 손대지 않는 것이 WebUi의 의도다.
 
 ## 보안 참고
 
