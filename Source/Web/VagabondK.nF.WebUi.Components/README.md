@@ -25,6 +25,9 @@
 | `form` | html+js+css | `<form/>` 한 줄로 설정 페이지 완성. `@manifest`의 `form` 스키마로 컨트롤을 런타임 렌더하고 `WebUi.autoForm({check, save})`가 저장/되돌리기/dirty를 bindForm으로 배선. 필드가 마크업이 아니라 manifest에 있으므로 생성기의 name= 대조 검사는 이 컴포넌트 사용 시 생략. |
 | `tabs` | html+js+css | `<tabs/>`가 `section[data-tab]`을 모아 내비 버튼과 해시 라우팅을 생성. `data-hash`로 URL 키 지정(생략 시 `#t2`…), 탭 전환 시 `wui:tab` 발행. `WebUi.tabs.el(i)`를 bindForm의 `dotEl`로 쓸 수 있다. |
 | `modal` | html+js+css | `WebUi.modal({title, body, ok, cancel})` → `Promise<boolean>`. nanoGate ask(pointdlg) 패턴의 일반화. 확인/취소/바깥 클릭 지원. |
+| `conn-dot` | html+js+css | `<conn-dot timeout="6"/>` Grafana식 연결 점. `wui:tick`의 age가 timeout 이하면 초록 "연결", 초과하면 빨간 점멸 "무응답 Xs". 인스턴스. |
+| `uptime` | html+js+css | `<uptime/>` heartbeat의 일반화(장치 기준 payload 외삽). `long` 속성으로 "X시간 X분 X초" 3단 표시. heartbeat와 병기해 페이지/장치 기준 비교 예시 가능. 인스턴스. |
+| `heap-gauge` | html+js+css | `<heap-gauge max="…"/>` 남은 힙 게이지. `wui:status`의 heapFree 표시, max 생략 시 관측 peak로 자동 스케일, 20% 미만 빨간. 인스턴스. |
 
 ### form 컴포넌트 사용 예
 
@@ -38,6 +41,24 @@ WebUi.autoForm({ check(v) {...}, save(v) { return WebUi.post('/api/settings', ..
 
 `fmt` 값: `text`(기본)·`ms`/`num`/`int`(숫자 키패드)·`bool`(예/아니요 select)·`secret`(비밀번호).
 표시는 core.js `showValue`가 같은 `fmt`로 일관되게 처리한다.
+
+### ops 컴포넌트 사용 예 (인스턴스 속성 문법)
+
+```html
+<p class="ops">
+<conn-dot timeout="6"/>
+<uptime long/>
+</p>
+<p>
+<heap-gauge/>
+</p>
+```
+
+셋 모두 `<!--@instance-->`라 같은 페이지에 여러 번 두면 각각 독립 상태가 된다.
+속성은 인스턴스 전용 문법이며(`<uptime long/>` → `<wui-uptime long></wui-uptime>`),
+참조 태그는 **독립 줄**에 있어야 인식된다(다른 텍스트와 한 줄 혼입 시 원문이 남는다).
+`heartbeat`(페이지 기준)와 `uptime`(장치 payload 기준)을 나란히 두면 두 기준 차이를
+화면에서 바로 비교할 수 있다 — 샘플의 `status-card.nf.html`이 그 예시.
 
 ## 규칙
 
@@ -132,9 +153,9 @@ MCU 제약(외부 JS/CSS 금지, vanilla + WebUi 버스, 힙 절약)으로 필�
 ### E. 장치·ops 특화(우리 니치)
 | 우선 | 이름 | 참조/출처 | 형태 | 내용 |
 |---|---|---|---|---|
-| 상 | conn-dot | Grafana | 인스턴스 | tick 신선도 기반 연결 상태 |
-| 상 | uptime | Grafana 헤더 | 인스턴스 | heartbeat 일반화 |
-| 상 | heap-gauge | Grafana | 인스턴스 | 남은 힙 게이지 |
+| 상 | conn-dot | Grafana | ✅ 인스턴스 | tick 신선도 기반 연결 상태 |
+| 상 | uptime | Grafana 헤더 | ✅ 인스턴스 | heartbeat 일반화 |
+| 상 | heap-gauge | Grafana | ✅ 인스턴스 | 남은 힙 게이지 |
 | 상 | reboot | 라우터 UI | 인라인 | 카운트다운 재부팅 |
 | 상 | firmware | ESP Web Flasher | 인스턴스 | 펌웨어 업데이트(file+progress+result 조합) |
 | 상 | export-import | phpMyAdmin | 인스턴스 | 설정 백업 내보내기/가져오기 |
@@ -150,4 +171,4 @@ carousel·calendar·datepicker(네이티브 `<input type=date>` 대체)·tree·t
 speed-dial·affix/scrollspy·image-lightbox·colorpicker
 
 ### 권장 착수 순서
-~~form → tabs → modal~~(2026-11 완료) → conn-dot·uptime·heap-gauge → segmented → firmware
+~~form → tabs → modal~~(2026-11 완료) → ~~conn-dot·uptime·heap-gauge~~(2026-11 완료) → segmented → firmware

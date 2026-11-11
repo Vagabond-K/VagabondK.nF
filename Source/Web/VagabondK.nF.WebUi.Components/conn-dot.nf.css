@@ -1,0 +1,5 @@
+.cd { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--mut); }
+.cd i { width: 9px; height: 9px; border-radius: 50%; background: var(--mut); display: inline-block; }
+.cd i.ok { background: var(--ok); }
+.cd i.bad { background: var(--bad); animation: cd-blink 1s infinite; }
+@keyframes cd-blink { 50% { opacity: .3; } }

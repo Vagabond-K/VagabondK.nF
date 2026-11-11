@@ -3,6 +3,7 @@
      transport·bindForm·이벤트는 core.js(WebUi)가 담당한다. 이 파일은 조립과 폴러만 남긴다.
      heartbeat는 @instance 마커로 반복 인스턴스 예시(상태 탭 + 설정 탭에서 재사용).
      tabs/form/modal은 라이브러리 컴포넌트: 내비·라우팅, 설정 폼 렌더, 확인 대화상자를 대신 담당한다.
+     conn-dot/uptime/heap-gauge는 ops 표시 인스턴스(Grafana 스타일): 속성으로 임계값·문구를 조절한다.
      들여쓰기는 자유롭게: 빌드 시 줄 앞뒤 공백과 주석은 모두 제거된다. -->
 <html lang="ko">
 <head>
@@ -59,6 +60,7 @@
     .toast.out { opacity: 0; transition: opacity .5s; }
     #pv { border-top: 1px solid #334155; margin-top: 12px; padding-top: 4px; }
     .age { color: var(--mut); font-size: 12px; }
+    .ops { display: flex; align-items: center; gap: 14px; margin: 6px 0; }
     [hidden] { display: none !important; }
     <!--@style-->
   </style>
@@ -73,6 +75,13 @@
   <main>
     <section data-tab="상태">
       <h1>장치 상태</h1>
+      <p class="ops">
+        <conn-dot timeout="6"/>
+        <uptime long/>
+      </p>
+      <p>
+        <heap-gauge/>
+      </p>
       <sysinfo/>
       <status-card/>
       <panel/>

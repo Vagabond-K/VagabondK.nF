@@ -29,7 +29,8 @@ namespace VagabondK.nF.WebUi
         const string SlotRemovedMsg = "@slot syntax was removed: expose a shadowable name.nf.html component and reference it as <name/> instead";
         static readonly Regex UseToken = new Regex(@"^<!--@use:([A-Za-z0-9_-]+)-->$", RegexOptions.Compiled);
         // <name/> 문법: 비-void 요소의 자기종결은 HTML 금기 표기라 줄 전체가 마커다(Phase 2 로드맵).
-        static readonly Regex SelfCloseTag = new Regex(@"^<([a-z][a-z0-9-]*)\s*/>$", RegexOptions.Compiled);
+        // 속성 허용(@instance 컴포넌트의 파라미터): <name a="1" b/> → 그룹2가 속성 문자열.
+        static readonly Regex SelfCloseTag = new Regex(@"^<([a-z][a-z0-9-]*)((?:\s+[a-zA-Z0-9_-]+(?:=""[^""]*"")?)*)\s*/>$", RegexOptions.Compiled);
         static readonly HashSet<string> VoidNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
             "br", "hr", "img", "input", "link", "meta", "base", "area", "embed", "col", "param", "source", "track", "wbr" };
         // 폼 컨트롤과 data-label/data-fmt 속성 스캔용(마크업 → manifest.form 자동 유도).
@@ -48,6 +49,8 @@ namespace VagabondK.nF.WebUi
         Dictionary<string, ComponentFiles> components;
         List<string> useOrder;
         HashSet<string> useDone, useVisiting;
+        // @instance 컴포넌트의 name → 커스텀 엘리먼트 태그(useSite 속성 보존 생성용).
+        Dictionary<string, string> instTag = new Dictionary<string, string>(StringComparer.Ordinal);
         static readonly string[] Legacy = { "PROFILE", "KEYS", "LABELS", "formValues", "fillForm", "profileDirty",
             "profileExport", "profileImport", "showValue", "profileAddr", "profileScale", "profileAccess",
             "profilePoints", "profileName", "profileByteOrder", "profileCacheCols" };
@@ -213,6 +216,7 @@ namespace VagabondK.nF.WebUi
                     // js/css는 커스텀 엘리먼트 정의에 포장되어 인스턴스마다 shadow root 안에서 실행되므로
                     // id가 인스턴스별로 격리되고 여러 위치에서 안전하게 재사용할 수 있다.
                     string tag = "wui-" + name.ToLowerInvariant();
+                    instTag[name] = tag;
                     instBody[name] = body;
                     expanded[name] = new string[] { "<" + tag + "></" + tag + ">" };
                     templates.Add("<template id=\"wui-t-" + name + "\">");
@@ -258,7 +262,7 @@ namespace VagabondK.nF.WebUi
                 if (m == null)
                 {
                     string uref = UseRef(raw.Trim());
-                    if (uref != null) { merged.AddRange(expanded[uref]); continue; }
+                    if (uref != null) { merged.AddRange(ExpandRef(uref, raw.Trim(), expanded) ?? expanded[uref]); continue; }
                     merged.Add(raw); continue;
                 }
                 if (m == "<!--@manifest-->") merged.Add("const MANIFEST = " + MiniJson.JsonOut(manifest) + ";");
@@ -388,6 +392,13 @@ namespace VagabondK.nF.WebUi
             return null;
         }
 
+        // <name attr="v"/>의 속성 부분(없거나 참조가 아니면 빈 문자열). 속성은 @instance만 허용.
+        static string UseArgs(string trimmed)
+        {
+            Match sc = SelfCloseTag.Match(trimmed);
+            return sc.Success && !VoidNames.Contains(sc.Groups[1].Value) ? sc.Groups[2].Value.Trim() : "";
+        }
+
         bool DiscoverUses(IEnumerable<string> lines, string origin)
         {
             foreach (string raw in lines)
@@ -404,6 +415,11 @@ namespace VagabondK.nF.WebUi
                         (componentsRoot.Length == 0 ? "(WebUiComponents is not set)" : componentsRoot));
                     return false;
                 }
+                if (UseArgs(raw.Trim()).Length > 0 && !IsInstance(c.Html))
+                {
+                    Fail(origin, "attributes on <" + name + "/> are only supported on @instance components (found <!--@instance--> check)");
+                    return false;
+                }
                 useVisiting.Add(name);
                 if (!DiscoverUses(c.Html, c.HtmlPath)) return false;
                 useVisiting.Remove(name);
@@ -413,14 +429,29 @@ namespace VagabondK.nF.WebUi
             return true;
         }
 
-        static List<string> ExpandTokens(IEnumerable<string> lines, Dictionary<string, string[]> expanded)
+        // 참조 줄을 최종 조각으로: instance 사용 위치는 마크업의 속성을 <wui-name ...>로 옮겨 담는다.
+        string[] ExpandRef(string uref, string trimmed, Dictionary<string, string[]> expanded)
+        {
+            string[] e;
+            if (!expanded.TryGetValue(uref, out e)) return null;
+            string tag;
+            if (instTag.TryGetValue(uref, out tag))
+            {
+                string args = UseArgs(trimmed);
+                if (args.Length > 0) return new[] { "<" + tag + " " + args + "></" + tag + ">" };
+            }
+            return e;
+        }
+
+        List<string> ExpandTokens(IEnumerable<string> lines, Dictionary<string, string[]> expanded)
         {
             var outLines = new List<string>();
             foreach (string raw in lines)
             {
-                string uref = UseRef(raw.Trim());
-                string[] e;
-                if (uref != null && expanded.TryGetValue(uref, out e)) outLines.AddRange(e);
+                string trimmed = raw.Trim();
+                string uref = UseRef(trimmed);
+                string[] e = uref != null ? ExpandRef(uref, trimmed, expanded) : null;
+                if (e != null) outLines.AddRange(e);
                 else outLines.Add(raw);
             }
             return outLines;
@@ -432,12 +463,13 @@ namespace VagabondK.nF.WebUi
             var outLines = new List<string>();
             foreach (string raw in html)
             {
-                string uref = UseRef(raw.Trim());
+                string trimmed = raw.Trim();
+                string uref = UseRef(trimmed);
                 if (uref != null)
                 {
-                    string[] e;
-                    if (expanded.TryGetValue(uref, out e)) outLines.AddRange(e);
-                    continue;
+                    string[] e = ExpandRef(uref, trimmed, expanded);
+                    if (e != null) { outLines.AddRange(e); continue; }
+                    continue; // 미해결 참조는 기존처럼 조용히 드롭(발견은 DiscoverUses가 이미 검증).
                 }
                 outLines.Add(raw);
             }
