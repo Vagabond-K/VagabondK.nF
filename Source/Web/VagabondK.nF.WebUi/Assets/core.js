@@ -5,7 +5,11 @@ var WebUi = (function () {
 var M = (typeof MANIFEST === 'undefined') ? {} : MANIFEST;
 var F = M.form || [], KEYS = [], LABELS = {}, BY = {};
 for (var i = 0; i < F.length; i++) { KEYS.push(F[i].name); LABELS[F[i].name] = F[i].label; BY[F[i].name] = F[i]; }
-function feat(name, dflt) { var x = M.features; return (x && name in x) ? x[name] : dflt; }
+// 서버가 api/status의 capabilities로 자기 서술을 보내면 caps()로 받아 feat()의 1순위 출처가 된다.
+// manifest.features는 마이그레이션 기간의 폴백이다 (Phase 1.5 설계).
+var CAPS = null;
+function caps(o) { if (o) CAPS = o; return CAPS; }
+function feat(name, dflt) { var x = CAPS || M.features; return (x && name in x) ? x[name] : dflt; }
 // ---- form factory ----
 function values(form) { var e = form.elements, v = {}; for (var i = 0; i < KEYS.length; i++) v[KEYS[i]] = String(e[KEYS[i]].value).trim(); return v; }
 function fill(form, s) { var e = form.elements, base = {}; for (var i = 0; i < KEYS.length; i++) { var k = KEYS[i]; base[k] = String(s[k]); e[k].value = base[k]; } return base; }
@@ -86,7 +90,115 @@ if (node !== want) parent.insertBefore(node, want || null);
 }
 while (parent.childNodes.length > list.length) parent.removeChild(parent.lastChild);
 }
-return { M: M, KEYS: KEYS, LABELS: LABELS, feat: feat, values: values, fill: fill, changed: changed, showValue: showValue, h: h, render: render, component: component, slot: slot };
+// ---- transport (Phase 1.5): api/csrf/post/toast ----
+// 셸마다 중복되던 fetch 래퍼의 단일 구현. 401이면 err.unauth와 함께 wui:unauth를 발행한다:
+// 로그인 UI는 페이지(또는 login 컴포넌트)가 이벤트를 구독해 반응한다.
+var csrfH = '';
+async function api(path, opt, ms) {
+var ac = new AbortController(), timer = setTimeout(function () { ac.abort(); }, ms || 8000);
+try {
+var r = await fetch(path, Object.assign({cache: 'no-store', signal: ac.signal}, opt));
+var json = (r.headers.get('Content-Type') || '').indexOf('json') >= 0;
+var body = json ? await r.json().catch(function () { return {}; }) : await r.text();
+if (!r.ok) {
+var err = new Error((json && body.error) || 'HTTP ' + r.status);
+if (r.status === 401) { err.unauth = true; fire('wui:unauth', {}); }
+throw err;
+}
+return body;
+} catch (e) {
+if (e.name === 'AbortError') throw new Error('장치 응답 시간이 초과되었습니다.');
+if (e instanceof TypeError) throw new Error('장치에 연결할 수 없습니다.');
+throw e;
+} finally { clearTimeout(timer); }
+}
+function csrf(h) {
+if (h) csrfH = h;
+if (csrfH) return Promise.resolve(csrfH);
+return api('/api/auth/status', null, 4000).then(function (a) { csrfH = a.csrfHeader || ''; return csrfH; }, function () { return csrfH; });
+}
+function post(path, body, type, ms) {
+return csrf().then(function (h) {
+var o = {method: 'POST', headers: {}, body: body || ''};
+if (h) o.headers[h] = '1';
+o.headers['Content-Type'] = type || 'application/x-www-form-urlencoded';
+return api(path, o, ms);
+});
+}
+function toast(text, kind) {
+var box = document.getElementById('toasts');
+if (!box) return;
+var t = document.createElement('div');
+t.className = 'toast' + (kind ? ' ' + kind : '');
+t.textContent = text;
+box.appendChild(t);
+var life = kind === 'bad' ? 7000 : 4000;
+setTimeout(function () { t.classList.add('out'); }, life - 500);
+setTimeout(function () { t.remove(); }, life);
+}
+// ---- events (Phase 1.5): wui:status / wui:tick / wui:unauth ----
+// 루트 페이지의 폴러가 status()/tick()을 호출하고, 컴포넌트는 on()으로 구독한다.
+// ST/SEEN은 최신 상태와 수신 시각: age는 클라이언트에서 외삽한다.
+var ST = null, SEEN = 0;
+function fire(name, detail) { document.dispatchEvent(new CustomEvent(name, {detail: detail})); }
+function on(name, fn) { document.addEventListener(name, function (e) { fn(e.detail); }); }
+function status(s) { ST = s; SEEN = Date.now(); if (s && s.capabilities) CAPS = s.capabilities; fire('wui:status', s); return s; }
+function tick() {
+if (!ST) return;
+var age = (Date.now() - SEEN) / 1000;
+fire('wui:tick', {uptime: (ST.uptime || 0) + age, age: age, status: ST});
+}
+// ---- bindForm (Phase 1.5): 설정 폼의 저장/되돌리기/dirty 기계장치 ----
+// opts = {check(v)->errs, save(v,changed)->Promise, errors(form,errs), mark(form,changedKeys),
+//   confirm(bool|fn(v,changed)->bool), stateEl, saveBtn, undoBtn, dotEl, keys, texts}
+// fill(s)로 장치를 채우고 sync()로 버튼/점/상태문구를 갱신한다. handle.dirty로 beforeunload 처리.
+function bindForm(form, opts) {
+var o = opts || {}, base = null, src = null;
+var keys = o.keys || KEYS;
+function node(x) { return typeof x === 'string' ? document.getElementById(x) : x; }
+var stateEl = node(o.stateEl), saveBtn = node(o.saveBtn), undoBtn = node(o.undoBtn), dotEl = node(o.dotEl);
+var T = Object.assign({loading: '설정을 불러오는 중…', invalid: '입력값을 확인하세요.',
+pending: '변경 {n}건 · 아직 저장하지 않음', clean: '장치에 저장된 설정과 같습니다.', saved: '저장했습니다.', confirm: '설정을 저장할까요?'}, o.texts);
+function vals() { var e = form.elements, v = {}; for (var i = 0; i < keys.length; i++) v[keys[i]] = String(e[keys[i]].value).trim(); return v; }
+function diff(v) { var c = []; if (!base) return c; for (var i = 0; i < keys.length; i++) { var k = keys[i]; if (v[k] !== base[k]) c.push(k); } return c; }
+function changes(v) {
+var c = diff(v), out = [];
+for (var i = 0; i < c.length; i++) { var k = c[i]; out.push((LABELS[k] || k) + ': ' + showValue(form, k, base[k]) + ' → ' + showValue(form, k, v[k])); }
+return out;
+}
+function sync() {
+var v = vals(), ch = diff(v), er = o.check ? (o.check(v) || {}) : {}, bad = 0, k;
+for (k in er) bad++;
+if (o.errors) o.errors(form, er);
+if (o.mark) o.mark(form, ch);
+if (saveBtn) saveBtn.disabled = !base || !ch.length || bad > 0;
+if (undoBtn) undoBtn.disabled = !ch.length;
+if (stateEl) stateEl.textContent = !base ? T.loading : bad ? T.invalid : ch.length ? T.pending.replace('{n}', ch.length) : T.clean;
+if (dotEl) dotEl.classList.toggle('dot', ch.length > 0);
+return {v: v, changed: ch, errs: er};
+}
+function fill(s) { src = s; base = fill2(form, s); return sync(); }
+function fill2(f, s) { var e = f.elements, b = {}; for (var i = 0; i < keys.length; i++) { var k = keys[i]; b[k] = String(s[k]); e[k].value = b[k]; } return b; }
+form.addEventListener('input', sync);
+if (saveBtn) saveBtn.onclick = function (ev) {
+if (ev) ev.preventDefault();
+var r = sync();
+if (r.changed.length && Object.keys(r.errs).length === 0) {
+var go = function () {
+Promise.resolve(o.save ? o.save(r.v, r.changed) : null).then(function () {
+base = r.v; sync(); toast(T.saved, 'ok');
+}, function (e) { toast(e && e.message ? e.message : String(e), 'bad'); });
+};
+if (o.confirm === false) go();
+else if (confirm(changes(r.v).join('\n') ? T.confirm + '\n' + changes(r.v).join('\n') : T.confirm)) go();
+} else sync();
+};
+if (undoBtn) undoBtn.onclick = function () { if (src) fill(src); };
+return {fill: fill, values: vals, changed: diff, changes: changes, sync: sync,
+dirty: function () { return !!base && diff(vals()).length > 0; },
+get base() { return base; }};
+}
+return { M: M, KEYS: KEYS, LABELS: LABELS, feat: feat, caps: caps, values: values, fill: fill, changed: changed, showValue: showValue, h: h, render: render, component: component, slot: slot, api: api, csrf: csrf, post: post, toast: toast, fire: fire, on: on, status: status, tick: tick, bindForm: bindForm, get ST() { return ST; }};
 })();
 // ---- WUI: instance components (Web Components) ----
 // A component whose html contains <!--@instance--> is emitted as a <template id="wui-t-NAME"> plus

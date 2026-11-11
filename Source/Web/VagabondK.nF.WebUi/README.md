@@ -28,6 +28,17 @@ nanoGate 스타일 장치 관리 화면을 빌드 타임에 조립하는 페이�
 `profile.html`은 다음을 포함해야 합니다: `<!--@manifest-->` `<!--@style-->` `<!--@views-->` `<!--@script-->`
 (프로필의 `@core`는 오류입니다 — 라이브러리가 제공합니다.)
 
+## 페이지 모드 (WebUiPage)
+
+`<WebUiPage>`에 지정한 한 장의 `index.html`이 셸을 겸합니다(셸/프로필과 배타).
+페이지는 위 마커를 같은 순서로 담고, 공용 셸 테일(`@views`/`@script` 이후 마크업·스크립트)은
+페이지가 직접 선언합니다. 페이지 고유의 프로파일 스크립트(`profileRender` 등 훅과 `const MANIFEST`
+이후 코드)는 **`<!--@script-->` 마커 줄 뒤에** 있어야 합니다 — 마커 앞 인라인 코드는 컴포넌트 JS
+뒤가 아니라 앞에 출력되어 `cacheRow` 오버라이드 같은 마지막 쓰기 우선 규칙이 깨집니다.
+페이지 모드에서 `profilePoint`/`profileCacheRow` 요구 검사는 페이지 전체(뷰+스크립트)를 대상으로
+하므로, 훅을 페이지 파일 어디에 두든 발견됩니다(단 출력 순서는 위 규칙을 따름).
+`<!--@style-->` 마커 줄 뒤에는 페이지 고유 CSS를 리터럴로 둘 수 있으며 컴포넌트 CSS 뒤에 적용됩니다.
+
 ## @use 컴포넌트 번들링
 
 조각 HTML을 파일로 분리해 빌드 타임에 조립합니다. 참조 표기는 두 가지(혼용 가능):
@@ -90,6 +101,9 @@ WebUi\counter\           ← 폴더는 보관용, 이름은 파일 stem이 결�
 * 인스턴스 안의 정적 확장 지점은 빌드타임 `<name/>` 섀도잉으로, 인스턴스별 내용은
   네이티브 shadow `<slot>`(마크업에 자리 예약)으로 표현한다.
 * 인스턴스 안에서 다른 컴포넌트 `@use`는 중첩 가능: 인스턴스는 태그, 레거시는 인라인.
+* `WUI` 런타임(core.js 끝 블록)은 페이지에 `@instance` 컴포넌트가 실제로 있을 때만
+  주입됩니다. 하나도 없으면 센티널(`// ---- WUI:`) 이후가 잘려 나가 nanoFramework
+  문자열 힙을 아낍니다.
 
 ## 컴포넌트와 슬롯
 
@@ -189,6 +203,11 @@ WebUiId·manifest.id 충돌, form 이름 중복·누락, views에 없는 form �
   <WebUiShell>..\shared\shell.html</WebUiShell>
   <WebUiProfile>$(MSBuildProjectDirectory)\WebUi\profile.html</WebUiProfile>
   <WebUiNamespace>MyGateway.Management</WebUiNamespace>
+</PropertyGroup>
+<!-- 또는 페이지 모드(셸/프로필과 배타): -->
+<PropertyGroup>
+  <WebUiPage>$(MSBuildProjectDirectory)\WebUi\index.html</WebUiPage>
+  <WebUiId>my-gateway</WebUiId>
 </PropertyGroup>
 <Import Project="..\..\VagabondK.nF\Source\Web\VagabondK.nF.WebUi\VagabondK.nF.WebUi.targets" />
 <ProjectReference Include="..\..\VagabondK.nF\Source\Web\VagabondK.nF.WebUi\VagabondK.nF.WebUi.csproj"

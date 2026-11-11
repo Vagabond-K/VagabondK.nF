@@ -40,20 +40,31 @@ namespace VagabondK.nF.WebUi
                 return (
                     ns: Get("webui_namespace"), cls: Get("webui_class_name"),
                     shell: Get("webui_shell"), profile: Get("webui_profile"), core: Get("webui_core"),
-                    components: Get("webui_components"), id: Get("webui_id"));
+                    components: Get("webui_components"), id: Get("webui_id"), page: Get("webui_page"));
             });
 
             var input = files.Combine(options);
             context.RegisterSourceOutput(input, static (spc, pair) => Execute(spc, pair.Left, pair.Right));
         }
 
-        static void Execute(SourceProductionContext spc, ImmutableArray<(string path, string text)> files, (string ns, string cls, string shell, string profile, string core, string components, string id) opts)
+        static void Execute(SourceProductionContext spc, ImmutableArray<(string path, string text)> files, (string ns, string cls, string shell, string profile, string core, string components, string id, string page) opts)
         {
             string ns = opts.ns, cls = opts.cls, id = opts.id;
             string shellPath = opts.shell, profilePath = opts.profile, corePath = opts.core;
+            // WebUiPage 모드: 루트 페이지 한 장으로만 구성(shell/profile과 배타). 페이지가 셸 역할을 겸한다.
+            bool pageMode = !string.IsNullOrEmpty(opts.page);
+            if (pageMode)
+            {
+                if (!string.IsNullOrEmpty(opts.shell) || !string.IsNullOrEmpty(opts.profile))
+                {
+                    spc.ReportDiagnostic(Diagnostic.Create(Error, Location.None, "WebUiPage and WebUiShell/WebUiProfile are mutually exclusive"));
+                    return;
+                }
+                shellPath = opts.page;
+            }
 
             string shellText = null, profileText = null, coreText = null;
-            string shellResolved = Resolve(shellPath), profileResolved = Resolve(profilePath), coreResolved = Resolve(corePath);
+            string shellResolved = Resolve(shellPath), profileResolved = pageMode ? string.Empty : Resolve(profilePath), coreResolved = Resolve(corePath);
             // WebUiComponents는 세미콜론(또는 globalconfig용 '|' 인코딩)으로 여러 루트(프로젝트 로컬 + 공유 폴더)를 지정할 수 있다.
             string[] compRoots = opts.components.Split(new[] { ';', '|' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(Resolve).Where(r => r.Length > 0).ToArray();
@@ -107,8 +118,8 @@ namespace VagabondK.nF.WebUi
                 else c.Css = PageComposer.ReadLines(e.text);
             }
 
-            if (shellText == null) { spc.ReportDiagnostic(Diagnostic.Create(MissingInput, Location.None, shellPath + " (WebUiShell)")); return; }
-            if (profileText == null) { spc.ReportDiagnostic(Diagnostic.Create(MissingInput, Location.None, profilePath + " (WebUiProfile)")); return; }
+            if (shellText == null) { spc.ReportDiagnostic(Diagnostic.Create(MissingInput, Location.None, shellPath + (pageMode ? " (WebUiPage)" : " (WebUiShell)"))); return; }
+            if (!pageMode && profileText == null) { spc.ReportDiagnostic(Diagnostic.Create(MissingInput, Location.None, profilePath + " (WebUiProfile)")); return; }
             if (coreText == null) { spc.ReportDiagnostic(Diagnostic.Create(MissingInput, Location.None, corePath + " (WebUiCore)")); return; }
 
             PageComposer.Result r;

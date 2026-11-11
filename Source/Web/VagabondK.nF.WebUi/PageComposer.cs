@@ -23,6 +23,7 @@ namespace VagabondK.nF.WebUi
         }
 
         static readonly string[] Markers = { "<!--@manifest-->", "<!--@core-->", "<!--@style-->", "<!--@views-->", "<!--@script-->" };
+        const string ManifestMarker = "<!--@manifest-->";
         const string InstanceMarker = "<!--@instance-->";
         // 빌드타임 슬롯은 폐기되었다(Phase 2): 섀도잉 가능한 <name/> 컴포넌트로 대체.
         const string SlotRemovedMsg = "@slot syntax was removed: expose a shadowable name.nf.html component and reference it as <name/> instead";
@@ -71,6 +72,17 @@ namespace VagabondK.nF.WebUi
             return lines;
         }
 
+        // WUI(Web Components) 메커니즘은 인스턴스 컴포넌트에만 필요하다.
+        // 인스턴스가 없으면 센티널 이후를 버려 페이지 바이트(nF 문자열 힙)를 아낀다.
+        internal static System.Collections.Generic.IEnumerable<string> CoreLines(string coreText, bool includeWui)
+        {
+            foreach (string l in ReadLines(coreText))
+            {
+                if (!includeWui && l.StartsWith("// ---- WUI:", StringComparison.Ordinal)) yield break;
+                yield return l;
+            }
+        }
+
         internal static Result Compose(string shellText, string profileText, string coreText, string shellPath, string profilePath, string ns, string cls,
             string id, string componentsRoot, Dictionary<string, ComponentFiles> components)
         {
@@ -95,19 +107,40 @@ namespace VagabondK.nF.WebUi
             this.componentsRoot = (componentsRoot ?? string.Empty).Replace('|', ';');
             this.components = components ?? new Dictionary<string, ComponentFiles>(StringComparer.Ordinal);
             string[] shellLines = ReadLines(shellText);
+            // 페이지 모드(WebUiPage): 프로필 없는 단일 루트 페이지. @manifest/@views 마커는 선택이고,
+            // @manifest 줄에는 같은 줄에 JSON을 적을 수 있다(마이그레이션 기간의 features 임시 보관처).
+            bool pageMode = string.IsNullOrEmpty(profileText) || profileText.Trim().Length == 0;
+            string contentPath = pageMode ? shellPath : profilePath;
+            string inlineManifest = null;
             var shellAt = new Dictionary<string, int>();
             for (int i = 0; i < shellLines.Length; i++)
             {
                 string m = MarkerOf(shellLines[i]);
+                if (m == null && pageMode)
+                {
+                    string t = shellLines[i].Trim();
+                    if (t.StartsWith(ManifestMarker, StringComparison.Ordinal))
+                    {
+                        m = ManifestMarker;
+                        inlineManifest = t.Substring(ManifestMarker.Length).Trim();
+                    }
+                }
                 if (m == null) continue;
                 if (shellAt.ContainsKey(m)) { Fail(shellPath, "duplicate marker " + m); return result; }
                 shellAt[m] = i;
             }
             foreach (string m in Markers)
-                if (!shellAt.ContainsKey(m)) { Fail(shellPath, "missing marker " + m); return result; }
-            if (shellAt["<!--@core-->"] < shellAt["<!--@manifest-->"]) { Fail(shellPath, "@core marker must come after @manifest"); return result; }
+                if (!shellAt.ContainsKey(m) && !(pageMode && (m == ManifestMarker || m == "<!--@views-->"))) { Fail(shellPath, "missing marker " + m); return result; }
+            if (shellAt.ContainsKey(ManifestMarker) && shellAt["<!--@core-->"] < shellAt[ManifestMarker]) { Fail(shellPath, "@core marker must come after @manifest"); return result; }
 
             var sections = new Dictionary<string, List<string>>();
+            if (pageMode)
+            {
+                foreach (string m in Markers) if (m != "<!--@core-->") sections[m] = new List<string>();
+                if (!string.IsNullOrEmpty(inlineManifest)) sections[ManifestMarker].Add(inlineManifest);
+            }
+            else
+            {
             string current = null;
             foreach (string raw in ReadLines(profileText))
             {
@@ -126,12 +159,19 @@ namespace VagabondK.nF.WebUi
             }
             foreach (string m in Markers)
                 if (m != "<!--@core-->" && !sections.ContainsKey(m)) { Fail(profilePath, "missing marker " + m); return result; }
+            }
 
             var parts = new List<string>();
-            foreach (string raw in sections["<!--@manifest-->"]) { string t = raw.Trim(); if (t.Length > 0) parts.Add(t); }
+            foreach (string raw in sections[ManifestMarker]) { string t = raw.Trim(); if (t.Length > 0) parts.Add(t); }
             object manifest;
             try { manifest = new MiniJson().Parse(string.Join(" ", parts.ToArray())); }
-            catch (Exception e) { Fail(profilePath, "manifest JSON: " + e.Message); return result; }
+            catch (Exception e) { Fail(contentPath, "manifest JSON: " + e.Message); return result; }
+            if (pageMode)
+            {
+                // 페이지 모드에서 schema는 선택(레거시 필드): 없으면 1로 간주.
+                var pm = manifest as Dictionary<string, object>;
+                if (pm != null && !pm.ContainsKey("schema")) pm["schema"] = 1.0;
+            }
             // WebUiId(msbuild 속성)는 manifest.id를 대체한다: 주입 시 선두로 옮기고, 값이 다르면 오류(단일 출처 강제).
             if (!string.IsNullOrEmpty(id))
             {
@@ -140,21 +180,21 @@ namespace VagabondK.nF.WebUi
                 {
                     object cur;
                     if (md.TryGetValue("id", out cur) && (cur as string) != id)
-                    { Fail(profilePath, "manifest.id conflicts with WebUiId \"" + id + "\"; keep one source"); return result; }
+                    { Fail(contentPath, "manifest.id conflicts with WebUiId \"" + id + "\"; keep one source"); return result; }
                     var nd = new Dictionary<string, object>();
                     nd["id"] = id;
                     foreach (string k in md.Keys) if (k != "id") nd[k] = md[k];
                     manifest = nd;
                 }
             }
-            if (!ValidateManifest(manifest, profilePath)) return result;
+            if (!ValidateManifest(manifest, contentPath)) return result;
 
             // @use 컴포넌트 발견·확장: useOrder는 서브→부모 순서(자식이 먼저 나열되어 CSS 우선순위가 올바르게 겹침).
             useOrder = new List<string>();
             useDone = new HashSet<string>(StringComparer.Ordinal);
             useVisiting = new HashSet<string>(StringComparer.Ordinal);
             if (!DiscoverUses(shellLines, shellPath)) return result;
-            if (!DiscoverUses(sections["<!--@views-->"], profilePath)) return result;
+            if (!pageMode && !DiscoverUses(sections["<!--@views-->"], profilePath)) return result;
             var expanded = new Dictionary<string, string[]>(StringComparer.Ordinal);
             var compCss = new List<string>();
             var compJs = new List<string>();
@@ -189,7 +229,10 @@ namespace VagabondK.nF.WebUi
                 }
             }
 
-            var allViews = new List<string>(ExpandTokens(sections["<!--@views-->"], expanded));
+            var allViews = new List<string>();
+            // 페이지 모드의 루트 페이지는 자기 마크업 자체가 뷰다: 폼 유도/교차 검증을 스캔에 포함한다.
+            if (pageMode) allViews.AddRange(ExpandTokens(shellLines, expanded));
+            allViews.AddRange(ExpandTokens(sections["<!--@views-->"], expanded));
             var allScript = new List<string>(sections["<!--@script-->"]);
             foreach (string name in useOrder)
             {
@@ -199,13 +242,14 @@ namespace VagabondK.nF.WebUi
             }
             string views = string.Join("\n", allViews.ToArray());
             string script = string.Join("\n", allScript.ToArray());
-            if (!DeriveForm(manifest, allViews, profilePath)) return result;
-            if (!ValidateCross(manifest, views, script, profilePath)) return result;
+            if (!DeriveForm(manifest, allViews, contentPath)) return result;
+            if (!ValidateCross(manifest, views, script, contentPath, pageMode)) return result;
 
             var merged = new List<string>();
             foreach (string raw in shellLines)
             {
                 string m = MarkerOf(raw);
+                if (m == null && pageMode && raw.TrimStart().StartsWith(ManifestMarker, StringComparison.Ordinal)) m = ManifestMarker;
                 if (m == null)
                 {
                     string uref = UseRef(raw.Trim());
@@ -213,7 +257,7 @@ namespace VagabondK.nF.WebUi
                     merged.Add(raw); continue;
                 }
                 if (m == "<!--@manifest-->") merged.Add("const MANIFEST = " + MiniJson.JsonOut(manifest) + ";");
-                else if (m == "<!--@core-->") merged.AddRange(ReadLines(coreText));
+                else if (m == "<!--@core-->") merged.AddRange(CoreLines(coreText, templates.Count > 0));
                 else if (m == "<!--@style-->") { merged.AddRange(compCss); merged.AddRange(sections[m]); }
                 else if (m == "<!--@script-->") { merged.AddRange(compJs); merged.AddRange(sections[m]); }
                 else merged.AddRange(ExpandTokens(sections[m], expanded));
@@ -242,8 +286,10 @@ namespace VagabondK.nF.WebUi
                     compressor.Write(html, 0, html.Length);
                 gzip = memory.ToArray();
             }
+            // 해시는 gzip이 아닌 html 원문에 대해 계산: deflate 출력은 호스트 런타임에
+            // 따라 바이트가 달라질 수 있어 ETag가 비결정적이 됨 (FNV-1a over html)
             uint hash = 2166136261;
-            unchecked { foreach (byte value in gzip) { hash ^= value; hash *= 16777619; } }
+            unchecked { foreach (byte value in html) { hash ^= value; hash *= 16777619; } }
 
             const int PartBytes = 768;
             int partCount = (gzip.Length + PartBytes - 1) / PartBytes;
@@ -537,18 +583,22 @@ namespace VagabondK.nF.WebUi
             return Regex.IsMatch(script, @"(^|[^A-Za-z0-9_$.])(function|const|let|var)\s+" + name + @"(\s|=|\()");
         }
 
-        bool ValidateCross(object manifest, string views, string script, string profilePath)
+        bool ValidateCross(object manifest, string views, string script, string profilePath, bool pageMode)
         {
             var m = (Dictionary<string, object>)manifest;
             foreach (string name in Legacy)
                 if (HasDef(script, name)) { Fail(profilePath, "\"" + name + "\" is now provided by the shell/WebUi; remove it from the profile"); return false; }
-            foreach (string hook in new string[] { "profileRender", "profileTick", "checkSettings", "syncForm" })
-                if (!HasDef(script, hook)) { Fail(profilePath, "profile script must define " + hook); return false; }
+            // 레거시 훅 계약은 셸+프로필 모드 전용. 페이지 모드는 bindForm/wui:status/wui:tick 이벤트 계약으로 대체된다.
+            if (!pageMode)
+                foreach (string hook in new string[] { "profileRender", "profileTick", "checkSettings", "syncForm" })
+                    if (!HasDef(script, hook)) { Fail(profilePath, "profile script must define " + hook); return false; }
             var feat = m.ContainsKey("features") ? m["features"] as Dictionary<string, object> : null;
             bool points = feat == null || !feat.ContainsKey("points") || (bool)feat["points"];
-            if (points && !HasDef(script, "profilePoint")) { Fail(profilePath, "profile script must define profilePoint (or set features.points=false)"); return false; }
-            if (feat != null && feat.ContainsKey("cacheCols") && !HasDef(script, "profileCacheRow")
-                && Regex.IsMatch(script, @"component\s*\(\s*['""]cacheRow['""]") == false)
+            // 페이지 모드에서는 페이지 자기 스크립트가 views(전체 페이지 텍스트)에 속한다: 훅 검사도 거기서 찾는다.
+            string hookSrc = pageMode ? views + "\n" + script : script;
+            if (points && !HasDef(hookSrc, "profilePoint")) { Fail(profilePath, "profile script must define profilePoint (or set features.points=false)"); return false; }
+            if (feat != null && feat.ContainsKey("cacheCols") && !HasDef(hookSrc, "profileCacheRow")
+                && Regex.IsMatch(hookSrc, @"component\s*\(\s*['""]cacheRow['""]") == false)
             { Fail(profilePath, "features.cacheCols requires a profileCacheRow(p) function or a WebUi.component(\"cacheRow\", ...) in the profile script"); return false; }
             var form = (List<object>)m["form"];
             foreach (object item in form)

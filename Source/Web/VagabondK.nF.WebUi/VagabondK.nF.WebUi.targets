@@ -12,6 +12,13 @@
       <WebUiProfile>path\to\profile.html</WebUiProfile>
       <WebUiNamespace>My.App</WebUiNamespace>   (default: VagabondK.nF.WebUi)
     </PropertyGroup>
+  또는 페이지 모드(프로필 없는 단일 루트 페이지):
+    <PropertyGroup>
+      <WebUiPage>path\to\index.html</WebUiPage>
+    </PropertyGroup>
+  WebUiPage는 WebUiShell/WebUiProfile과 배타이며, 페이지가 셸 역할을 겸한다:
+  @core/@style/@script 마커 필수, @manifest/@views 마커 선택(@manifest 줄에 같은 줄 JSON 허용).
+  폼 필드는 페이지 마크업의 data-label/data-fmt에서 자동 유도된다.
     <Import Project="...\VagabondK.nF.WebUi.targets" />
     <ProjectReference Include="...\VagabondK.nF.WebUi.csproj"
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" />
@@ -64,6 +71,7 @@
   <ItemGroup>
     <AdditionalFiles Include="$(WebUiShell)" Condition="'$(WebUiShell)' != ''" />
     <AdditionalFiles Include="$(WebUiProfile)" Condition="'$(WebUiProfile)' != ''" />
+    <AdditionalFiles Include="$(WebUiPage)" Condition="'$(WebUiPage)' != ''" />
     <AdditionalFiles Include="$(WebUiCore)" />
     <!-- @use 컴포넌트 조각: 루트 아래 어디든 <name>.nf.{html,js,css} (없으면 빈 glob).
          WebUiComponents가 세미콜론 목록이므로 타깃 실행 시점에 루트별로 배치한다(평가 시점 glob은 세미콜론에서 깨짐). -->
@@ -78,7 +86,7 @@
     <PropertyGroup>
       <_WebUiCfgPath>$(IntermediateOutputPath)webui.generator.globalconfig</_WebUiCfgPath>
       <!-- 값의 세미콜론은 WriteLinesToFile이 줄 구분자로 삼으므로 '|'로 인코딩해 저장한다. -->
-      <_WebUiCfgDesired>is_global=true&#xa;webui_namespace=$(WebUiNamespace)&#xa;webui_class_name=$(WebUiClassName)&#xa;webui_shell=$(WebUiShell)&#xa;webui_profile=$(WebUiProfile)&#xa;webui_core=$(WebUiCore)&#xa;webui_components=$([System.String]::Copy('$(WebUiComponents)').Replace(';', '|'))&#xa;webui_id=$(WebUiId)</_WebUiCfgDesired>
+      <_WebUiCfgDesired>is_global=true&#xa;webui_namespace=$(WebUiNamespace)&#xa;webui_class_name=$(WebUiClassName)&#xa;webui_shell=$(WebUiShell)&#xa;webui_profile=$(WebUiProfile)&#xa;webui_core=$(WebUiCore)&#xa;webui_components=$([System.String]::Copy('$(WebUiComponents)').Replace(';', '|'))&#xa;webui_id=$(WebUiId)&#xa;webui_page=$(WebUiPage)</_WebUiCfgDesired>
       <_WebUiCfgExisting Condition="Exists('$(_WebUiCfgPath)')">$([System.String]::Copy($([System.IO.File]::ReadAllText('$(_WebUiCfgPath)'))).Trim())</_WebUiCfgExisting>
     </PropertyGroup>
     <MakeDir Directories="$(IntermediateOutputPath)" />
