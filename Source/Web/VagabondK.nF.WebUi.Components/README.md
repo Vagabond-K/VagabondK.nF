@@ -22,6 +22,22 @@
 | `note` | html+css | 여백 없는 한 줄 안내 문구. `.nt` 클래스. |
 | `sysinfo` | html+js | `wui:tick`을 구독해 가동 시간/남은 힙/요청 수/프로필을 `<dl>`로 채움. |
 | `panel` | html+js | `wui:status`를 구독하는 범용 프로필 패널(장치 이름·IP). 프로젝트가 같은 이름으로 대체하기 좋은 예시. |
+| `form` | html+js+css | `<form/>` 한 줄로 설정 페이지 완성. `@manifest`의 `form` 스키마로 컨트롤을 런타임 렌더하고 `WebUi.autoForm({check, save})`가 저장/되돌리기/dirty를 bindForm으로 배선. 필드가 마크업이 아니라 manifest에 있으므로 생성기의 name= 대조 검사는 이 컴포넌트 사용 시 생략. |
+| `tabs` | html+js+css | `<tabs/>`가 `section[data-tab]`을 모아 내비 버튼과 해시 라우팅을 생성. `data-hash`로 URL 키 지정(생략 시 `#t2`…), 탭 전환 시 `wui:tab` 발행. `WebUi.tabs.el(i)`를 bindForm의 `dotEl`로 쓸 수 있다. |
+| `modal` | html+js+css | `WebUi.modal({title, body, ok, cancel})` → `Promise<boolean>`. nanoGate ask(pointdlg) 패턴의 일반화. 확인/취소/바깥 클릭 지원. |
+
+### form 컴포넌트 사용 예
+
+```html
+<!--@manifest--> {"form": [{"name": "deviceName", "label": "장치 이름", "fmt": "text"}, {"name": "pollMs", "label": "폴링 주기", "fmt": "ms"}]}
+...
+<form/>
+...
+WebUi.autoForm({ check(v) {...}, save(v) { return WebUi.post('/api/settings', ...); } });
+```
+
+`fmt` 값: `text`(기본)·`ms`/`num`/`int`(숫자 키패드)·`bool`(예/아니요 select)·`secret`(비밀번호).
+표시는 core.js `showValue`가 같은 `fmt`로 일관되게 처리한다.
 
 ## 규칙
 
@@ -83,7 +99,7 @@ MCU 제약(외부 JS/CSS 금지, vanilla + WebUi 버스, 힙 절약)으로 필�
 ### B. 내비게이션
 | 우선 | 이름 | 참조 | 형태 | 내용 |
 |---|---|---|---|---|
-| 상 | tabs | 전 | 인스턴스 | 헤더+라우팅 승격(해시 연동) |
+| ✅ 완료 | tabs | 전 | 인라인 | 헤더+라우팅 승격(해시 연동). 페이지당 1개 내비라 인라인으로 구현 |
 | 중 | navbar | Bootstrap | 인스턴스 | 제목·연결점·로그아웃 슬롯 헤더 |
 | 중 | pagination | 전 | 인스턴스 | 표와 결합 |
 | 중 | steps | MUI/Ant | 인스턴스 | 설정 마법사·업데이트 단계 |
@@ -93,7 +109,7 @@ MCU 제약(외부 JS/CSS 금지, vanilla + WebUi 버스, 힙 절약)으로 필�
 ### C. 폼·입력
 | 우선 | 이름 | 참조 | 형태 | 내용 |
 |---|---|---|---|---|
-| 1순위 | form | Ant Form | 인라인 | MANIFEST.form 자동 렌더 — 설정 페이지가 한 줄이 됨 |
+| ✅ 완료 | form | Ant Form | 인라인 | MANIFEST.form 자동 렌더 — 설정 페이지가 한 줄이 됨 |
 | 상 | switch | MUI/Ant | 인스턴스 | 불리언 토글의 일반화 |
 | 상 | segmented | Ant/Fluent | 인스턴스 | 라디오 그룹 버튼형(RTU/ASCII 선택 등) |
 | 중 | input-group | Bootstrap | 인스턴스 | 입력+단위/버튼 결합 |
@@ -106,7 +122,7 @@ MCU 제약(외부 JS/CSS 금지, vanilla + WebUi 버스, 힙 절약)으로 필�
 ### D. 피드백·레이아웃
 | 우선 | 이름 | 참조 | 형태 | 내용 |
 |---|---|---|---|---|
-| 상 | modal | 전 | 인스턴스 | ask의 일반화(pointdlg 패턴) |
+| ✅ 완료 | modal | 전 | 인라인 | ask의 일반화(pointdlg 패턴). 토스트처럼 페이지당 1개 시스템이라 인라인으로 구현 |
 | 중 | drawer | MUI/Ant | 인스턴스 | 우측 상세 패널 |
 | 상 | card | 전 | 인스턴스 | 제목+본문 컨테이너(section 승격) |
 | 중 | list-group | Bootstrap | 인스턴스 | 행 목록+액션 |
@@ -134,4 +150,4 @@ carousel·calendar·datepicker(네이티브 `<input type=date>` 대체)·tree·t
 speed-dial·affix/scrollspy·image-lightbox·colorpicker
 
 ### 권장 착수 순서
-form → tabs → modal(ask 일반화) → conn-dot·uptime·heap-gauge → segmented → firmware
+~~form → tabs → modal~~(2026-11 완료) → conn-dot·uptime·heap-gauge → segmented → firmware

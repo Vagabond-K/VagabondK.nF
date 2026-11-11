@@ -25,7 +25,9 @@ document.getElementById('loginForm').onsubmit = async ev => {
 };
 
 // btnOut은 페이지 헤더의 버튼: 인라인(비-인스턴스) 컴포넌트는 페이지와 DOM을 공유하므로 결선한다.
+// 로그아웃 확인은 modal 컴포넌트(WebUi.modal)를 사용한다 — 핸들러가 실행되는 시점에는 모든 컴포넌트가 준비된다.
 document.getElementById('btnOut').onclick = async () => {
+  if (!await WebUi.modal({ title: '로그아웃', body: '로그아웃하시겠습니까?' })) return;
   try { await WebUi.post('/api/auth/logout', ''); } catch (e) {}
   location.reload();
 };

@@ -1,8 +1,9 @@
-// 설정 폼: 저장/되돌리기/dirty/상태문구는 WebUi.bindForm이 담당한다(이전 formState/formChanges/sfSave/sfUndo).
-// 폼 필드 스키마는 markup의 data-label/data-fmt에서 빌드 타임에 유도된다. SRV(서버 limit)는 페이지가 채운다.
+// 설정 폼: 컨트롤 렌더와 저장/되돌리기/dirty 배선은 form 컴포넌트(WebUi.autoForm)가 담당한다.
+// 페이지에는 장치-specific 부분(검증 규칙·저장 엔드포인트)만 남는다. SRV(서버 limit)는 페이지가 채운다.
+// 필드 스키마는 index.html의 @manifest form 선언이 단일 출처다(빌드 타임에 KEYS/LABELS로 병합).
 
-const SF = WebUi.bindForm(document.getElementById('sf'), {
-  saveBtn: 'sfSave', undoBtn: 'sfUndo', stateEl: 'sfState', dotEl: 't-settings',
+WebUi.autoForm({
+  dotEl: WebUi.tabs.el(1),
 
   check(v) {
     const e = {}, L = SRV.limits || {};
@@ -18,6 +19,3 @@ const SF = WebUi.bindForm(document.getElementById('sf'), {
       { schemaVersion: String(SRV.schemaVersion), gatewayProfile: WebUi.M.id }, v)).toString());
   },
 });
-
-// 상태가 오면 한 번만 채운다(로컬 편집 중 덮어쓰지 않음). 이후 되돌리기는 마지막 스냅샷(src)을 쓴다.
-WebUi.on('wui:status', s => { if (!SF.base) SF.fill(s); });

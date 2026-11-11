@@ -1,0 +1,3 @@
+#wf label.row { display: block; margin: 10px 0; }
+#wf label.row > span { display: block; color: var(--mut); font-size: 12px; margin-bottom: 3px; }
+#wf .err { outline: 2px solid var(--bad); }

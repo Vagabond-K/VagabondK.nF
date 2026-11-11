@@ -1,15 +1,8 @@
-<section id="v-settings" hidden>
+<section data-tab="설정" data-hash="settings" hidden>
   <h1>설정</h1>
-  <form id="sf" autocomplete="off">
-    <label class="row"><span>장치 이름</span><input name="deviceName" data-label="장치 이름" data-fmt="text"></label>
-    <label class="row"><span>폴링 주기</span><input name="pollMs" inputmode="numeric" data-label="폴링 주기" data-fmt="ms"></label>
-    <label class="row"><span>진단 모드</span><select name="debug" data-label="진단 모드" data-fmt="bool"><option value="0">아니요</option><option value="1">예</option></select></label>
-  </form>
-  <p>
-    <button id="sfSave" class="act" disabled>저장</button>
-    <button id="sfUndo" class="gh" disabled>되돌리기</button>
-    <span id="sfState" class="msg"></span>
-  </p>
+  <!-- form 컴포넌트: 입력 컨트롤은 manifest의 form 스키마로 런타임에 렌더되고,
+       저장/되돌리기/dirty/상태문구는 WebUi.autoForm이 bindForm으로 배선한다. -->
+  <form/>
   <!-- 반복 인스턴스 데모: 상태 탭의 status-card(→heartbeat)와 같은 컴포넌트를 다시 사용.
        인스턴스라 태그마다 shadow root·타이머가 독립이며 id가 충돌하지 않는다. -->
   <heartbeat/>

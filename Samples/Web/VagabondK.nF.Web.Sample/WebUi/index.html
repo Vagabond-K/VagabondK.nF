@@ -2,6 +2,7 @@
 <!-- 루트 페이지(WebUiPage 모드): 얇은 셸. 화면 조각은 login/sysinfo/settings/panel 컴포넌트가,
      transport·bindForm·이벤트는 core.js(WebUi)가 담당한다. 이 파일은 조립과 폴러만 남긴다.
      heartbeat는 @instance 마커로 반복 인스턴스 예시(상태 탭 + 설정 탭에서 재사용).
+     tabs/form/modal은 라이브러리 컴포넌트: 내비·라우팅, 설정 폼 렌더, 확인 대화상자를 대신 담당한다.
      들여쓰기는 자유롭게: 빌드 시 줄 앞뒤 공백과 주석은 모두 제거된다. -->
 <html lang="ko">
 <head>
@@ -23,11 +24,6 @@
       padding: 10px 16px; background: var(--card); flex-wrap: wrap;
     }
     header b { margin-right: auto; }
-    nav button {
-      background: none; border: 0; color: var(--mut); font: inherit;
-      padding: 6px 10px; cursor: pointer; border-radius: 6px;
-    }
-    nav button.on { color: var(--tx); background: #334155; }
     main { max-width: 680px; margin: 16px auto; padding: 0 16px; }
     section {
       background: var(--card); border-radius: 10px;
@@ -38,8 +34,6 @@
     dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 0; }
     dt { color: var(--mut); }
     dd { margin: 0; }
-    label.row { display: block; margin: 10px 0; }
-    label.row span { display: block; color: var(--mut); font-size: 12px; margin-bottom: 3px; }
     input, select {
       background: #0b1220; color: var(--tx); border: 1px solid #334155;
       border-radius: 6px; padding: 6px 8px; font: inherit; width: 280px; max-width: 100%;
@@ -73,14 +67,11 @@
   <header>
     <b>VagabondK.nF WebUi 샘플</b>
     <span id="hIp" class="msg"></span>
-    <nav>
-      <button id="t-status" class="on">상태</button>
-      <button id="t-settings">설정</button>
-    </nav>
+    <tabs/>
     <button id="btnOut" class="gh" hidden>로그아웃</button>
   </header>
   <main>
-    <section id="v-status">
+    <section data-tab="상태">
       <h1>장치 상태</h1>
       <sysinfo/>
       <status-card/>
@@ -89,9 +80,10 @@
     <settings/>
   </main>
   <login/>
+  <modal/>
   <div id="toasts"></div>
   <script>
-    <!--@manifest--> {"features": {"points": false}}
+    <!--@manifest--> {"features": {"points": false}, "form": [{"name": "deviceName", "label": "장치 이름", "fmt": "text"}, {"name": "pollMs", "label": "폴링 주기", "fmt": "ms"}, {"name": "debug", "label": "진단 모드", "fmt": "bool"}]}
     <!--@core-->
     'use strict';
     const $ = id => document.getElementById(id);
@@ -101,23 +93,12 @@
       const a = await WebUi.api('/api/auth/status');
       if (a.csrfHeader) WebUi.csrf(a.csrfHeader);
       SRV = a;
-      if (a.limits) $('sf').deviceName.maxLength = a.limits.nameMax;
+      if (a.limits) $('wf').deviceName.maxLength = a.limits.nameMax;
       authed = !a.authEnabled || a.loggedIn;
       $('btnOut').hidden = !a.authEnabled || !a.loggedIn;
       $('login').hidden = authed;
       return authed;
     }
-
-    function route() {
-      const v = location.hash === '#settings' ? 'settings' : 'status';
-      $('v-status').hidden = v !== 'status';
-      $('v-settings').hidden = v !== 'settings';
-      $('t-status').classList.toggle('on', v === 'status');
-      $('t-settings').classList.toggle('on', v === 'settings');
-    }
-    addEventListener('hashchange', route);
-    $('t-status').onclick = () => location.hash = '';
-    $('t-settings').onclick = () => location.hash = 'settings';
 
     // 헤더도 다른 컴포넌트와 똑같이 이벤트를 구독한다(페이지가 버스 바깥에 있지 않다).
     WebUi.on('wui:status', s => { $('hIp').textContent = s.ip; });
@@ -134,7 +115,6 @@
 
     setInterval(() => WebUi.tick(), 1000);
     setInterval(refresh, 2000);
-    route();
     refresh();
     <!--@script-->
   </script>

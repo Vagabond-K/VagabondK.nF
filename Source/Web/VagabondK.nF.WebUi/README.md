@@ -204,9 +204,12 @@ WebUi\counter\           ← 폴더는 보관용, 이름은 파일 stem이 결�
   ("keep one source"). 수동 항목이 먼저, 유도 항목이 문서 순서로 뒤에 배치됩니다.
 * 유도된 항목은 빌드 결과의 MANIFEST에 기존 form과 구분 없이 합쳐져 주입되므로
   런타임(core.js)은 차이를 모릅니다.
+* Components 라이브러리의 `<form/>` 컴포넌트를 사용하면 컨트롤이 마크업이 아니라
+  `manifest.form`으로 런타임에 렌더되므로 "views에 없는 form 이름" 검사는 자동 생략됩니다
+  (사용 중인 컴포넌트에 `form`이 있으면 생성기가 건너뜀).
 
 빌드 타임 검증은 다음에서 컴파일을 실패시킵니다: 알 수 없는 매니페스트 키, 잘못된 id/schema,
-WebUiId·manifest.id 충돌, form 이름 중복·누락, views에 없는 form 이름, 수동 form과 data-*의 이름 충돌,
+WebUiId·manifest.id 충돌, form 이름 중복·누락, views에 없는 form 이름(`<form/>` 컴포넌트 사용 시 생략), 수동 form과 data-*의 이름 충돌,
 `data-fmt` 오탈자, 미정의 컴포넌트 이름(`@use`/`<name/>`)·순환 참조, 레거시 전역
 (`PROFILE`, `KEYS`, `LABELS`, `profileAddr`, ...), 필수 훅 누락, 셸에 없는 슬롯의 프로필 채움.
 

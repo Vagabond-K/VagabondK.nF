@@ -657,12 +657,16 @@ namespace VagabondK.nF.WebUi
             if (feat != null && feat.ContainsKey("cacheCols") && !HasDef(hookSrc, "profileCacheRow")
                 && Regex.IsMatch(hookSrc, @"component\s*\(\s*['""]cacheRow['""]") == false)
             { Fail(profilePath, "features.cacheCols requires a profileCacheRow(p) function or a WebUi.component(\"cacheRow\", ...) in the profile script"); return false; }
-            var form = (List<object>)m["form"];
-            foreach (object item in form)
+            // <form/> 컴포넌트는 MANIFEST.form으로 컨트롤을 런타임에 렌더한다: 마크업에 name=가 없는 것이 정상이라 생략.
+            if (!useOrder.Contains("form"))
             {
-                string name = (string)((Dictionary<string, object>)item)["name"];
-                if (views.IndexOf("name=\"" + name + "\"", StringComparison.Ordinal) < 0)
-                { Fail(profilePath, "form field \"" + name + "\" has no matching name=\"" + name + "\" control in the @views section"); return false; }
+                var form = (List<object>)m["form"];
+                foreach (object item in form)
+                {
+                    string name = (string)((Dictionary<string, object>)item)["name"];
+                    if (views.IndexOf("name=\"" + name + "\"", StringComparison.Ordinal) < 0)
+                    { Fail(profilePath, "form field \"" + name + "\" has no matching name=\"" + name + "\" control in the @views section"); return false; }
+                }
             }
             return true;
         }
