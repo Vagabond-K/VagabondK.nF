@@ -23,9 +23,9 @@ namespace VagabondK.nF.WebUi
         }
 
         static readonly string[] Markers = { "<!--@manifest-->", "<!--@core-->", "<!--@style-->", "<!--@views-->", "<!--@script-->" };
-        const string SlotsMarker = "<!--@slots-->";
         const string InstanceMarker = "<!--@instance-->";
-        static readonly Regex SlotToken = new Regex(@"^<!--@slot:([A-Za-z0-9_-]+)-->$", RegexOptions.Compiled);
+        // 빌드타임 슬롯은 폐기되었다(Phase 2): 섀도잉 가능한 <name/> 컴포넌트로 대체.
+        const string SlotRemovedMsg = "@slot syntax was removed: expose a shadowable name.nf.html component and reference it as <name/> instead";
         static readonly Regex UseToken = new Regex(@"^<!--@use:([A-Za-z0-9_-]+)-->$", RegexOptions.Compiled);
         // <name/> 문법: 비-void 요소의 자기종결은 HTML 금기 표기라 줄 전체가 마커다(Phase 2 로드맵).
         static readonly Regex SelfCloseTag = new Regex(@"^<([a-z][a-z0-9-]*)\s*/>$", RegexOptions.Compiled);
@@ -46,8 +46,7 @@ namespace VagabondK.nF.WebUi
         string componentsRoot;
         Dictionary<string, ComponentFiles> components;
         List<string> useOrder;
-        HashSet<string> useDone, useVisiting, compSlots;
-        Dictionary<string, List<string>> slotMap;
+        HashSet<string> useDone, useVisiting;
         static readonly string[] Legacy = { "PROFILE", "KEYS", "LABELS", "formValues", "fillForm", "profileDirty",
             "profileExport", "profileImport", "showValue", "profileAddr", "profileScale", "profileAccess",
             "profilePoints", "profileName", "profileByteOrder", "profileCacheCols" };
@@ -95,19 +94,12 @@ namespace VagabondK.nF.WebUi
             var result = res;
             this.componentsRoot = (componentsRoot ?? string.Empty).Replace('|', ';');
             this.components = components ?? new Dictionary<string, ComponentFiles>(StringComparer.Ordinal);
-            this.compSlots = new HashSet<string>(StringComparer.Ordinal);
             string[] shellLines = ReadLines(shellText);
             var shellAt = new Dictionary<string, int>();
-            var shellSlots = new HashSet<string>();
             for (int i = 0; i < shellLines.Length; i++)
             {
                 string m = MarkerOf(shellLines[i]);
-                if (m == null)
-                {
-                    Match sm = SlotToken.Match(shellLines[i].Trim());
-                    if (sm.Success) shellSlots.Add(sm.Groups[1].Value);
-                    continue;
-                }
+                if (m == null) continue;
                 if (shellAt.ContainsKey(m)) { Fail(shellPath, "duplicate marker " + m); return result; }
                 shellAt[m] = i;
             }
@@ -116,24 +108,19 @@ namespace VagabondK.nF.WebUi
             if (shellAt["<!--@core-->"] < shellAt["<!--@manifest-->"]) { Fail(shellPath, "@core marker must come after @manifest"); return result; }
 
             var sections = new Dictionary<string, List<string>>();
-            var slotSection = new List<string>();
-            bool inSlots = false;
             string current = null;
             foreach (string raw in ReadLines(profileText))
             {
-                string sline = raw.Trim();
-                if (sline == SlotsMarker) { if (inSlots) { Fail(profilePath, "duplicate @slots marker"); return result; } inSlots = true; current = null; continue; }
+                if (IsSlotToken(raw)) { Fail(profilePath, SlotRemovedMsg); return result; }
                 string m = MarkerOf(raw);
                 if (m != null)
                 {
-                    inSlots = false;
                     if (m == "<!--@core-->") { Fail(profilePath, "@core is provided by the library; remove it from the profile"); return result; }
                     if (sections.ContainsKey(m)) { Fail(profilePath, "duplicate marker " + m); return result; }
                     current = m;
                     sections[m] = new List<string>();
                     continue;
                 }
-                if (inSlots) { slotSection.Add(raw); continue; }
                 if (current == null) { if (raw.Trim().Length > 0) { Fail(profilePath, "content before the first marker"); return result; } continue; }
                 sections[current].Add(raw);
             }
@@ -162,32 +149,12 @@ namespace VagabondK.nF.WebUi
             }
             if (!ValidateManifest(manifest, profilePath)) return result;
 
-            // Parse the profile @slots section into name -> markup lines; validate against shell positions.
-            slotMap = new Dictionary<string, List<string>>();
-            string curSlot = null;
-            foreach (string raw in slotSection)
-            {
-                Match sm = SlotToken.Match(raw.Trim());
-                if (sm.Success)
-                {
-                    curSlot = sm.Groups[1].Value;
-                    if (slotMap.ContainsKey(curSlot)) { Fail(profilePath, "duplicate slot definition \"" + curSlot + "\""); return result; }
-                    slotMap[curSlot] = new List<string>();
-                    continue;
-                }
-                if (curSlot == null) { if (raw.Trim().Length > 0) { Fail(profilePath, "slot content before the first @slot:NAME token in @slots"); return result; } continue; }
-                slotMap[curSlot].Add(raw);
-            }
-            // 슬롯 위치 검증은 아래 @use 확장 루프 이후에 수행한다(컴포넌트 안의 슬롯 토큰도 위치가 될 수 있으므로).
-
             // @use 컴포넌트 발견·확장: useOrder는 서브→부모 순서(자식이 먼저 나열되어 CSS 우선순위가 올바르게 겹침).
             useOrder = new List<string>();
             useDone = new HashSet<string>(StringComparer.Ordinal);
             useVisiting = new HashSet<string>(StringComparer.Ordinal);
             if (!DiscoverUses(shellLines, shellPath)) return result;
             if (!DiscoverUses(sections["<!--@views-->"], profilePath)) return result;
-            foreach (List<string> body in slotMap.Values)
-                if (!DiscoverUses(body, profilePath)) return result;
             var expanded = new Dictionary<string, string[]>(StringComparer.Ordinal);
             var compCss = new List<string>();
             var compJs = new List<string>();
@@ -221,8 +188,6 @@ namespace VagabondK.nF.WebUi
                     compJs.AddRange(c.Js);
                 }
             }
-            foreach (string k in slotMap.Keys)
-                if (!shellSlots.Contains(k) && !compSlots.Contains(k)) { Fail(profilePath, "profile fills slot \"" + k + "\" but neither the shell nor a component has a <!--@slot:" + k + "--> position for it"); return result; }
 
             var allViews = new List<string>(ExpandTokens(sections["<!--@views-->"], expanded));
             var allScript = new List<string>(sections["<!--@script-->"]);
@@ -243,13 +208,6 @@ namespace VagabondK.nF.WebUi
                 string m = MarkerOf(raw);
                 if (m == null)
                 {
-                    Match sm = SlotToken.Match(raw.Trim());
-                    if (sm.Success)
-                    {
-                        List<string> body;
-                        if (slotMap.TryGetValue(sm.Groups[1].Value, out body)) merged.AddRange(ExpandTokens(body, expanded));
-                        continue;
-                    }
                     string uref = UseRef(raw.Trim());
                     if (uref != null) { merged.AddRange(expanded[uref]); continue; }
                     merged.Add(raw); continue;
@@ -314,6 +272,8 @@ namespace VagabondK.nF.WebUi
         }
 
         // ---------- @use components ----------
+        static bool IsSlotToken(string raw) { return raw.Trim().StartsWith("<!--@slot", StringComparison.Ordinal); }
+
         static bool IsInstance(string[] lines)
         {
             foreach (string raw in lines)
@@ -336,6 +296,7 @@ namespace VagabondK.nF.WebUi
         {
             foreach (string raw in lines)
             {
+                if (IsSlotToken(raw)) { Fail(origin, SlotRemovedMsg); return false; }
                 string name = UseRef(raw.Trim());
                 if (name == null) continue;
                 if (useDone.Contains(name)) continue;
@@ -369,26 +330,17 @@ namespace VagabondK.nF.WebUi
             return outLines;
         }
 
-        // 컴포넌트 html 한 벌을 최종 줄로 확장: @use는 expanded에서, @slot은 slotMap에서 대체(없으면 빈 줄 제거처럼 사라짐).
+        // 컴포넌트 html 한 벌을 최종 줄로 확장: @use와 <name/>는 expanded에서 대체.
         string[] ExpandComponent(string[] html, Dictionary<string, string[]> expanded)
         {
             var outLines = new List<string>();
             foreach (string raw in html)
             {
-                string t = raw.Trim();
-                string uref = UseRef(t);
+                string uref = UseRef(raw.Trim());
                 if (uref != null)
                 {
                     string[] e;
                     if (expanded.TryGetValue(uref, out e)) outLines.AddRange(e);
-                    continue;
-                }
-                Match sm = SlotToken.Match(t);
-                if (sm.Success)
-                {
-                    compSlots.Add(sm.Groups[1].Value);
-                    List<string> body;
-                    if (slotMap.TryGetValue(sm.Groups[1].Value, out body)) outLines.AddRange(ExpandTokens(body, expanded));
                     continue;
                 }
                 outLines.Add(raw);

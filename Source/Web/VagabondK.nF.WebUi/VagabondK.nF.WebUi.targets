@@ -17,8 +17,8 @@
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" />
 
   Markers (single-line HTML comments, written below as MARK:NAME):
-    shell.html : MARK-manifest, MARK-core, MARK-style, MARK-views, MARK-script, MARK-slots(positions)
-    profile.html: MARK-manifest, MARK-style, MARK-views, MARK-script (+ optional MARK-slots definitions)
+    shell.html : MARK-manifest, MARK-core, MARK-style, MARK-views, MARK-script
+    profile.html: MARK-manifest, MARK-style, MARK-views, MARK-script
     (each MARK-x stands for an HTML comment containing "@x")
   Components: $(WebUiComponents) 루트(기본: 프로젝트의 WebUi 폴더) 아래 어디든
     <name>.nf.html = 컴포넌트. 같은 이름 <name>.nf.js/.nf.css가 같은 폴더에 있으면 한 벌.
@@ -27,7 +27,9 @@
     앞쪽, js는 MARK-script 앞쪽에 자동 병합(자식→부모 순, 프로필이 오버라이드 가능).
     $(WebUiComponents)는 세미콜론 루트 목록 — 앞 루트(프로젝트 로컬)가 뒤 루트(공유)를
     섀도잉하고, 같은 루트 내 이름 중복은 오류.
-    컴포넌트 html 안의 MARK-slot:NAME 토큰도 프로필 슬롯 내용으로 채워진다.
+    빌드타임 슬롯(MARK-slot)은 폐기됨: 확장 지점은 name.nf.html 컴포넌트로 만들고
+    참조 위치에서 <name/>로 쓰면, 프로젝트 로컬 루트가 같은 이름의 공유 컴포넌트를
+    섀도잉하여 제품별로 내용을 교체할 수 있다.
     html 첫 줄에 MARK-instance 마커가 있으면 인스턴스 컴포넌트: @use 자리는 <wui-name>
     태그, 마크업은 <template id="wui-t-name">로, js는 WUI.def init(root,document,$)으로
     번들링(shadow DOM, id 격리, 인스턴스별 상태). 마커 없으면 위 인라인 방식 그대로.
