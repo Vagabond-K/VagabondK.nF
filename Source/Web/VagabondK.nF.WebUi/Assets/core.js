@@ -186,7 +186,8 @@ var r = sync();
 if (r.changed.length && Object.keys(r.errs).length === 0) {
 var go = function () {
 Promise.resolve(o.save ? o.save(r.v, r.changed) : null).then(function () {
-base = r.v; sync(); toast(T.saved, 'ok');
+// src도 함께 갱신: 저장 후 "되돌리기"가 페이지 로드 시점의 낡은 스냅샷으로 되돌아가 기기와 UI가 어긋나는 것을 막는다.
+src = Object.assign({}, src, r.v); base = r.v; sync(); toast(T.saved, 'ok');
 }, function (e) { toast(e && e.message ? e.message : String(e), 'bad'); });
 };
 if (o.confirm === false) go();
