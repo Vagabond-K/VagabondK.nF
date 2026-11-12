@@ -77,6 +77,7 @@
   <main>
     <section data-tab="상태">
       <h1>장치 상태</h1>
+      <ap-banner/>
       <p class="ops">
         <conn-dot timeout="6"/>
         <uptime long/>
@@ -176,6 +177,15 @@
             <button type="button">도움말</button>
           </wui-tooltip>
         </p>
+      </wui-card>
+      <!--@use:grid-->
+      <wui-card title="레이아웃">
+        <wui-grid cols="3">
+          <span class="msg">셀 1</span>
+          <span class="msg">셀 2</span>
+          <span class="msg">셀 3</span>
+        </wui-grid>
+        <divider label="구간 끝"/>
       </wui-card>
     </section>
   </main>

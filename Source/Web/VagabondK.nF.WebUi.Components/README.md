@@ -55,6 +55,9 @@
 | `timeline` | html+js+css | `<timeline items="10:04 기동|10:05 연결"/>` Ant식 세로 이벤트 스트립. 인스턴스. |
 | `pagination` | html+js+css | `<pagination page="2" total="5"/>` ‹ n / m › 네비게이터. 이동 시 `wui:page {page}`. 인스턴스. |
 | `breadcrumb` | html+js+css | `<breadcrumb items="홈|설정|포인트"/>` 경로 표시(마지막 굵게). 인스턴스. |
+| `divider` | html+js+css | `<divider label="고급 설정"/>` MUI식 구분선(label 없으면 선만). 인스턴스. |
+| `grid` | html+js+css | `<wui-grid cols="3">본문</wui-grid>` CSS grid 유틸. 참조는 `<!--@use:grid-->`. 인스턴스. |
+| `ap-banner` | html+js+css | `<ap-banner/>` `wui:status`의 `ap`(또는 `key` 속성 키)가 참일 때 설정 AP 경고 바 표시. nanoGate 승격. 인스턴스. |
 
 ### form 컴포넌트 사용 예
 
@@ -177,8 +180,8 @@ MCU 제약(외부 JS/CSS 금지, vanilla + WebUi 버스, 힙 절약)으로 필�
 | 중 | drawer | MUI/Ant | ✅ 인스턴스 | 우측 상세 패널(wui:drawer-close) |
 | 상 | card | 전 | ✅ 인스턴스 | 제목+본문 컨테이너(section 승격) |
 | 중 | list-group | Bootstrap | ✅ 인스턴스 | 행 목록+액션(wui:list-click) |
-| 하 | divider | MUI/Ant | 인라인 | 구분선+라벨 |
-| 하 | grid | Bootstrap/MUI | 인라인 | CSS grid 유틸 클래스 |
+| 하 | divider | MUI/Ant | ✅ 인스턴스 | 구분선+라벨 |
+| 하 | grid | Bootstrap/MUI | ✅ 인스턴스 | CSS grid 유틸(cols 속성) |
 
 ### E. 장치·ops 특화(우리 니치)
 | 우선 | 이름 | 참조/출처 | 형태 | 내용 |
@@ -193,7 +196,7 @@ MCU 제약(외부 JS/CSS 금지, vanilla + WebUi 버스, 힙 절약)으로 필�
 | 중 | register-view | Modbus Tool | 인스턴스 | 레지스터 라이브 표 |
 | 중 | wifi-form | 라우터 UI | 인스턴스 | network 승격(API 규약 주입식) |
 | 중 | sparkline | Grafana | 인스턴스 | canvas 값 추이(20줄 내외) |
-| 상 | ap-banner | nanoGate | 인라인 | 설정 AP 모드 경고 |
+| 상 | ap-banner | nanoGate | ✅ 인스턴스 | 설정 AP 모드 경고(status.ap 구독) |
 | 하 | clock | — | 인스턴스 | 시계(DNP3 타임스탬프용) |
 
 ### 제외(MCU 비용 대비 가치 낮음)
@@ -208,7 +211,8 @@ speed-dial·affix/scrollspy·image-lightbox·colorpicker
 ~~navbar·steps·collapse~~(2026-11 완료) →
 ~~list-group·drawer·reboot~~(2026-11 완료) →
 ~~input-group·number·search·password~~(2026-11 완료) →
-~~tooltip·timeline·pagination·breadcrumb~~(2026-11 완료) → ap-banner
+~~tooltip·timeline·pagination·breadcrumb~~(2026-11 완료) →
+~~divider·grid·ap-banner~~(2026-11 완료) → log-tail·register-view·wifi-form·sparkline·clock
 
 ### 인스턴스 컴포넌트 작성 시 주의(scope 문서)
 
