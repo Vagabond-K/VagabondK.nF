@@ -12,7 +12,10 @@ namespace VagabondK.nF.WebAuth
         /// <summary>하드웨어 RNG가 없는 임베디드 환경의 엔트로피를 모아 난수 바이트를 만드는 내부 도구입니다.</summary>
         internal static class Entropy
         {
-            private static readonly object Sync = new object();
+            // 주의: 중첩 타입의 static 필드 초기자는 nanoCLR에서 정적 메서드 호출 경로로
+            // .cctor가 보장되지 않아 null로 남는 경우가 확인되었습니다(장치 ArgumentNullException).
+            // 초기자에 의존하지 말고 Bytes() 진입 시점에 방어 초기화합니다.
+            private static object Sync;
             private static ulong counter;
 
             /// <summary>시드 혼합을 HMAC-SHA256으로 확장한 예측 어려운 바이트를 반환합니다.</summary>
@@ -25,6 +28,7 @@ namespace VagabondK.nF.WebAuth
                 if (count <= 0) throw new ArgumentOutOfRangeException("count");
                 byte[] output = new byte[count];
                 int written = 0;
+                if (Sync == null) Sync = new object();  // .cctor 미실행 대비(우위 주석 참조)
                 lock (Sync)
                 {
                     byte[] seed = Guid.NewGuid().ToByteArray();

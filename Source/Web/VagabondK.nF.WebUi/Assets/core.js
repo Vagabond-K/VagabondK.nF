@@ -94,7 +94,36 @@ while (parent.childNodes.length > list.length) parent.removeChild(parent.lastChi
 // 셸마다 중복되던 fetch 래퍼의 단일 구현. 401이면 err.unauth와 함께 wui:unauth를 발행한다:
 // 로그인 UI는 페이지(또는 login 컴포넌트)가 이벤트를 구독해 반응한다.
 var csrfH = '';
+// ---- busy: API(변경 요청) 처리 중 컨트롤 잠금 ----
+// POST 등 장치 상태를 바꾸는 요청이 떠 있는 동안 모든 폼 컨트롤을 pointer-events로 막고
+// 상단 배지로 "처리 중"을 표시한다. 주기적 GET 갱신은 포함하지 않아 화면이 주기적으로
+// 잠기는 일이 없다. first-use에 스타일/배지 DOM을 만든다(셸 마크업 수정 불필요).
+var busyN = 0, busyEl = null, blockEl = null;
+function busy(on) {
+busyN = Math.max(0, busyN + (on ? 1 : -1));
+if (!busyEl) {
+var s = document.createElement('style');
+s.textContent = '#wuiBusy{position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:90;padding:4px 12px;' +
+'border-radius:14px;font:12px system-ui;background:rgba(20,26,32,.92);color:#e8eef2;border:1px solid rgba(120,140,160,.5)}' +
+'#wuiBlock{position:fixed;inset:0;z-index:80;cursor:progress}' +
+'body.wui-busy button,body.wui-busy input,body.wui-busy select,body.wui-busy textarea,' +
+'body.wui-busy wui-number,body.wui-busy wui-password,body.wui-busy wui-search{pointer-events:none;opacity:.6}';
+document.head.append(s);
+busyEl = document.createElement('div');
+busyEl.id = 'wuiBusy';
+busyEl.hidden = true;
+busyEl.textContent = '요청 처리 중…';
+blockEl = document.createElement('div');   // shadow DOM 내부 포함 전체 클릭 차단
+blockEl.id = 'wuiBlock';
+blockEl.hidden = true;
+document.body.append(blockEl, busyEl);
+}
+document.body.classList.toggle('wui-busy', busyN > 0);
+busyEl.hidden = blockEl.hidden = busyN === 0;
+}
 async function api(path, opt, ms) {
+var mut = !!(opt && opt.method && opt.method !== 'GET');
+if (mut) busy(true);
 var ac = new AbortController(), timer = setTimeout(function () { ac.abort(); }, ms || 8000);
 try {
 var r = await fetch(path, Object.assign({cache: 'no-store', signal: ac.signal}, opt));
@@ -110,7 +139,7 @@ return body;
 if (e.name === 'AbortError') throw new Error('장치 응답 시간이 초과되었습니다.');
 if (e instanceof TypeError) throw new Error('장치에 연결할 수 없습니다.');
 throw e;
-} finally { clearTimeout(timer); }
+} finally { clearTimeout(timer); if (mut) busy(false); }
 }
 function csrf(h) {
 if (h) csrfH = h;
@@ -199,7 +228,7 @@ return {fill: fill, values: vals, changed: diff, changes: changes, sync: sync,
 dirty: function () { return !!base && diff(vals()).length > 0; },
 get base() { return base; }};
 }
-return { M: M, KEYS: KEYS, LABELS: LABELS, feat: feat, caps: caps, values: values, fill: fill, changed: changed, showValue: showValue, h: h, render: render, component: component, slot: slot, api: api, csrf: csrf, post: post, toast: toast, fire: fire, on: on, status: status, tick: tick, bindForm: bindForm, get ST() { return ST; }};
+return { M: M, KEYS: KEYS, LABELS: LABELS, feat: feat, caps: caps, values: values, fill: fill, changed: changed, showValue: showValue, h: h, render: render, component: component, slot: slot, api: api, csrf: csrf, post: post, toast: toast, fire: fire, on: on, busy: busy, status: status, tick: tick, bindForm: bindForm, get ST() { return ST; }};
 })();
 // ---- WUI: instance components (Web Components) ----
 // A component whose html contains <!--@instance--> is emitted as a <template id="wui-t-NAME"> plus
