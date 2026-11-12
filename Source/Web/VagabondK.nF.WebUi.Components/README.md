@@ -51,6 +51,10 @@
 | `search` | html+js+css | `<search placeholder="검색"/>` Carbon식 필터 입력. 300ms 디바운스 후 `wui:search {q}`. ×로 초기화. 인스턴스. |
 | `password` | html+js+css | `<password placeholder="비밀번호"/>` show/hide 토글 비밀번호 입력. 인스턴스. |
 | `input-group` | html+js+css | `<wui-input-group placeholder="…"><b slot="pre">http://</b><b slot="post">:502</b></wui-input-group>` Bootstrap식 입력+접두/접미. `el.value` 왕복. 참조는 `<!--@use:input-group-->`. 인스턴스. |
+| `tooltip` | html+js+css | `<wui-tooltip text="설명">본문</wui-tooltip>` 호버 버블. 참조는 `<!--@use:tooltip-->` + 수동 태그. 인스턴스. |
+| `timeline` | html+js+css | `<timeline items="10:04 기동|10:05 연결"/>` Ant식 세로 이벤트 스트립. 인스턴스. |
+| `pagination` | html+js+css | `<pagination page="2" total="5"/>` ‹ n / m › 네비게이터. 이동 시 `wui:page {page}`. 인스턴스. |
+| `breadcrumb` | html+js+css | `<breadcrumb items="홈|설정|포인트"/>` 경로 표시(마지막 굵게). 인스턴스. |
 
 ### form 컴포넌트 사용 예
 
@@ -140,18 +144,18 @@ MCU 제약(외부 JS/CSS 금지, vanilla + WebUi 버스, 힙 절약)으로 필�
 | 중 | skeleton | MUI/shadcn | ✅ 인스턴스 | 로딩 자리받기(CSS-only shimmer) |
 | 중 | empty | Ant | ✅ 인스턴스 | 데이터 없음 상태 |
 | 상 | result | Ant | ✅ 인스턴스 | 성공/실패 전페이지 안내 |
-| 하 | tooltip | 전 | 인스턴스 | title 속성 폴백 포함 |
-| 하 | timeline | Ant/MUI | 인스턴스 | 이벤트 로그 스트립 |
+| 하 | tooltip | 전 | ✅ 인스턴스 | 호버 버블(text 속성) |
+| 하 | timeline | Ant/MUI | ✅ 인스턴스 | 이벤트 로그 스트립(items) |
 
 ### B. 내비게이션
 | 우선 | 이름 | 참조 | 형태 | 내용 |
 |---|---|---|---|---|
 | ✅ 완료 | tabs | 전 | 인라인 | 헤더+라우팅 승격(해시 연동). 페이지당 1개 내비라 인라인으로 구현 |
 | 중 | navbar | Bootstrap | ✅ 인스턴스 | 제목·연결점·로그아웃 슬롯 헤더 |
-| 중 | pagination | 전 | 인스턴스 | 표와 결합 |
+| 중 | pagination | 전 | ✅ 인스턴스 | 표와 결합(wui:page) |
 | 중 | steps | MUI/Ant | ✅ 인스턴스 | 설정 마법사·업데이트 단계 |
 | 중 | collapse | Bootstrap | ✅ 인스턴스 | 아코디언(CSS max-height) |
-| 하 | breadcrumb | Ant/MUI | 인스턴스 | 낮은 우선순위 |
+| 하 | breadcrumb | Ant/MUI | ✅ 인스턴스 | 경로 표시(items) |
 
 ### C. 폼·입력
 | 우선 | 이름 | 참조 | 형태 | 내용 |
@@ -203,7 +207,8 @@ speed-dial·affix/scrollspy·image-lightbox·colorpicker
 ~~descriptions·badge·chip·spinner·skeleton·empty~~(2026-11 완료) →
 ~~navbar·steps·collapse~~(2026-11 완료) →
 ~~list-group·drawer·reboot~~(2026-11 완료) →
-~~input-group·number·search·password~~(2026-11 완료) → ap-banner
+~~input-group·number·search·password~~(2026-11 완료) →
+~~tooltip·timeline·pagination·breadcrumb~~(2026-11 완료) → ap-banner
 
 ### 인스턴스 컴포넌트 작성 시 주의(scope 문서)
 

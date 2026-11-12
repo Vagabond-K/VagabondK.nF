@@ -163,6 +163,20 @@
           <b slot="post">:502</b>
         </wui-input-group>
       </wui-card>
+      <!--@use:tooltip-->
+      <wui-card title="내비게이션 도우미">
+        <p class="ops">
+          <breadcrumb items="홈|설정|포인트"/>
+          <pagination page="2" total="5"/>
+          <span class="msg" id="pgOut">페이지 2</span>
+        </p>
+        <timeline items="10:04 게이트웨이 기동|10:05 DNP3 연결|10:09 폴링 시작"/>
+        <p>
+          <wui-tooltip text="DNP3 마스터 IP">
+            <button type="button">도움말</button>
+          </wui-tooltip>
+        </p>
+      </wui-card>
     </section>
   </main>
   <!--@use:drawer-->
@@ -203,6 +217,8 @@
     WebUi.on('wui:number-change', d => { $('numOut').textContent = '폴링: ' + d.value + 'ms'; });
     // search 디바운스 결과 구독 — 실제 페이지에서는 표 필터링에 쓴다.
     WebUi.on('wui:search', d => { if (d.q) WebUi.toast('검색: ' + d.q, 'ok'); });
+    // pagination 이동 구독(표 페이징 결합 예시).
+    WebUi.on('wui:page', d => { $('pgOut').textContent = '페이지 ' + d.page; });
 
     async function refresh() {
       try {
