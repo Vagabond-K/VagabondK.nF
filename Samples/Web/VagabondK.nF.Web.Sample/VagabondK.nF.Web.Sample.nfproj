@@ -31,7 +31,7 @@
     <!-- manifest의 "id" 대신 프로젝트 속성으로 페이지 id를 선언한다(Phase 2: manifest 소멸 로드맵). -->
     <WebUiId>web-sample</WebUiId>
     <!-- 컴포넌트 루트 둘: 프로젝트 WebUi(로컬, 우선) + 표준 컴포넌트 라이브러리.
-         페이지가 @use로 참조한 것만 번들에 들어가고, 같은 이름의 로컬 조각이 라이브러리를 섀도잉한다
+         페이지가 <name/> 또는 <wui-name> 태그로 참조한 것만 번들에 들어가고, 같은 이름의 로컬 조각이 라이브러리를 섀도잉한다
          (예: panel은 라이브러리 버전이 있지만 로컬 panel.nf.html이 승리 → 라이브러리 panel은 0바이트). -->
     <WebUiComponents>$(MSBuildThisFileDirectory)WebUi;$(MSBuildThisFileDirectory)..\..\..\Source\Web\VagabondK.nF.WebUi.Components</WebUiComponents>
   </PropertyGroup>

@@ -203,7 +203,7 @@ return { M: M, KEYS: KEYS, LABELS: LABELS, feat: feat, caps: caps, values: value
 })();
 // ---- WUI: instance components (Web Components) ----
 // A component whose html contains <!--@instance--> is emitted as a <template id="wui-t-NAME"> plus
-// <wui-name> tags at each @use position. def() registers the custom element: every tag gets its own
+// <wui-name> tag wherever referenced. def() registers the custom element: every tag gets its own
 // shadow root with the template cloned in, so ids are scoped per instance and init runs once per
 // instance as init.call(host, root, scopedDocument, $). The page's merged <style> is adopted as a
 // base sheet so global rules still apply inside the shadow; the component's own css follows it.

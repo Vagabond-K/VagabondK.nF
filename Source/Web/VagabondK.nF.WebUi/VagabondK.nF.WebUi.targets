@@ -37,7 +37,8 @@
     빌드타임 슬롯(MARK-slot)은 폐기됨: 확장 지점은 name.nf.html 컴포넌트로 만들고
     참조 위치에서 <name/>로 쓰면, 프로젝트 로컬 루트가 같은 이름의 공유 컴포넌트를
     섀도잉하여 제품별로 내용을 교체할 수 있다.
-    html 첫 줄에 MARK-instance 마커가 있으면 인스턴스 컴포넌트: @use 자리는 <wui-name>
+    html 첫 줄에 MARK-instance 마커가 있으면 인스턴스 컴포넌트: 참조 자리(<name/> 또는
+    <wui-name> 태그)는 <wui-name>
     태그, 마크업은 <template id="wui-t-name">로, js는 WUI.def init(root,document,$)으로
     번들링(shadow DOM, id 격리, 인스턴스별 상태). 마커 없으면 위 인라인 방식 그대로.
   @manifest holds one compact JSON object:
@@ -50,8 +51,9 @@
   붙이면 생성기가 문서 순서로 form 항목을 자동 유도합니다(label 없으면 name 사용).
   수동 form과 data-* 병존 가능하지만 같은 name이 양쪽에 있으면 빌드 오류("keep one source").
   수동 항목 먼저 + 유도 항목 뒤. 유도 여부와 무관하게 MANIFEST에는 합쳐져 주입됩니다.
-  <name/> 문법: name.nf.html 컴포넌트는 줄 전체로 쓸 때 @use 주석 대신 <name/> 태그로 참조할 수
-  있습니다(br/img 등 void 요소명은 HTML로 통과, 미정의 이름은 빌드 오류). 두 표기는 혼용 가능.
+  <name/> 문법: name.nf.html 컴포넌트는 줄 전체에 <name/> 태그로 참조합니다(br/img 등 void 요소명은 HTML로 통과, 미정의 이름은 빌드 오류).
+  @instance 컴포넌트는 본문 자리에서 <wui-name> 태그를 직접 쓰면 별도 참조 없이 자동으로 번들에 포함됩니다.
+ 기존 @use 주석은 제거되었습니다(남은 파일은 빌드 오류로 마이그레이션 안내).
   WebUiId 속성: 설정하면 manifest의 "id"를 대체합니다(선두 주입). manifest.id도 있고 값이 다르면
   빌드 오류, 같으면 무해. 둘 다 없으면 빌드 오류. 미설정이면 manifest.id가 그대로 쓰입니다.
   The generator validates the manifest (shape + cross-checks against views/script), injects
@@ -73,7 +75,7 @@
     <AdditionalFiles Include="$(WebUiProfile)" Condition="'$(WebUiProfile)' != ''" />
     <AdditionalFiles Include="$(WebUiPage)" Condition="'$(WebUiPage)' != ''" />
     <AdditionalFiles Include="$(WebUiCore)" />
-    <!-- @use 컴포넌트 조각: 루트 아래 어디든 <name>.nf.{html,js,css} (없으면 빈 glob).
+    <!-- 컴포넌트 조각: 루트 아래 어디든 <name>.nf.{html,js,css} (없으면 빈 glob).
          WebUiComponents가 세미콜론 목록이므로 타깃 실행 시점에 루트별로 배치한다(평가 시점 glob은 세미콜론에서 깨짐). -->
   </ItemGroup>
   <Target Name="WebUiWriteGeneratorConfig" BeforeTargets="CoreCompile">

@@ -106,7 +106,6 @@
     <section data-tab="도구">
       <h1>유지보수 도구</h1>
       <alert severity="warn" text="설정을 변경하기 전에 백업을 내보내 두세요."/>
-      <!--@use:card-->
       <wui-card title="설정 백업">
         <export-import/>
       </wui-card>
@@ -114,8 +113,6 @@
         <firmware api="/api/firmware"/>
         <result/>
       </wui-card>
-      <!--@use:badge-->
-      <!--@use:chip-->
       <wui-card title="표시 컴포넌트">
         <p class="ops">
           <wui-badge variant="ok">연결</wui-badge>
@@ -136,8 +133,6 @@
         <skeleton w="60%" h="14"/>
         <empty text="로그 없음" icon="▤"/>
       </wui-card>
-      <!--@use:navbar-->
-      <!--@use:collapse-->
       <wui-card title="단계와 접기">
         <steps items="다운로드|전송|적용" current="2"/>
         <wui-collapse title="고급 설정">
@@ -153,7 +148,6 @@
           <reboot api="/api/reboot" secs="8"/>
         </p>
       </wui-card>
-      <!--@use:input-group-->
       <wui-card title="폼 도우미">
         <p class="ops">
           <number value="500" min="0" max="9999" step="100"/>
@@ -168,7 +162,6 @@
           <b slot="post">:502</b>
         </wui-input-group>
       </wui-card>
-      <!--@use:tooltip-->
       <wui-card title="내비게이션 도우미">
         <p class="ops">
           <breadcrumb items="홈|설정|포인트"/>
@@ -182,7 +175,6 @@
           </wui-tooltip>
         </p>
       </wui-card>
-      <!--@use:grid-->
       <wui-card title="레이아웃">
         <wui-grid cols="3">
           <span class="msg">셀 1</span>
@@ -200,7 +192,6 @@
       </wui-card>
     </section>
   </main>
-  <!--@use:drawer-->
   <wui-drawer id="dw" title="항목 상세">
     <p class="msg" id="dwMsg">list-group 행을 클릭하면 여는 상세 패널 자리.</p>
   </wui-drawer>

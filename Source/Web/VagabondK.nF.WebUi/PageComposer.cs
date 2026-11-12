@@ -29,7 +29,11 @@ namespace VagabondK.nF.WebUi
         static readonly Regex InstanceRe = new Regex(@"<!--@instance((?:\s+[a-zA-Z0-9_-]+)*)\s*-->", RegexOptions.Compiled);
         // 빌드타임 슬롯은 폐기되었다(Phase 2): 섀도잉 가능한 <name/> 컴포넌트로 대체.
         const string SlotRemovedMsg = "@slot syntax was removed: expose a shadowable name.nf.html component and reference it as <name/> instead";
-        static readonly Regex UseToken = new Regex(@"^<!--@use:([A-Za-z0-9_-]+)-->$", RegexOptions.Compiled);
+        // @use 마커는 제거되었다: 참조는 <name/>(줄 전체) 또는 인스턴스의 <wui-name> 태그만 인정한다.
+        // 오래된 마커가 조용히 무력화되지 않도록 발견 시 빌드 실패로 알린다.
+        static readonly Regex UseMarkerGone = new Regex(@"<!--@use:", RegexOptions.Compiled);
+        // <wui-name ...> 여는 태그 = 인스턴스 컴포넌트 참조(본문 보유 컴포넌트의 마크업 방식).
+        static readonly Regex WuiTag = new Regex(@"<wui-([a-z][a-z0-9-]*)(?=[\s/>])", RegexOptions.Compiled);
         // <name/> 문법: 비-void 요소의 자기종결은 HTML 금기 표기라 줄 전체가 마커다(Phase 2 로드맵).
         // 속성 허용(@instance 컴포넌트의 파라미터): <name a="1" b/> → 그룹2가 속성 문자열.
         static readonly Regex SelfCloseTag = new Regex(@"^<([a-z][a-z0-9-]*)((?:\s+[a-zA-Z0-9_-]+(?:=""[^""]*"")?)*)\s*/>$", RegexOptions.Compiled);
@@ -201,7 +205,7 @@ namespace VagabondK.nF.WebUi
             }
             if (!ValidateManifest(manifest, contentPath)) return result;
 
-            // @use 컴포넌트 발견·확장: useOrder는 서브→부모 순서(자식이 먼저 나열되어 CSS 우선순위가 올바르게 겹침).
+            // 컴포넌트 발견·확장: useOrder는 서브→부모 순서(자식이 먼저 나열되어 CSS 우선순위가 올바르게 겹침).
             useOrder = new List<string>();
             useDone = new HashSet<string>(StringComparer.Ordinal);
             useVisiting = new HashSet<string>(StringComparer.Ordinal);
@@ -218,7 +222,7 @@ namespace VagabondK.nF.WebUi
                 string[] body = ExpandComponent(c.Html, expanded);
                 if (IsInstance(c.Html))
                 {
-                    // 인스턴스 컴포넌트: html은 <template>으로 보내고 @use 자리는 <wui-name> 태그가 된다.
+                    // 인스턴스 컴포넌트: html은 <template>으로 보내고 참조 자리(<name/> 또는 태그 자체)는 <wui-name>이 된다.
                     // js/css는 커스텀 엘리먼트 정의에 포장되어 인스턴스마다 shadow root 안에서 실행되므로
                     // id가 인스턴스별로 격리되고 여러 위치에서 안전하게 재사용할 수 있다.
                     string tag = "wui-" + name.ToLowerInvariant();
@@ -408,7 +412,7 @@ namespace VagabondK.nF.WebUi
             return sb.ToString();
         }
 
-        // ---------- @use components ----------
+        // ---------- component references ----------
         static bool IsSlotToken(string raw) { return raw.Trim().StartsWith("<!--@slot", StringComparison.Ordinal); }
 
         // 마커는 html 어디든 허용(단독 줄뿐 아니라 태그와 같은 줄도 인식). 줄 전체가 마커일 때와
@@ -439,12 +443,10 @@ namespace VagabondK.nF.WebUi
             return r;
         }
 
-        // 컴포넌트 참조 판정: 줄 전체가 <!--@use:name-->이거나 <name/>(비-void)면 이름 반환.
+        // 컴포넌트 참조 판정: 줄 전체가 <name/>(비-void)면 이름 반환.
         // void 요소(<br/> 등)는 HTML 그대로이므로 null(=참조 아님).
         static string UseRef(string trimmed)
         {
-            Match um = UseToken.Match(trimmed);
-            if (um.Success) return um.Groups[1].Value;
             Match sc = SelfCloseTag.Match(trimmed);
             if (sc.Success && !VoidNames.Contains(sc.Groups[1].Value)) return sc.Groups[1].Value;
             return null;
@@ -462,35 +464,51 @@ namespace VagabondK.nF.WebUi
             foreach (string raw in lines)
             {
                 if (IsSlotToken(raw)) { Fail(origin, SlotRemovedMsg); return false; }
-                string name = UseRef(raw.Trim());
-                if (name == null)
+                if (UseMarkerGone.IsMatch(raw))
+                { Fail(origin, "@use markers were removed: reference a component as <name/> (alone on its line) or use its <wui-name> tag directly"); return false; }
+                string trimmed = raw.Trim();
+                string name = UseRef(trimmed);
+                if (name != null)
                 {
-                    foreach (Match im in InlineRef.Matches(raw))
-                        if (!VoidNames.Contains(im.Groups[1].Value) && components.ContainsKey(im.Groups[1].Value))
-                        { Fail(origin, "component reference <" + im.Groups[1].Value + "/> must be alone on its line (inline use is emitted as raw HTML and never expands)"); return false; }
+                    if (!Include(name, UseArgs(trimmed), origin)) return false;
                     continue;
                 }
-                if (useDone.Contains(name)) continue;
-                if (useVisiting.Contains(name)) { Fail(origin, "circular component reference: \"" + name + "\""); return false; }
-                ComponentFiles c;
-                if (!components.TryGetValue(name, out c) || c.Html == null)
+                foreach (Match im in InlineRef.Matches(raw))
+                    if (!VoidNames.Contains(im.Groups[1].Value) && components.ContainsKey(im.Groups[1].Value))
+                    { Fail(origin, "component reference <" + im.Groups[1].Value + "/> must be alone on its line (inline use is emitted as raw HTML and never expands)"); return false; }
+                // <wui-name> 여는 태그 자체가 인스턴스 참조: 위치와 무관하게 컴포넌트를 번들에 포함한다.
+                foreach (Match wm in WuiTag.Matches(raw))
                 {
-                    Fail(origin, "component \"" + name + "\" not found (from @use or <" + name + "/>): expected " + name + ".nf.html (any folder) under " +
-                        (componentsRoot.Length == 0 ? "(WebUiComponents is not set)" : componentsRoot));
-                    return false;
+                    ComponentFiles c;
+                    if (components.TryGetValue(wm.Groups[1].Value, out c) && c.Html != null && IsInstance(c.Html) &&
+                        !Include(wm.Groups[1].Value, "", origin)) return false;
                 }
-                if (UseArgs(raw.Trim()).Length > 0 && !IsInstance(c.Html))
-                {
-                    Fail(origin, "attributes on <" + name + "/> are only supported on @instance components: add <!--@instance--> anywhere in " +
-                        (components.ContainsKey(name) ? components[name].HtmlPath : name + ".nf.html"));
-                    return false;
-                }
-                useVisiting.Add(name);
-                if (!DiscoverUses(c.Html, c.HtmlPath)) return false;
-                useVisiting.Remove(name);
-                useDone.Add(name);
-                useOrder.Add(name);
             }
+            return true;
+        }
+
+        // 이름으로 컴포넌트 포함: 순환 검사 후 재귀 진입, useOrder는 서브→부모 순서로 축적.
+        bool Include(string name, string args, string origin)
+        {
+            if (useDone.Contains(name)) return true;
+            if (useVisiting.Contains(name)) { Fail(origin, "circular component reference: \"" + name + "\""); return false; }
+            ComponentFiles c;
+            if (!components.TryGetValue(name, out c) || c.Html == null)
+            {
+                Fail(origin, "component \"" + name + "\" not found (from <" + name + "/> or <wui-" + name + ">): expected " + name + ".nf.html (any folder) under " +
+                    (componentsRoot.Length == 0 ? "(WebUiComponents is not set)" : componentsRoot));
+                return false;
+            }
+            if (args.Length > 0 && !IsInstance(c.Html))
+            {
+                Fail(origin, "attributes on <" + name + "/> are only supported on @instance components: add <!--@instance--> anywhere in " + c.HtmlPath);
+                return false;
+            }
+            useVisiting.Add(name);
+            if (!DiscoverUses(c.Html, c.HtmlPath)) return false;
+            useVisiting.Remove(name);
+            useDone.Add(name);
+            useOrder.Add(name);
             return true;
         }
 
@@ -522,7 +540,7 @@ namespace VagabondK.nF.WebUi
             return outLines;
         }
 
-        // 컴포넌트 html 한 벌을 최종 줄로 확장: @use와 <name/>는 expanded에서 대체.
+        // 컴포넌트 html 한 벌을 최종 줄로 확장: <name/> 참조는 expanded에서 대체.
         string[] ExpandComponent(string[] html, Dictionary<string, string[]> expanded)
         {
             var outLines = new List<string>();

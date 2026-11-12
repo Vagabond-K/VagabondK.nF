@@ -9,7 +9,7 @@
 </PropertyGroup>
 ```
 
-- 페이지가 `<!--@use:name-->`(또는 `<name/>`)으로 **참조한 컴포넌트만** 빌드 결과에 들어갑니다.
+- 페이지가 `<name/>` 참조나 `<wui-name>` 태그로 **사용한 컴포넌트만** 빌드 결과에 들어갑니다.
   이 폴더에 아무리 많은 컴포넌트를 둬도 사용하지 않으면 장치 힙을 1바이트도 차지하지 않습니다.
 - 프로젝트 로컬 루트(앞쪽)에 같은 이름이 있으면 로컬이 **섀도잉**하여 라이브러리 버전을 대체합니다.
   내용·모양을 제품별로 바꾸고 싶을 때 해당 이름의 조각을 프로젝트 `WebUi\`에 두면 됩니다.
@@ -32,31 +32,31 @@
 | `progress` | html+js+css | `<progress max="100" label="저장 중"/>` 바형 진행률. `wui:progress`의 `{value,max,label}` 구독, 도달 시 host에 `done`(초록). 저장·업로드·펌웨어와 짝. 인스턴스. |
 | `alert` | html+js+css | `<alert severity="warn" text="…"/>` note의 일반화. severity `info/warn/error/ok` + 아이콘. `wui:alert` 이벤트로 동적 갱신. 인스턴스. |
 | `result` | html+js+css | `<result status="ok" title="전송 완료" sub="…"/>` Ant Result식 성공/실패 안내. `wui:result`의 `{status,title,sub}` 구독. firmware·저장과 짝. 인스턴스. |
-| `card` | html+js+css | `<wui-card title="설정 백업">본문 마크업</wui-card>` 제목+구분선+본문 컨테이너. 본문을 `<slot/>`으로 받아 light DOM을 그대로 렌더. 빈 카드는 자동 숨김(`:host(:empty)`). 참조는 `<!--@use:card-->` + 본문은 수동 태그. 인스턴스. |
+| `card` | html+js+css | `<wui-card title="설정 백업">본문 마크업</wui-card>` 제목+구분선+본문 컨테이너. 본문을 `<slot/>`으로 받아 light DOM을 그대로 렌더. 빈 카드는 자동 숨김(`:host(:empty)`). `<wui-card>` 태그 자체가 참조. 인스턴스. |
 | `export-import` | html+js+css | 설정 백업 내보내기/가져오기(phpMyAdmin 스타일). 내보내기: GET `/api/settings` → JSON 다운로드. 가져오기: 파일의 키만 장치 현재 설정에 병합해 POST(부분 백업 허용). 인스턴스. |
 | `firmware` | html+js+css | `<firmware api="/api/firmware" chunk="2048"/>` 파일→base64 청크 POST(seq/total). `wui:progress`/`wui:result` 발행으로 progress·result 인스턴스와 결합. 전송만 담당, 실제 플래싱은 장치 프로젝트 몫. 인스턴스. |
-| `badge` | html+js+css | `<wui-badge variant="ok">12</wui-badge>` 카운트·상태 알약 뱃지. variant `info/ok/warn/bad`(없으면 회색). 본문을 `<slot/>`으로 받음. 참조는 `<!--@use:badge-->`. 인스턴스. |
-| `chip` | html+js+css | `<wui-chip removable>RTU</wui-chip>` 라벨+삭제 태그. `removable`이면 × 표시, 클릭 시 host 제거 후 `wui:chip-close {text}` 발행. 참조는 `<!--@use:chip-->`. 인스턴스. |
+| `badge` | html+js+css | `<wui-badge variant="ok">12</wui-badge>` 카운트·상태 알약 뱃지. variant `info/ok/warn/bad`(없으면 회색). 본문을 `<slot/>`으로 받음. 태그 자체가 참조. 인스턴스. |
+| `chip` | html+js+css | `<wui-chip removable>RTU</wui-chip>` 라벨+삭제 태그. `removable`이면 × 표시, 클릭 시 host 제거 후 `wui:chip-close {text}` 발행. 태그 자체가 참조. 인스턴스. |
 | `spinner` | html+js+css | `<spinner/>` CSS-only 회전 로딩. `size="28"`로 지름 지정(두께 자동). 정지는 host `hidden`. 인스턴스. |
 | `skeleton` | html+js+css | `<skeleton w="100%" h="14"/>` shimmer 자리받기. `w`는 숫자면 %(그림자 폭), `h`는 숫자면 px. `round` 속성으로 원형. 인스턴스. |
 | `empty` | html+js+css | `<empty text="로그 없음" icon="▤"/>` 데이터 없음 상태(기본 "데이터 없음"/◇). 인스턴스. |
 | `descriptions` | html+js+css | `<descriptions title="장치 정보" keys="deviceName,pollMs"/>` Ant식 kv 다단. `wui:status` 구독, 라벨은 `WebUi.LABELS`(manifest form 유래) 폴백 키 이름. 인스턴스. |
-| `navbar` | html+js+css | `<wui-navbar title="게이트웨이">액션…</wui-navbar>` 제목+우측 액션 slot 헤더 바. 참조는 `<!--@use:navbar-->`. 인스턴스. |
+| `navbar` | html+js+css | `<wui-navbar title="게이트웨이">액션…</wui-navbar>` 제목+우측 액션 slot 헤더 바. 태그 자체가 참조. 인스턴스. |
 | `steps` | html+js+css | `<steps items="다운로드|전송|적용" current="2"/>` MUI식 단계 표시. current 미만 ✓(done), current 강조. 1-based. 인스턴스. |
-| `collapse` | html+js+css | `<wui-collapse title="고급 설정" open>본문</wui-collapse>` 아코디언. 헤더 클릭으로 host `open` 속성 토글(CSS max-height). 참조는 `<!--@use:collapse-->`. 인스턴스. |
+| `collapse` | html+js+css | `<wui-collapse title="고급 설정" open>본문</wui-collapse>` 아코디언. 헤더 클릭으로 host `open` 속성 토글(CSS max-height). 태그 자체가 참조. 인스턴스. |
 | `list-group` | html+js+css | `<list-group items="요약|상세|로그" selected="1"/>` 행 목록. 행 클릭 시 `on` 이동 + `wui:list-click {index,text}` 발행(1-based). drawer와 결합해 마스터-디테일 가능. 인스턴스. |
-| `drawer` | html+js+css | `<wui-drawer title="상세">본문</wui-drawer>` 우측 슬라이드 패널. host `open` 속성으로 열림. ×/배경 클릭 시 닫고 `wui:drawer-close` 발행. 참조는 `<!--@use:drawer-->`. 인스턴스. |
+| `drawer` | html+js+css | `<wui-drawer title="상세">본문</wui-drawer>` 우측 슬라이드 패널. host `open` 속성으로 열림. ×/배경 클릭 시 닫고 `wui:drawer-close` 발행. 태그 자체가 참조. 인스턴스. |
 | `reboot` | html+js+css | `<reboot api="/api/reboot" secs="8"/>` 라우터 UI식 재부팅. modal 확인 → POST → 카운트다운 → `location.reload()`. 인스턴스. |
 | `number` | html+js+css | `<number value="500" min="0" max="9999" step="100"/>` Ant InputNumber식 +/- 스테퍼. 변경마다 `wui:number-change {value}`. 인스턴스·폼 연관(`form`). 호스트에 `.value`/`.disabled`/`focus()` API. |
 | `search` | html+js+css | `<search placeholder="검색"/>` Carbon식 필터 입력. 300ms 디바운스 후 `wui:search {q}`. ×로 초기화. 인스턴스·폼 연관(`form`). 호스트에 `.value`/`.placeholder`/`focus()` API. |
 | `password` | html+js+css | `<password placeholder="비밀번호"/>` show/hide 토글 비밀번호 입력. 인스턴스·폼 연관(`form`). 호스트에 `.value`/`.disabled`/`focus()` API. |
-| `input-group` | html+js+css | `<wui-input-group placeholder="…"><b slot="pre">http://</b><b slot="post">:502</b></wui-input-group>` Bootstrap식 입력+접두/접미. `el.value` 왕복. 참조는 `<!--@use:input-group-->`. 인스턴스. |
-| `tooltip` | html+js+css | `<wui-tooltip text="설명">본문</wui-tooltip>` 호버 버블. 참조는 `<!--@use:tooltip-->` + 수동 태그. 인스턴스. |
+| `input-group` | html+js+css | `<wui-input-group placeholder="…"><b slot="pre">http://</b><b slot="post">:502</b></wui-input-group>` Bootstrap식 입력+접두/접미. `el.value` 왕복. 태그 자체가 참조. 인스턴스. |
+| `tooltip` | html+js+css | `<wui-tooltip text="설명">본문</wui-tooltip>` 호버 버블. 태그 자체가 참조. 인스턴스. |
 | `timeline` | html+js+css | `<timeline items="10:04 기동|10:05 연결"/>` Ant식 세로 이벤트 스트립. 인스턴스. |
 | `pagination` | html+js+css | `<pagination page="2" total="5"/>` ‹ n / m › 네비게이터. 이동 시 `wui:page {page}`. 인스턴스. |
 | `breadcrumb` | html+js+css | `<breadcrumb items="홈|설정|포인트"/>` 경로 표시(마지막 굵게). 인스턴스. |
 | `divider` | html+js+css | `<divider label="고급 설정"/>` MUI식 구분선(label 없으면 선만). 인스턴스. |
-| `grid` | html+js+css | `<wui-grid cols="3">본문</wui-grid>` CSS grid 유틸. 참조는 `<!--@use:grid-->`. 인스턴스. |
+| `grid` | html+js+css | `<wui-grid cols="3">본문</wui-grid>` CSS grid 유틸. 태그 자체가 참조. 인스턴스. |
 | `ap-banner` | html+js+css | `<ap-banner/>` `wui:status`의 `ap`(또는 `key` 속성 키)가 참일 때 설정 AP 경고 바 표시. nanoGate 승격. 인스턴스. |
 | `log-tail` | html+js+css | `<log-tail api="/api/log" max="8" ms="2000"/>` Portainer식 로그 스트리밍. 주기 poll로 새 줄 appended, max줄 유지. MCU가 바쁜 틱은 건너뛰고 다음 poll 재시도. 인스턴스. |
 | `register-view` | html+js+css | `<register-view api="/api/registers" cols="8" ms="2000"/>` Modbus Tool식 레지스터 라이브 표. `values` 배열을 행×열로 재렌더(행두 주소 th). 인스턴스. |
@@ -260,10 +260,11 @@ createElement/body/addEventListener`. 실제 document에 이벤트를 발행해�
 `document.dispatchEvent(...)` 대신 **`WebUi.fire(name, detail)`**를 쓰십시오
 (`WebUi.on`은 내부적으로 실제 document에 구독하므로 그대로 호환).
 
-참조 태그 `<name 속성="값"/>`는 **줄 전체가 그 태그일 때만** 컴포넌트 포함을 트리거한다.
+참조 태그 `<name 속성="값"/>`는 **줄 전체가 그 태그일 때만** 컴포넌트 포함을 트리거한다(인라인 컴포넌트).
 `<p><skeleton/></p>`처럼 인라인으로 감싸면 마크업으로 남고 라이브러리는 포함되지 않는다.
-본문이 필요한 컴포넌트(badge·chip·card)는 `<!--@use:이름-->` 마커 + `<wui-이름>` 수동 태그를 쓰고,
-빈 마커 인스턴스는 css에 `:host(:empty){display:none}`을 두어 숨긴다.
+인스턴스 컴포넌트는 `<wui-이름>` 태그 자체가 위치와 무관하게 포함을 트리거하므로,
+본문이 필요한 컴포넌트(badge·chip·card)는 `<wui-이름>본문</wui-이름>`을 직접 쓰면 되고
+빈 인스턴스는 css에 `:host(:empty){display:none}`을 두어 숨긴다.
 `<!--@instance-->` 마커는 html 파일 **어디에든 같은 줄에 다른 내용과 함께 있어도** 인식된다(단독 줄 필수 아님).
 `<!--@instance form-->`은 폼 연관(Form-associated Custom Element) 선언으로, 생성 시 `def(..., {form:1})`가 붙어
 `form.elements[name]`이 호스트를 반환하고 `.value` 쓰기가 내부 값과 폼 값에 동기 반영된다(number·search·password).
