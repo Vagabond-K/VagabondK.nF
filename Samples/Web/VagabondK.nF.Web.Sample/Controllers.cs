@@ -277,5 +277,25 @@ namespace VagabondK.nF.Web.Sample
             SampleConfig.Save();
             WebApi.Json(e.Context.Response, 200, "{\"ok\":true}");
         }
+
+        // firmware 컴포넌트용 수신 데모 엔드포인트: 청크를 누적 계수만 한다(실제 플래싱은 부트로터 영역).
+        static int fwBytes;
+
+        [Route("api/firmware")]
+        [Method("POST")]
+        public void FirmwarePost(WebServerEventArgs e)
+        {
+            if (CsrfGuard.Check(e.Context, CsrfMarker, LocalAddress)) return;
+            FormReader f = new FormReader(e.Context.Request, 8192);
+            string seqS = f.Get("seq"), totS = f.Get("total"), data = f.Get("data");
+            int seq, total;
+            if (data == null || seqS == null || totS == null ||
+                !int.TryParse(seqS, out seq) || !int.TryParse(totS, out total) || seq < 0 || seq >= total)
+            { WebApi.Error(e.Context.Response, 400, "firmware 필드 오류"); return; }
+            if (seq == 0) fwBytes = 0;
+            fwBytes += data.Length * 3 / 4; // base64 → 원바이트 근사
+            WebApi.Json(e.Context.Response, 200,
+                "{\"ok\":true,\"seq\":" + seq.ToString() + ",\"received\":" + fwBytes.ToString() + "}");
+        }
     }
 }

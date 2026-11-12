@@ -30,6 +30,11 @@
 | `heap-gauge` | html+js+css | `<heap-gauge max="…"/>` 남은 힙 게이지. `wui:status`의 heapFree 표시, max 생략 시 관측 peak로 자동 스케일, 20% 미만 빨간. 인스턴스. |
 | `statistic` | html+js+css | `<statistic key="reqCount" label="요청 수"/>` Ant/Carbon식 큰 숫자+라벨. `wui:status`의 `key` 값을 `fmt`(kb·ms·pct)로 포맷해 표시. 인스턴스. |
 | `progress` | html+js+css | `<progress max="100" label="저장 중"/>` 바형 진행률. `wui:progress`의 `{value,max,label}` 구독, 도달 시 host에 `done`(초록). 저장·업로드·펌웨어와 짝. 인스턴스. |
+| `alert` | html+js+css | `<alert severity="warn" text="…"/>` note의 일반화. severity `info/warn/error/ok` + 아이콘. `wui:alert` 이벤트로 동적 갱신. 인스턴스. |
+| `result` | html+js+css | `<result status="ok" title="전송 완료" sub="…"/>` Ant Result식 성공/실패 안내. `wui:result`의 `{status,title,sub}` 구독. firmware·저장과 짝. 인스턴스. |
+| `card` | html+js+css | `<wui-card title="설정 백업">본문 마크업</wui-card>` 제목+구분선+본문 컨테이너. 본문을 `<slot/>`으로 받아 light DOM을 그대로 렌더. 빈 카드는 자동 숨김(`:host(:empty)`). 참조는 `<!--@use:card-->` + 본문은 수동 태그. 인스턴스. |
+| `export-import` | html+js+css | 설정 백업 내보내기/가져오기(phpMyAdmin 스타일). 내보내기: GET `/api/settings` → JSON 다운로드. 가져오기: 파일의 키만 장치 현재 설정에 병합해 POST(부분 백업 허용). 인스턴스. |
+| `firmware` | html+js+css | `<firmware api="/api/firmware" chunk="2048"/>` 파일→base64 청크 POST(seq/total). `wui:progress`/`wui:result` 발행으로 progress·result 인스턴스와 결합. 전송만 담당, 실제 플래싱은 장치 프로젝트 몫. 인스턴스. |
 
 ### form 컴포넌트 사용 예
 
@@ -109,7 +114,7 @@ MCU 제약(외부 JS/CSS 금지, vanilla + WebUi 버스, 힙 절약)으로 필�
 ### A. 표시·정보
 | 우선 | 이름 | 참조 | 형태 | 내용 |
 |---|---|---|---|---|
-| 상 | alert | Bootstrap/Ant | 인스턴스 | note의 일반화(severity 변형) |
+| 상 | alert | Bootstrap/Ant | ✅ 인스턴스 | note의 일반화(severity 변형) |
 | 상 | statistic | Ant/Carbon | ✅ 인스턴스 | 큰 숫자+라벨(status key 구독, fmt kb/ms/pct) |
 | 상 | descriptions | Ant | 인스턴스 | kv의 다단 버전(data-keys) |
 | 상 | progress | 전 프레임워크 | ✅ 인스턴스 | 바형 진행률(wui:progress bus 이벤트. 저장·업로드) |
@@ -118,7 +123,7 @@ MCU 제약(외부 JS/CSS 금지, vanilla + WebUi 버스, 힙 절약)으로 필�
 | 중 | spinner | Bootstrap/MUI | 인스턴스 | CSS-only 회전 |
 | 중 | skeleton | MUI/shadcn | 인스턴스 | 로딩 자리받기(CSS-only) |
 | 중 | empty | Ant | 인스턴스 | 데이터 없음 상태 |
-| 상 | result | Ant | 인스턴스 | 성공/실패 전페이지 안내 |
+| 상 | result | Ant | ✅ 인스턴스 | 성공/실패 전페이지 안내 |
 | 하 | tooltip | 전 | 인스턴스 | title 속성 폴백 포함 |
 | 하 | timeline | Ant/MUI | 인스턴스 | 이벤트 로그 스트립 |
 
@@ -142,7 +147,7 @@ MCU 제약(외부 JS/CSS 금지, vanilla + WebUi 버스, 힙 절약)으로 필�
 | 중 | number | Ant InputNumber | 인스턴스 | +/- 스테퍼 숫자 |
 | 중 | search | Carbon | 인스턴스 | 필터 입력 |
 | 하 | password | Bootstrap | 인스턴스 | show/hide 포함 |
-| 상 | file | Ant Upload | 인스턴스 | 백업 가져오기(nanoGate 업로드 경험 승격) |
+| 상 | file | Ant Upload | ✅ export-import | 백업 가져오기(file+progress+result 조합) |
 | 상 | validate | shadcn | 인라인 | 필드 에러 메시지 규약(form과 짝) |
 
 ### D. 피드백·레이아웃
@@ -150,7 +155,7 @@ MCU 제약(외부 JS/CSS 금지, vanilla + WebUi 버스, 힙 절약)으로 필�
 |---|---|---|---|---|
 | ✅ 완료 | modal | 전 | 인라인 | ask의 일반화(pointdlg 패턴). 토스트처럼 페이지당 1개 시스템이라 인라인으로 구현 |
 | 중 | drawer | MUI/Ant | 인스턴스 | 우측 상세 패널 |
-| 상 | card | 전 | 인스턴스 | 제목+본문 컨테이너(section 승격) |
+| 상 | card | 전 | ✅ 인스턴스 | 제목+본문 컨테이너(section 승격) |
 | 중 | list-group | Bootstrap | 인스턴스 | 행 목록+액션 |
 | 하 | divider | MUI/Ant | 인라인 | 구분선+라벨 |
 | 하 | grid | Bootstrap/MUI | 인라인 | CSS grid 유틸 클래스 |
@@ -162,8 +167,8 @@ MCU 제약(외부 JS/CSS 금지, vanilla + WebUi 버스, 힙 절약)으로 필�
 | 상 | uptime | Grafana 헤더 | ✅ 인스턴스 | heartbeat 일반화 |
 | 상 | heap-gauge | Grafana | ✅ 인스턴스 | 남은 힙 게이지 |
 | 상 | reboot | 라우터 UI | 인라인 | 카운트다운 재부팅 |
-| 상 | firmware | ESP Web Flasher | 인스턴스 | 펌웨어 업데이트(file+progress+result 조합) |
-| 상 | export-import | phpMyAdmin | 인스턴스 | 설정 백업 내보내기/가져오기 |
+| 상 | firmware | ESP Web Flasher | ✅ 인스턴스 | 펌웨어 업데이트(file+progress+result 조합) |
+| 상 | export-import | phpMyAdmin | ✅ 인스턴스 | 설정 백업 내보내기/가져오기 |
 | 중 | log-tail | Portainer | 인스턴스 | 로그 스트리밍 뷰어(poll) |
 | 중 | register-view | Modbus Tool | 인스턴스 | 레지스터 라이브 표 |
 | 중 | wifi-form | 라우터 UI | 인스턴스 | network 승격(API 규약 주입식) |
@@ -177,4 +182,15 @@ speed-dial·affix/scrollspy·image-lightbox·colorpicker
 
 ### 권장 착수 순서
 ~~form → tabs → modal~~(2026-11 완료) → ~~conn-dot·uptime·heap-gauge~~(2026-11 완료) →
-~~segmented·switch·statistic·progress~~(2026-11 완료) → firmware·export-import → alert·result·card
+~~segmented·switch·statistic·progress~~(2026-11 완료) →
+~~firmware·export-import·alert·result·card~~(2026-11 완료) →
+descriptions·badge·chip·spinner·skeleton·empty → navbar·steps·collapse → reboot·ap-banner
+
+### 인스턴스 컴포넌트 작성 시 주의(scope 문서)
+
+인스턴스 js는 `function (root, document, $)`로 래핑되어 본문 안의 `document`가
+**shadow scope 객체**를 가리킵니다. 따라서 전역 document 멤버를 쓰면 안 되고
+scope가 제공하는 것만 쓸 수 있습니다: `getElementById/querySelector/querySelectorAll/
+createElement/body/addEventListener`. 실제 document에 이벤트를 발행해야 하면
+`document.dispatchEvent(...)` 대신 **`WebUi.fire(name, detail)`**를 쓰십시오
+(`WebUi.on`은 내부적으로 실제 document에 구독하므로 그대로 호환).

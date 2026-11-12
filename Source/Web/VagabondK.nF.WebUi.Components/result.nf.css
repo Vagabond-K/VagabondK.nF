@@ -1,0 +1,7 @@
+.rs { text-align: center; padding: 22px 12px; }
+.rs i { display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 50%; font-size: 26px; font-style: normal; margin-bottom: 8px; }
+.rs.ok i { background: #14532d; color: var(--ok); }
+.rs.bad i { background: #7f1d1d; color: #fca5a5; }
+.rs.info i { background: #1d4ed8; color: var(--in); }
+.rs h1 { font-size: 16px; margin: 0 0 4px; }
+.rs p { color: var(--mut); margin: 0; font-size: 13px; }

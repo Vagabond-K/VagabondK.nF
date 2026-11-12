@@ -5,6 +5,7 @@
      tabs/form/modal은 라이브러리 컴포넌트: 내비·라우팅, 설정 폼 렌더, 확인 대화상자를 대신 담당한다.
      conn-dot/uptime/heap-gauge는 ops 표시 인스턴스(Grafana 스타일): 속성으로 임계값·문구를 조절한다.
      statistic/progress 인스턴스와 form의 seg/switch fmt(Ant/Fluent 스타일)로 설정 폼과 상태판이 풍부해진다.
+     alert/result/card/export-import/firmware(도구 탭)는 유지보수 조합: card는 slot으로 본문을 감싼다.
      들여쓰기는 자유롭게: 빌드 시 줄 앞뒤 공백과 주석은 모두 제거된다. -->
 <html lang="ko">
 <head>
@@ -96,6 +97,18 @@
       <panel/>
     </section>
     <settings/>
+    <section data-tab="도구">
+      <h1>유지보수 도구</h1>
+      <alert severity="warn" text="설정을 변경하기 전에 백업을 내보내 두세요."/>
+      <!--@use:card-->
+      <wui-card title="설정 백업">
+        <export-import/>
+      </wui-card>
+      <wui-card title="펌웨어 업데이트">
+        <firmware api="/api/firmware"/>
+        <result/>
+      </wui-card>
+    </section>
   </main>
   <login/>
   <modal/>

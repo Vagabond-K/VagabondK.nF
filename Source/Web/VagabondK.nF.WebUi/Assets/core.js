@@ -216,6 +216,7 @@ getElementById: function (id) { return root.getElementById(id); },
 querySelector: function (s) { return root.querySelector(s); },
 querySelectorAll: function (s) { return root.querySelectorAll(s); },
 createElement: function (t) { return document.createElement(t); },
+body: document.body,
 addEventListener: function () { return document.addEventListener.apply(document, arguments); }
 };
 }
