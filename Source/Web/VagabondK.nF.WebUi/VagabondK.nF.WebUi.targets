@@ -96,6 +96,10 @@
       <!-- Csc의 /analyzerconfig 바인딩은 두 toolchain 모두 @(EditorConfigFiles)다. -->
       <EditorConfigFiles Include="$(_WebUiCfgPath)" />
       <FileWrites Include="$(_WebUiCfgPath)" />
+      <!-- 생성기 입력(페이지/코어/컴포넌트)은 @(Compile)이 아니라 CoreCompile up-to-date 검사에
+           기본 포함되지 않는다. 명시로 추가해 파일 편집 후 재빌드 시 생성기가 반드시 다시
+           실행되게 한다(안 그러면 이전 페이지가 조용히 재번들됨 — 2026-11 실측). -->
+      <CustomAdditionalCompileInputs Include="@(AdditionalFiles)" />
     </ItemGroup>
   </Target>
 </Project>

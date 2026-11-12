@@ -58,6 +58,11 @@
 | `divider` | html+js+css | `<divider label="고급 설정"/>` MUI식 구분선(label 없으면 선만). 인스턴스. |
 | `grid` | html+js+css | `<wui-grid cols="3">본문</wui-grid>` CSS grid 유틸. 참조는 `<!--@use:grid-->`. 인스턴스. |
 | `ap-banner` | html+js+css | `<ap-banner/>` `wui:status`의 `ap`(또는 `key` 속성 키)가 참일 때 설정 AP 경고 바 표시. nanoGate 승격. 인스턴스. |
+| `log-tail` | html+js+css | `<log-tail api="/api/log" max="8" ms="2000"/>` Portainer식 로그 스트리밍. 주기 poll로 새 줄 appended, max줄 유지. MCU가 바쁜 틱은 건너뛰고 다음 poll 재시도. 인스턴스. |
+| `register-view` | html+js+css | `<register-view api="/api/registers" cols="8" ms="2000"/>` Modbus Tool식 레지스터 라이브 표. `values` 배열을 행×열로 재렌더(행두 주소 th). 인스턴스. |
+| `wifi-form` | html+js+css | `<wifi-form api="/api/network"/>` 라우터식 SSID/비밀번호 폼. 로드 시 GET로 현재 값 채움(실패 시 3초 후 재시도), 연결 버튼 POST → 저장됨/실패. body는 urlencoded. 인스턴스. |
+| `sparkline` | html+js+css | `<sparkline key="requests" w="120" h="32"/>` Grafana식 canvas 값 추이. `wui:status`의 `key` 값을 40포인트 링버퍼로 polyline 렌더. 인스턴스. |
+| `clock` | html+js+css | `<clock/>` HH:mm:ss 시계(setInterval 1000). DNP3 타임스탬프 확인용. 인스턴스. |
 
 ### form 컴포넌트 사용 예
 
@@ -192,12 +197,12 @@ MCU 제약(외부 JS/CSS 금지, vanilla + WebUi 버스, 힙 절약)으로 필�
 | 상 | reboot | 라우터 UI | ✅ 인스턴스 | 카운트다운 재부팅(modal+post 결합) |
 | 상 | firmware | ESP Web Flasher | ✅ 인스턴스 | 펌웨어 업데이트(file+progress+result 조합) |
 | 상 | export-import | phpMyAdmin | ✅ 인스턴스 | 설정 백업 내보내기/가져오기 |
-| 중 | log-tail | Portainer | 인스턴스 | 로그 스트리밍 뷰어(poll) |
-| 중 | register-view | Modbus Tool | 인스턴스 | 레지스터 라이브 표 |
-| 중 | wifi-form | 라우터 UI | 인스턴스 | network 승격(API 규약 주입식) |
-| 중 | sparkline | Grafana | 인스턴스 | canvas 값 추이(20줄 내외) |
+| 중 | log-tail | Portainer | ✅ 인스턴스 | 로그 스트리밍 뷰어(poll) |
+| 중 | register-view | Modbus Tool | ✅ 인스턴스 | 레지스터 라이브 표 |
+| 중 | wifi-form | 라우터 UI | ✅ 인스턴스 | network 승격(API 규약 주입식) |
+| 중 | sparkline | Grafana | ✅ 인스턴스 | canvas 값 추이(20줄 내외) |
 | 상 | ap-banner | nanoGate | ✅ 인스턴스 | 설정 AP 모드 경고(status.ap 구독) |
-| 하 | clock | — | 인스턴스 | 시계(DNP3 타임스탬프용) |
+| 하 | clock | — | ✅ 인스턴스 | 시계(DNP3 타임스탬프용) |
 
 ### 제외(MCU 비용 대비 가치 낮음)
 carousel·calendar·datepicker(네이티브 `<input type=date>` 대체)·tree·transfer·mentions·
@@ -212,7 +217,8 @@ speed-dial·affix/scrollspy·image-lightbox·colorpicker
 ~~list-group·drawer·reboot~~(2026-11 완료) →
 ~~input-group·number·search·password~~(2026-11 완료) →
 ~~tooltip·timeline·pagination·breadcrumb~~(2026-11 완료) →
-~~divider·grid·ap-banner~~(2026-11 완료) → log-tail·register-view·wifi-form·sparkline·clock
+~~divider·grid·ap-banner~~(2026-11 완료) →
+~~log-tail·register-view·wifi-form·sparkline·clock~~(2026-11 완료) — **45종 전부 완료**
 
 ### 인스턴스 컴포넌트 작성 시 주의(scope 문서)
 
@@ -227,4 +233,4 @@ createElement/body/addEventListener`. 실제 document에 이벤트를 발행해�
 `<p><skeleton/></p>`처럼 인라인으로 감싸면 마크업으로 남고 라이브러리는 포함되지 않는다.
 본문이 필요한 컴포넌트(badge·chip·card)는 `<!--@use:이름-->` 마커 + `<wui-이름>` 수동 태그를 쓰고,
 빈 마커 인스턴스는 css에 `:host(:empty){display:none}`을 두어 숨긴다.
-`<!--@instance-->` 마커는 **html 파일에서 단독 줄**이어야 인스턴스로 인식된다(같은 줄에 태그를 붙이면 WUI001).
+`<!--@instance-->` 마커는 html 파일 **어디에든 같은 줄에 다른 내용과 함께 있어도** 인식된다(단독 줄 필수 아님).

@@ -366,10 +366,12 @@ namespace VagabondK.nF.WebUi
         // ---------- @use components ----------
         static bool IsSlotToken(string raw) { return raw.Trim().StartsWith("<!--@slot", StringComparison.Ordinal); }
 
+        // 마커는 html 어디든 허용(단독 줄뿐 아니라 태그와 같은 줄도 인식). 줄 전체가 마커일 때와
+        // 동일하게 주석으로 출력에 남으므로 동작 차이가 없다.
         static bool IsInstance(string[] lines)
         {
             foreach (string raw in lines)
-                if (raw.Trim() == InstanceMarker) return true;
+                if (raw.IndexOf(InstanceMarker, StringComparison.Ordinal) >= 0) return true;
             return false;
         }
 
@@ -417,7 +419,8 @@ namespace VagabondK.nF.WebUi
                 }
                 if (UseArgs(raw.Trim()).Length > 0 && !IsInstance(c.Html))
                 {
-                    Fail(origin, "attributes on <" + name + "/> are only supported on @instance components (found <!--@instance--> check)");
+                    Fail(origin, "attributes on <" + name + "/> are only supported on @instance components: add <!--@instance--> anywhere in " +
+                        (components.ContainsKey(name) ? components[name].HtmlPath : name + ".nf.html"));
                     return false;
                 }
                 useVisiting.Add(name);

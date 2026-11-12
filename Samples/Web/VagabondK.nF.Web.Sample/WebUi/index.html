@@ -90,6 +90,10 @@
         <statistic label="남은 힙" key="heapFree" fmt="kb"/>
       </p>
       <p class="ops">
+        <sparkline key="requests"/>
+        <clock/>
+      </p>
+      <p class="ops">
         <progress label="대기 중"/>
         <button id="pgDemo" class="gh" type="button">진행 데모</button>
       </p>
@@ -186,6 +190,13 @@
           <span class="msg">셀 3</span>
         </wui-grid>
         <divider label="구간 끝"/>
+      </wui-card>
+      <wui-card title="데이터 도구">
+        <log-tail api="/api/log" lines="8" ms="2000"/>
+        <register-view api="/api/registers" cols="8" ms="2000"/>
+      </wui-card>
+      <wui-card title="네트워크">
+        <wifi-form api="/api/network"/>
       </wui-card>
     </section>
   </main>

@@ -308,5 +308,72 @@ namespace VagabondK.nF.Web.Sample
             if (CsrfGuard.Check(e.Context, CsrfMarker, LocalAddress)) return;
             WebApi.Json(e.Context.Response, 200, "{\"ok\":true}");
         }
+
+        // ---------- 11차 컴포넌트 데모 (log-tail / register-view / wifi-form) ----------
+
+        // log-tail용: 호출마다 새 줄 2개를 생성해 보낸다(클라이언트가 꼬리 유지).
+        static int logSeq;
+
+        static string Tstr(long sec)
+        {
+            if (sec < 0) sec = 0;
+            string r = ((sec / 3600) % 24).ToString(); if (r.Length < 2) r = "0" + r;
+            string t = ((sec / 60) % 60).ToString(); if (t.Length < 2) t = "0" + t;
+            r += ":" + t; t = (sec % 60).ToString(); if (t.Length < 2) t = "0" + t;
+            return r + ":" + t;
+        }
+
+        [Route("api/log")]
+        [Method("GET")]
+        public void LogGet(WebServerEventArgs e)
+        {
+            long up = (Environment.TickCount64 - BootTick) / 1000;
+            string a = "[" + Tstr(up - 2) + "] polling #" + (logSeq + 1).ToString() + " ok";
+            string b = "[" + Tstr(up) + "] polling #" + (logSeq + 2).ToString() +
+                (logSeq % 10 == 8 ? " warn: slow response" : " ok");
+            logSeq += 2;
+            WebApi.Json(e.Context.Response, 200,
+                "{\"ok\":true,\"lines\":[\"" + WebApi.JsonEscape(a) + "\",\"" + WebApi.JsonEscape(b) + "\"]}");
+        }
+
+        // register-view용: 가동 시간의 결정적 함수라 폴링마다 값이 갱신된다.
+        [Route("api/registers")]
+        [Method("GET")]
+        public void RegistersGet(WebServerEventArgs e)
+        {
+            long up = (Environment.TickCount64 - BootTick) / 1000;
+            string body = "";
+            for (int i = 0; i < 16; i++)
+            {
+                if (i > 0) body += ",";
+                body += ((up * 13 + i * 257) & 0xFFFF).ToString();
+            }
+            WebApi.Json(e.Context.Response, 200, "{\"ok\":true,\"values\":[" + body + "]}");
+        }
+
+        // wifi-form용: 네트워크 설정 데모(실전에서는 무선 라디오 API 호출 자리).
+        static string NetSsid = "nanoNet", NetPass = "";
+
+        [Route("api/network")]
+        [Method("GET")]
+        public void NetworkGet(WebServerEventArgs e)
+        {
+            WebApi.Json(e.Context.Response, 200,
+                "{\"ok\":true,\"ssid\":\"" + WebApi.JsonEscape(NetSsid) + "\"}");
+        }
+
+        [Route("api/network")]
+        [Method("POST")]
+        public void NetworkPost(WebServerEventArgs e)
+        {
+            if (CsrfGuard.Check(e.Context, CsrfMarker, LocalAddress)) return;
+            FormReader f = new FormReader(e.Context.Request, 8192);
+            string ssid = f.Get("ssid"), pass = f.Get("pass");
+            if (ssid == null || ssid.Length == 0 || ssid.Length > 32)
+            { WebApi.Error(e.Context.Response, 400, "ssid는 1~32자"); return; }
+            NetSsid = ssid;
+            if (pass != null && pass.Length > 0) NetPass = pass;
+            WebApi.Json(e.Context.Response, 200, "{\"ok\":true}");
+        }
     }
 }
