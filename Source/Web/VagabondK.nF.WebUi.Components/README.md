@@ -44,6 +44,9 @@
 | `navbar` | html+js+css | `<wui-navbar title="게이트웨이">액션…</wui-navbar>` 제목+우측 액션 slot 헤더 바. 참조는 `<!--@use:navbar-->`. 인스턴스. |
 | `steps` | html+js+css | `<steps items="다운로드|전송|적용" current="2"/>` MUI식 단계 표시. current 미만 ✓(done), current 강조. 1-based. 인스턴스. |
 | `collapse` | html+js+css | `<wui-collapse title="고급 설정" open>본문</wui-collapse>` 아코디언. 헤더 클릭으로 host `open` 속성 토글(CSS max-height). 참조는 `<!--@use:collapse-->`. 인스턴스. |
+| `list-group` | html+js+css | `<list-group items="요약|상세|로그" selected="1"/>` 행 목록. 행 클릭 시 `on` 이동 + `wui:list-click {index,text}` 발행(1-based). drawer와 결합해 마스터-디테일 가능. 인스턴스. |
+| `drawer` | html+js+css | `<wui-drawer title="상세">본문</wui-drawer>` 우측 슬라이드 패널. host `open` 속성으로 열림. ×/배경 클릭 시 닫고 `wui:drawer-close` 발행. 참조는 `<!--@use:drawer-->`. 인스턴스. |
+| `reboot` | html+js+css | `<reboot api="/api/reboot" secs="8"/>` 라우터 UI식 재부팅. modal 확인 → POST → 카운트다운 → `location.reload()`. 인스턴스. |
 
 ### form 컴포넌트 사용 예
 
@@ -163,9 +166,9 @@ MCU 제약(외부 JS/CSS 금지, vanilla + WebUi 버스, 힙 절약)으로 필�
 | 우선 | 이름 | 참조 | 형태 | 내용 |
 |---|---|---|---|---|
 | ✅ 완료 | modal | 전 | 인라인 | ask의 일반화(pointdlg 패턴). 토스트처럼 페이지당 1개 시스템이라 인라인으로 구현 |
-| 중 | drawer | MUI/Ant | 인스턴스 | 우측 상세 패널 |
+| 중 | drawer | MUI/Ant | ✅ 인스턴스 | 우측 상세 패널(wui:drawer-close) |
 | 상 | card | 전 | ✅ 인스턴스 | 제목+본문 컨테이너(section 승격) |
-| 중 | list-group | Bootstrap | 인스턴스 | 행 목록+액션 |
+| 중 | list-group | Bootstrap | ✅ 인스턴스 | 행 목록+액션(wui:list-click) |
 | 하 | divider | MUI/Ant | 인라인 | 구분선+라벨 |
 | 하 | grid | Bootstrap/MUI | 인라인 | CSS grid 유틸 클래스 |
 
@@ -175,7 +178,7 @@ MCU 제약(외부 JS/CSS 금지, vanilla + WebUi 버스, 힙 절약)으로 필�
 | 상 | conn-dot | Grafana | ✅ 인스턴스 | tick 신선도 기반 연결 상태 |
 | 상 | uptime | Grafana 헤더 | ✅ 인스턴스 | heartbeat 일반화 |
 | 상 | heap-gauge | Grafana | ✅ 인스턴스 | 남은 힙 게이지 |
-| 상 | reboot | 라우터 UI | 인라인 | 카운트다운 재부팅 |
+| 상 | reboot | 라우터 UI | ✅ 인스턴스 | 카운트다운 재부팅(modal+post 결합) |
 | 상 | firmware | ESP Web Flasher | ✅ 인스턴스 | 펌웨어 업데이트(file+progress+result 조합) |
 | 상 | export-import | phpMyAdmin | ✅ 인스턴스 | 설정 백업 내보내기/가져오기 |
 | 중 | log-tail | Portainer | 인스턴스 | 로그 스트리밍 뷰어(poll) |
@@ -194,7 +197,8 @@ speed-dial·affix/scrollspy·image-lightbox·colorpicker
 ~~segmented·switch·statistic·progress~~(2026-11 완료) →
 ~~firmware·export-import·alert·result·card~~(2026-11 완료) →
 ~~descriptions·badge·chip·spinner·skeleton·empty~~(2026-11 완료) →
-~~navbar·steps·collapse~~(2026-11 완료) → reboot·ap-banner
+~~navbar·steps·collapse~~(2026-11 완료) →
+~~list-group·drawer·reboot~~(2026-11 완료) → ap-banner
 
 ### 인스턴스 컴포넌트 작성 시 주의(scope 문서)
 

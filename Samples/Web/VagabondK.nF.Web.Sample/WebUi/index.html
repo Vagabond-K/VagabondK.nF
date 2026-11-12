@@ -142,8 +142,18 @@
           <conn-dot timeout="6"/>
         </wui-navbar>
       </wui-card>
+      <wui-card title="장치 관리">
+        <list-group items="요약|상세|로그" selected="1"/>
+        <p class="ops">
+          <reboot api="/api/reboot" secs="8"/>
+        </p>
+      </wui-card>
     </section>
   </main>
+  <!--@use:drawer-->
+  <wui-drawer id="dw" title="항목 상세">
+    <p class="msg" id="dwMsg">list-group 행을 클릭하면 여는 상세 패널 자리.</p>
+  </wui-drawer>
   <login/>
   <modal/>
   <div id="toasts"></div>
@@ -167,6 +177,12 @@
 
     // 헤더도 다른 컴포넌트와 똑같이 이벤트를 구독한다(페이지가 버스 바깥에 있지 않다).
     WebUi.on('wui:status', s => { $('hIp').textContent = s.ip; });
+
+    // list-group 행 클릭 → drawer에 내용 채우고 열기(컴포넌트 간 결합 예시).
+    WebUi.on('wui:list-click', d => {
+      $('dwMsg').textContent = '항목 ' + d.index + ': ' + d.text;
+      $('dw').setAttribute('open', '');
+    });
 
     async function refresh() {
       try {

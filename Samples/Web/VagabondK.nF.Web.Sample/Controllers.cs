@@ -297,5 +297,15 @@ namespace VagabondK.nF.Web.Sample
             WebApi.Json(e.Context.Response, 200,
                 "{\"ok\":true,\"seq\":" + seq.ToString() + ",\"received\":" + fwBytes.ToString() + "}");
         }
+
+        // reboot 컴포넌트용 데모 엔드포인트: 확인만 반환하고 실제 재부팅은 하지 않는다
+        // (실전 프로젝트에서는 Microsoft.Devices.Software.Reboot를 호출한다).
+        [Route("api/reboot")]
+        [Method("POST")]
+        public void RebootPost(WebServerEventArgs e)
+        {
+            if (CsrfGuard.Check(e.Context, CsrfMarker, LocalAddress)) return;
+            WebApi.Json(e.Context.Response, 200, "{\"ok\":true}");
+        }
     }
 }
