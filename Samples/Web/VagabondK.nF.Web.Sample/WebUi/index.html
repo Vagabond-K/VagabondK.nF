@@ -148,6 +148,21 @@
           <reboot api="/api/reboot" secs="8"/>
         </p>
       </wui-card>
+      <!--@use:input-group-->
+      <wui-card title="폼 도우미">
+        <p class="ops">
+          <number value="500" min="0" max="9999" step="100"/>
+          <span class="msg" id="numOut">폴링: 500ms</span>
+        </p>
+        <p class="ops">
+          <search placeholder="로그 검색"/>
+          <password placeholder="관리자 비밀번호"/>
+        </p>
+        <wui-input-group placeholder="192.168.0.10">
+          <b slot="pre">http://</b>
+          <b slot="post">:502</b>
+        </wui-input-group>
+      </wui-card>
     </section>
   </main>
   <!--@use:drawer-->
@@ -183,6 +198,11 @@
       $('dwMsg').textContent = '항목 ' + d.index + ': ' + d.text;
       $('dw').setAttribute('open', '');
     });
+
+    // number 스테퍼 변경 구독(인스턴스 → 페이지 단방향 데이터 흐름 예시).
+    WebUi.on('wui:number-change', d => { $('numOut').textContent = '폴링: ' + d.value + 'ms'; });
+    // search 디바운스 결과 구독 — 실제 페이지에서는 표 필터링에 쓴다.
+    WebUi.on('wui:search', d => { if (d.q) WebUi.toast('검색: ' + d.q, 'ok'); });
 
     async function refresh() {
       try {

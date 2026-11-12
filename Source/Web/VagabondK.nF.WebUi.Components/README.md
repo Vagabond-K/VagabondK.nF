@@ -47,6 +47,10 @@
 | `list-group` | html+js+css | `<list-group items="요약|상세|로그" selected="1"/>` 행 목록. 행 클릭 시 `on` 이동 + `wui:list-click {index,text}` 발행(1-based). drawer와 결합해 마스터-디테일 가능. 인스턴스. |
 | `drawer` | html+js+css | `<wui-drawer title="상세">본문</wui-drawer>` 우측 슬라이드 패널. host `open` 속성으로 열림. ×/배경 클릭 시 닫고 `wui:drawer-close` 발행. 참조는 `<!--@use:drawer-->`. 인스턴스. |
 | `reboot` | html+js+css | `<reboot api="/api/reboot" secs="8"/>` 라우터 UI식 재부팅. modal 확인 → POST → 카운트다운 → `location.reload()`. 인스턴스. |
+| `number` | html+js+css | `<number value="500" min="0" max="9999" step="100"/>` Ant InputNumber식 +/- 스테퍼. 변경마다 `wui:number-change {value}`. 인스턴스. |
+| `search` | html+js+css | `<search placeholder="검색"/>` Carbon식 필터 입력. 300ms 디바운스 후 `wui:search {q}`. ×로 초기화. 인스턴스. |
+| `password` | html+js+css | `<password placeholder="비밀번호"/>` show/hide 토글 비밀번호 입력. 인스턴스. |
+| `input-group` | html+js+css | `<wui-input-group placeholder="…"><b slot="pre">http://</b><b slot="post">:502</b></wui-input-group>` Bootstrap식 입력+접두/접미. `el.value` 왕복. 참조는 `<!--@use:input-group-->`. 인스턴스. |
 
 ### form 컴포넌트 사용 예
 
@@ -155,10 +159,10 @@ MCU 제약(외부 JS/CSS 금지, vanilla + WebUi 버스, 힙 절약)으로 필�
 | ✅ 완료 | form | Ant Form | 인라인 | MANIFEST.form 자동 렌더 — 설정 페이지가 한 줄이 됨 |
 | 상 | switch | MUI/Ant | ✅ form fmt | `fmt:"switch"`(bool과 동일). 라디오 쌍 토글 |
 | 상 | segmented | Ant/Fluent | ✅ form fmt | `fmt:"seg"`+options. 라디오 그룹 버튼형(RTU/ASCII 선택 등) |
-| 중 | input-group | Bootstrap | 인스턴스 | 입력+단위/버튼 결합 |
-| 중 | number | Ant InputNumber | 인스턴스 | +/- 스테퍼 숫자 |
-| 중 | search | Carbon | 인스턴스 | 필터 입력 |
-| 하 | password | Bootstrap | 인스턴스 | show/hide 포함 |
+| 중 | input-group | Bootstrap | ✅ 인스턴스 | 입력+단위/버튼 결합(slot pre/post) |
+| 중 | number | Ant InputNumber | ✅ 인스턴스 | +/- 스테퍼 숫자(wui:number-change) |
+| 중 | search | Carbon | ✅ 인스턴스 | 필터 입력(디바운스 wui:search) |
+| 하 | password | Bootstrap | ✅ 인스턴스 | show/hide 포함 |
 | 상 | file | Ant Upload | ✅ export-import | 백업 가져오기(file+progress+result 조합) |
 | 상 | validate | shadcn | 인라인 | 필드 에러 메시지 규약(form과 짝) |
 
@@ -198,7 +202,8 @@ speed-dial·affix/scrollspy·image-lightbox·colorpicker
 ~~firmware·export-import·alert·result·card~~(2026-11 완료) →
 ~~descriptions·badge·chip·spinner·skeleton·empty~~(2026-11 완료) →
 ~~navbar·steps·collapse~~(2026-11 완료) →
-~~list-group·drawer·reboot~~(2026-11 완료) → ap-banner
+~~list-group·drawer·reboot~~(2026-11 완료) →
+~~input-group·number·search·password~~(2026-11 완료) → ap-banner
 
 ### 인스턴스 컴포넌트 작성 시 주의(scope 문서)
 

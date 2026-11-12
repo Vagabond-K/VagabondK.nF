@@ -1,0 +1,4 @@
+.wn { display: inline-flex; align-items: stretch; border: 1px solid #334155; border-radius: 6px; overflow: hidden; background: var(--card); }
+.wn button { border: 0; background: #1e293b; color: var(--tx); width: 26px; cursor: pointer; font-size: 14px; padding: 0; margin: 0; line-height: 1; }
+.wn button:hover { background: #334155; }
+.wn input { width: 64px; border: 0; border-left: 1px solid #334155; border-right: 1px solid #334155; background: transparent; color: var(--tx); text-align: center; padding: 4px 2px; outline: none; font: inherit; }
