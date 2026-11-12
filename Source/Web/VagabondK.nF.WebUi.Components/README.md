@@ -35,6 +35,12 @@
 | `card` | html+js+css | `<wui-card title="설정 백업">본문 마크업</wui-card>` 제목+구분선+본문 컨테이너. 본문을 `<slot/>`으로 받아 light DOM을 그대로 렌더. 빈 카드는 자동 숨김(`:host(:empty)`). 참조는 `<!--@use:card-->` + 본문은 수동 태그. 인스턴스. |
 | `export-import` | html+js+css | 설정 백업 내보내기/가져오기(phpMyAdmin 스타일). 내보내기: GET `/api/settings` → JSON 다운로드. 가져오기: 파일의 키만 장치 현재 설정에 병합해 POST(부분 백업 허용). 인스턴스. |
 | `firmware` | html+js+css | `<firmware api="/api/firmware" chunk="2048"/>` 파일→base64 청크 POST(seq/total). `wui:progress`/`wui:result` 발행으로 progress·result 인스턴스와 결합. 전송만 담당, 실제 플래싱은 장치 프로젝트 몫. 인스턴스. |
+| `badge` | html+js+css | `<wui-badge variant="ok">12</wui-badge>` 카운트·상태 알약 뱃지. variant `info/ok/warn/bad`(없으면 회색). 본문을 `<slot/>`으로 받음. 참조는 `<!--@use:badge-->`. 인스턴스. |
+| `chip` | html+js+css | `<wui-chip removable>RTU</wui-chip>` 라벨+삭제 태그. `removable`이면 × 표시, 클릭 시 host 제거 후 `wui:chip-close {text}` 발행. 참조는 `<!--@use:chip-->`. 인스턴스. |
+| `spinner` | html+js+css | `<spinner/>` CSS-only 회전 로딩. `size="28"`로 지름 지정(두께 자동). 정지는 host `hidden`. 인스턴스. |
+| `skeleton` | html+js+css | `<skeleton w="100%" h="14"/>` shimmer 자리받기. `w`는 숫자면 %(그림자 폭), `h`는 숫자면 px. `round` 속성으로 원형. 인스턴스. |
+| `empty` | html+js+css | `<empty text="로그 없음" icon="▤"/>` 데이터 없음 상태(기본 "데이터 없음"/◇). 인스턴스. |
+| `descriptions` | html+js+css | `<descriptions title="장치 정보" keys="deviceName,pollMs"/>` Ant식 kv 다단. `wui:status` 구독, 라벨은 `WebUi.LABELS`(manifest form 유래) 폴백 키 이름. 인스턴스. |
 
 ### form 컴포넌트 사용 예
 
@@ -116,13 +122,13 @@ MCU 제약(외부 JS/CSS 금지, vanilla + WebUi 버스, 힙 절약)으로 필�
 |---|---|---|---|---|
 | 상 | alert | Bootstrap/Ant | ✅ 인스턴스 | note의 일반화(severity 변형) |
 | 상 | statistic | Ant/Carbon | ✅ 인스턴스 | 큰 숫자+라벨(status key 구독, fmt kb/ms/pct) |
-| 상 | descriptions | Ant | 인스턴스 | kv의 다단 버전(data-keys) |
+| 상 | descriptions | Ant | ✅ 인스턴스 | kv의 다단 버전(keys 속성, status 구독) |
 | 상 | progress | 전 프레임워크 | ✅ 인스턴스 | 바형 진행률(wui:progress bus 이벤트. 저장·업로드) |
-| 중 | badge | Bootstrap/MUI | 인라인 | 카운트·상태 뱃지 |
-| 중 | chip | MUI/Ant | 인스턴스 | 라벨+선택/삭제 태그 |
-| 중 | spinner | Bootstrap/MUI | 인스턴스 | CSS-only 회전 |
-| 중 | skeleton | MUI/shadcn | 인스턴스 | 로딩 자리받기(CSS-only) |
-| 중 | empty | Ant | 인스턴스 | 데이터 없음 상태 |
+| 중 | badge | Bootstrap/MUI | ✅ 인스턴스 | 카운트·상태 뱃지(slot 본문, variant) |
+| 중 | chip | MUI/Ant | ✅ 인스턴스 | 라벨+선택/삭제 태그(wui:chip-close) |
+| 중 | spinner | Bootstrap/MUI | ✅ 인스턴스 | CSS-only 회전 |
+| 중 | skeleton | MUI/shadcn | ✅ 인스턴스 | 로딩 자리받기(CSS-only shimmer) |
+| 중 | empty | Ant | ✅ 인스턴스 | 데이터 없음 상태 |
 | 상 | result | Ant | ✅ 인스턴스 | 성공/실패 전페이지 안내 |
 | 하 | tooltip | 전 | 인스턴스 | title 속성 폴백 포함 |
 | 하 | timeline | Ant/MUI | 인스턴스 | 이벤트 로그 스트립 |
@@ -184,7 +190,7 @@ speed-dial·affix/scrollspy·image-lightbox·colorpicker
 ~~form → tabs → modal~~(2026-11 완료) → ~~conn-dot·uptime·heap-gauge~~(2026-11 완료) →
 ~~segmented·switch·statistic·progress~~(2026-11 완료) →
 ~~firmware·export-import·alert·result·card~~(2026-11 완료) →
-descriptions·badge·chip·spinner·skeleton·empty → navbar·steps·collapse → reboot·ap-banner
+~~descriptions·badge·chip·spinner·skeleton·empty~~(2026-11 완료) → navbar·steps·collapse → reboot·ap-banner
 
 ### 인스턴스 컴포넌트 작성 시 주의(scope 문서)
 
@@ -194,3 +200,8 @@ scope가 제공하는 것만 쓸 수 있습니다: `getElementById/querySelector
 createElement/body/addEventListener`. 실제 document에 이벤트를 발행해야 하면
 `document.dispatchEvent(...)` 대신 **`WebUi.fire(name, detail)`**를 쓰십시오
 (`WebUi.on`은 내부적으로 실제 document에 구독하므로 그대로 호환).
+
+참조 태그 `<name 속성="값"/>`는 **줄 전체가 그 태그일 때만** 컴포넌트 포함을 트리거한다.
+`<p><skeleton/></p>`처럼 인라인으로 감싸면 마크업으로 남고 라이브러리는 포함되지 않는다.
+본문이 필요한 컴포넌트(badge·chip·card)는 `<!--@use:이름-->` 마커 + `<wui-이름>` 수동 태그를 쓰고,
+빈 마커 인스턴스는 css에 `:host(:empty){display:none}`을 두어 숨긴다.

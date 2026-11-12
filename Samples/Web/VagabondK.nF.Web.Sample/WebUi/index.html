@@ -93,6 +93,7 @@
         <button id="pgDemo" class="gh" type="button">진행 데모</button>
       </p>
       <sysinfo/>
+      <descriptions title="장치 정보" keys="deviceName,pollMs,mode,debug"/>
       <status-card/>
       <panel/>
     </section>
@@ -107,6 +108,28 @@
       <wui-card title="펌웨어 업데이트">
         <firmware api="/api/firmware"/>
         <result/>
+      </wui-card>
+      <!--@use:badge-->
+      <!--@use:chip-->
+      <wui-card title="표시 컴포넌트">
+        <p class="ops">
+          <wui-badge variant="ok">연결</wui-badge>
+          <wui-badge variant="warn">저하</wui-badge>
+          <wui-badge variant="bad">두절</wui-badge>
+          <wui-badge>12</wui-badge>
+        </p>
+        <p>
+          <wui-chip removable>RTU</wui-chip>
+          <wui-chip removable>ASCII</wui-chip>
+          <wui-chip>필터</wui-chip>
+        </p>
+        <p class="ops">
+          <spinner/>
+          <span class="msg">불러오는 중…</span>
+        </p>
+        <skeleton w="100%" h="14"/>
+        <skeleton w="60%" h="14"/>
+        <empty text="로그 없음" icon="▤"/>
       </wui-card>
     </section>
   </main>

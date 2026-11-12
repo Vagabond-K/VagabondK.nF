@@ -1,0 +1,4 @@
+.wd h2 { font-size: 13px; color: var(--mut); margin: 14px 0 6px; }
+.wd dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 0; font-size: 13px; }
+.wd dt { color: var(--mut); }
+.wd dd { margin: 0; color: var(--tx); }
