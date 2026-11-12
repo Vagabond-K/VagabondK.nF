@@ -1,10 +1,10 @@
-.al { display: flex; align-items: center; gap: 8px; margin: 10px 0; padding: 8px 12px; border-radius: 8px; border: 1px solid #334155; background: #0b1220; }
+.al { display: flex; align-items: center; gap: 8px; margin: 10px 0; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line, #334155); background: var(--bg, #0b1220); }
 .al b { font-size: 14px; line-height: 1; }
-.al.info { border-color: #1d4ed8; background: #0c1a33; }
-.al.info b { color: var(--in); }
+.al.info { border-color: var(--acc, #1d4ed8); background: #0c1a33; }
+.al.info b { color: var(--in, #38bdf8); }
 .al.warn { border-color: #a16207; background: #271e06; }
 .al.warn b { color: #fbbf24; }
 .al.error { border-color: #7f1d1d; background: #2a0a0a; }
-.al.error b { color: var(--bad); }
+.al.error b { color: var(--bad, #ef4444); }
 .al.ok { border-color: #14532d; background: #08160c; }
-.al.ok b { color: var(--ok); }
+.al.ok b { color: var(--ok, #22c55e); }

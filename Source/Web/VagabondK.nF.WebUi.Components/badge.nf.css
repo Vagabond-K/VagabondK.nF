@@ -1,6 +1,6 @@
 :host(:empty) { display: none; }
-.wb { display: inline-block; padding: 1px 9px; border-radius: 10px; font-size: 11px; font-weight: 600; background: #334155; color: var(--tx); }
-.wb.ok { background: var(--ok); color: #04252f; }
-.wb.bad { background: var(--bad); color: #fff; }
+.wb { display: inline-block; padding: 1px 9px; border-radius: 10px; font-size: 11px; font-weight: 600; background: var(--line, #334155); color: var(--tx, #e2e8f0); }
+.wb.ok { background: var(--ok, #22c55e); color: #04252f; }
+.wb.bad { background: var(--bad, #ef4444); color: #fff; }
 .wb.warn { background: #b45309; color: #fff; }
-.wb.info { background: var(--in); color: #04252f; }
+.wb.info { background: var(--in, #38bdf8); color: #04252f; }

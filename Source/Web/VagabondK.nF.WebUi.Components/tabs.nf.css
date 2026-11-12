@@ -1,6 +1,6 @@
 .wt { display: inline-flex; gap: 4px; flex-wrap: wrap; }
 .wt button {
-  background: none; border: 0; color: var(--mut); font: inherit;
+  background: none; border: 0; color: var(--mut, #94a3b8); font: inherit;
   padding: 6px 10px; cursor: pointer; border-radius: 6px;
 }
-.wt button.on { color: var(--tx); background: #334155; }
+.wt button.on { color: var(--tx, #e2e8f0); background: var(--line, #334155); }

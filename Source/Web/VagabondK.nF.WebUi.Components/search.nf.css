@@ -1,4 +1,4 @@
-.ws { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #334155; border-radius: 6px; padding: 4px 8px; background: var(--card); color: var(--mut); }
-.ws input { border: 0; background: transparent; color: var(--tx); outline: none; width: 140px; padding: 0; font: inherit; }
-.ws button { border: 0; background: none; color: var(--mut); cursor: pointer; padding: 0 2px; margin: 0; font-size: 13px; line-height: 1; }
-.ws button:hover { color: var(--bad); }
+.ws { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line, #334155); border-radius: 6px; padding: 4px 8px; background: var(--card, #1e293b); color: var(--mut, #94a3b8); }
+.ws input { border: 0; background: transparent; color: var(--tx, #e2e8f0); outline: none; width: 140px; padding: 0; font: inherit; }
+.ws button { border: 0; background: none; color: var(--mut, #94a3b8); cursor: pointer; padding: 0 2px; margin: 0; font-size: 13px; line-height: 1; }
+.ws button:hover { color: var(--bad, #ef4444); }

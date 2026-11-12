@@ -1,5 +1,5 @@
 :host(:empty) { display: none; }
-.wig { display: inline-flex; align-items: stretch; border: 1px solid #334155; border-radius: 6px; overflow: hidden; background: var(--card); }
-.wig input { border: 0; background: transparent; color: var(--tx); padding: 4px 8px; width: 120px; outline: none; font: inherit; }
-.wig ::slotted([slot=pre]) { display: flex; align-items: center; padding: 4px 8px; background: #1e293b; color: var(--mut); border-right: 1px solid #334155; font-size: 12px; }
-.wig ::slotted([slot=post]) { display: flex; align-items: center; padding: 4px 8px; background: #1e293b; color: var(--mut); border-left: 1px solid #334155; font-size: 12px; }
+.wig { display: inline-flex; align-items: stretch; border: 1px solid var(--line, #334155); border-radius: 6px; overflow: hidden; background: var(--card, #1e293b); }
+.wig input { border: 0; background: transparent; color: var(--tx, #e2e8f0); padding: 4px 8px; width: 120px; outline: none; font: inherit; }
+.wig ::slotted([slot=pre]) { display: flex; align-items: center; padding: 4px 8px; background: var(--card, #1e293b); color: var(--mut, #94a3b8); border-right: 1px solid var(--line, #334155); font-size: 12px; }
+.wig ::slotted([slot=post]) { display: flex; align-items: center; padding: 4px 8px; background: var(--card, #1e293b); color: var(--mut, #94a3b8); border-left: 1px solid var(--line, #334155); font-size: 12px; }

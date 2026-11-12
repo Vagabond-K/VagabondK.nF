@@ -1,3 +1,3 @@
 :host(:empty) { display: none; }
 .wtt { position: relative; display: inline-block; }
-.tb { position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: #0f172a; border: 1px solid #334155; color: var(--tx); padding: 3px 8px; border-radius: 4px; font-size: 11px; white-space: nowrap; pointer-events: none; z-index: 30; }
+.tb { position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: var(--bg, #0f172a); border: 1px solid var(--line, #334155); color: var(--tx, #e2e8f0); padding: 3px 8px; border-radius: 4px; font-size: 11px; white-space: nowrap; pointer-events: none; z-index: 30; }

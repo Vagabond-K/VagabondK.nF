@@ -1,1 +1,1 @@
-.up { color: var(--mut); font-size: 12px; }
+.up { color: var(--mut, #94a3b8); font-size: 12px; }

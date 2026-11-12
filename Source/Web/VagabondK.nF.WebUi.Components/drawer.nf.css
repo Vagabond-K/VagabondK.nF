@@ -1,9 +1,9 @@
 .wdv { display: none; position: fixed; inset: 0; background: rgba(2, 6, 23, 0.55); z-index: 60; }
 :host([open]) .wdv { display: block; }
-aside { position: absolute; top: 0; right: 0; height: 100%; width: 260px; max-width: 85%; background: var(--bg); border-left: 1px solid #334155; transform: translateX(100%); transition: transform 0.2s ease; box-sizing: border-box; padding: 10px 14px; }
+aside { position: absolute; top: 0; right: 0; height: 100%; width: 260px; max-width: 85%; background: var(--bg, #0f172a); border-left: 1px solid var(--line, #334155); transform: translateX(100%); transition: transform 0.2s ease; box-sizing: border-box; padding: 10px 14px; }
 :host([open]) aside { transform: translateX(0); }
 aside header { display: flex; align-items: center; margin-bottom: 8px; }
-aside header b { font-size: 14px; color: var(--tx); }
-aside header button { margin-left: auto; border: 0; background: none; color: var(--mut); font-size: 18px; cursor: pointer; }
-aside header button:hover { color: var(--bad); }
-.dBody { font-size: 13px; color: var(--tx); }
+aside header b { font-size: 14px; color: var(--tx, #e2e8f0); }
+aside header button { margin-left: auto; border: 0; background: none; color: var(--mut, #94a3b8); font-size: 18px; cursor: pointer; }
+aside header button:hover { color: var(--bad, #ef4444); }
+.dBody { font-size: 13px; color: var(--tx, #e2e8f0); }

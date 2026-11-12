@@ -1,6 +1,6 @@
 .pg { min-width: 160px; }
-.pgT { display: flex; justify-content: space-between; font-size: 12px; color: var(--mut); margin-bottom: 4px; }
-.pgNum { color: var(--tx); }
-.pgB { height: 8px; border-radius: 4px; background: #0b1220; overflow: hidden; }
-.pgB i { display: block; height: 100%; width: 0; border-radius: 4px; background: var(--in); transition: width .2s; }
-:host(.done) .pgB i { background: var(--ok); }
+.pgT { display: flex; justify-content: space-between; font-size: 12px; color: var(--mut, #94a3b8); margin-bottom: 4px; }
+.pgNum { color: var(--tx, #e2e8f0); }
+.pgB { height: 8px; border-radius: 4px; background: var(--bg, #0b1220); overflow: hidden; }
+.pgB i { display: block; height: 100%; width: 0; border-radius: 4px; background: var(--in, #38bdf8); transition: width .2s; }
+:host(.done) .pgB i { background: var(--ok, #22c55e); }
