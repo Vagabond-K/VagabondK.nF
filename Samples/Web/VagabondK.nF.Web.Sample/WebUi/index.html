@@ -131,6 +131,17 @@
         <skeleton w="60%" h="14"/>
         <empty text="로그 없음" icon="▤"/>
       </wui-card>
+      <!--@use:navbar-->
+      <!--@use:collapse-->
+      <wui-card title="단계와 접기">
+        <steps items="다운로드|전송|적용" current="2"/>
+        <wui-collapse title="고급 설정">
+          <span class="msg">시리얼 타임아웃·재시도 횟수 같은 고급 항목 자리.</span>
+        </wui-collapse>
+        <wui-navbar title="게이트웨이">
+          <conn-dot timeout="6"/>
+        </wui-navbar>
+      </wui-card>
     </section>
   </main>
   <login/>

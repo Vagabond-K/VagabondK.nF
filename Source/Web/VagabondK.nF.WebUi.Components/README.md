@@ -41,6 +41,9 @@
 | `skeleton` | html+js+css | `<skeleton w="100%" h="14"/>` shimmer 자리받기. `w`는 숫자면 %(그림자 폭), `h`는 숫자면 px. `round` 속성으로 원형. 인스턴스. |
 | `empty` | html+js+css | `<empty text="로그 없음" icon="▤"/>` 데이터 없음 상태(기본 "데이터 없음"/◇). 인스턴스. |
 | `descriptions` | html+js+css | `<descriptions title="장치 정보" keys="deviceName,pollMs"/>` Ant식 kv 다단. `wui:status` 구독, 라벨은 `WebUi.LABELS`(manifest form 유래) 폴백 키 이름. 인스턴스. |
+| `navbar` | html+js+css | `<wui-navbar title="게이트웨이">액션…</wui-navbar>` 제목+우측 액션 slot 헤더 바. 참조는 `<!--@use:navbar-->`. 인스턴스. |
+| `steps` | html+js+css | `<steps items="다운로드|전송|적용" current="2"/>` MUI식 단계 표시. current 미만 ✓(done), current 강조. 1-based. 인스턴스. |
+| `collapse` | html+js+css | `<wui-collapse title="고급 설정" open>본문</wui-collapse>` 아코디언. 헤더 클릭으로 host `open` 속성 토글(CSS max-height). 참조는 `<!--@use:collapse-->`. 인스턴스. |
 
 ### form 컴포넌트 사용 예
 
@@ -137,10 +140,10 @@ MCU 제약(외부 JS/CSS 금지, vanilla + WebUi 버스, 힙 절약)으로 필�
 | 우선 | 이름 | 참조 | 형태 | 내용 |
 |---|---|---|---|---|
 | ✅ 완료 | tabs | 전 | 인라인 | 헤더+라우팅 승격(해시 연동). 페이지당 1개 내비라 인라인으로 구현 |
-| 중 | navbar | Bootstrap | 인스턴스 | 제목·연결점·로그아웃 슬롯 헤더 |
+| 중 | navbar | Bootstrap | ✅ 인스턴스 | 제목·연결점·로그아웃 슬롯 헤더 |
 | 중 | pagination | 전 | 인스턴스 | 표와 결합 |
-| 중 | steps | MUI/Ant | 인스턴스 | 설정 마법사·업데이트 단계 |
-| 중 | collapse | Bootstrap | 인스턴스 | 아코디언(CSS max-height) |
+| 중 | steps | MUI/Ant | ✅ 인스턴스 | 설정 마법사·업데이트 단계 |
+| 중 | collapse | Bootstrap | ✅ 인스턴스 | 아코디언(CSS max-height) |
 | 하 | breadcrumb | Ant/MUI | 인스턴스 | 낮은 우선순위 |
 
 ### C. 폼·입력
@@ -190,7 +193,8 @@ speed-dial·affix/scrollspy·image-lightbox·colorpicker
 ~~form → tabs → modal~~(2026-11 완료) → ~~conn-dot·uptime·heap-gauge~~(2026-11 완료) →
 ~~segmented·switch·statistic·progress~~(2026-11 완료) →
 ~~firmware·export-import·alert·result·card~~(2026-11 완료) →
-~~descriptions·badge·chip·spinner·skeleton·empty~~(2026-11 완료) → navbar·steps·collapse → reboot·ap-banner
+~~descriptions·badge·chip·spinner·skeleton·empty~~(2026-11 완료) →
+~~navbar·steps·collapse~~(2026-11 완료) → reboot·ap-banner
 
 ### 인스턴스 컴포넌트 작성 시 주의(scope 문서)
 
@@ -205,3 +209,4 @@ createElement/body/addEventListener`. 실제 document에 이벤트를 발행해�
 `<p><skeleton/></p>`처럼 인라인으로 감싸면 마크업으로 남고 라이브러리는 포함되지 않는다.
 본문이 필요한 컴포넌트(badge·chip·card)는 `<!--@use:이름-->` 마커 + `<wui-이름>` 수동 태그를 쓰고,
 빈 마커 인스턴스는 css에 `:host(:empty){display:none}`을 두어 숨긴다.
+`<!--@instance-->` 마커는 **html 파일에서 단독 줄**이어야 인스턴스로 인식된다(같은 줄에 태그를 붙이면 WUI001).
