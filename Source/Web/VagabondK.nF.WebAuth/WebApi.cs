@@ -80,6 +80,31 @@ namespace VagabondK.nF.WebAuth
             }
         }
 
+        /// <summary>
+        /// JSON 본문을 MSS 이하 조각으로 나눠 기록합니다.
+        /// 단일 대규모 쓰기는 IP 단편/재전송을 유발해 수 초간 무응답 후 한꺼번에
+        /// 도착하는 패턴이 실측되었습니다. 조각 쓰기는 손실 구간만 TCP가 재전송하므로
+        /// 체감 지연이 줄어듭니다.
+        /// </summary>
+        public static void JsonSegmented(HttpListenerResponse response, int status, string body)
+        {
+            byte[] bytes = Utf8.GetBytes(body);
+            AddApiHeaders(response);
+            response.StatusCode = status;
+            response.ContentType = JsonType;
+            response.ContentLength64 = bytes.Length;
+
+            const int Segment = 1360;   // MSS(1460) 대비 TCP/IP 헤더 여유
+            int offset = 0;
+            while (offset < bytes.Length)
+            {
+                int count = bytes.Length - offset;
+                if (count > Segment) count = Segment;
+                response.OutputStream.Write(bytes, offset, count);
+                offset += count;
+            }
+        }
+
         /// <summary>스트리밍 응답의 헤더만 설정합니다. 호출 직후 OutputStream에 직접 쓰세요.</summary>
         public static void BeginStream(HttpListenerResponse response, int status, string contentType, long length)
         {
