@@ -54,6 +54,9 @@ namespace VagabondK.nF.WebAuth
         /// <summary>Authorization 헤더의 토큰 접두사입니다.</summary>
         public const string BearerPrefix = "Bearer ";
 
+        /// <summary>거부 응답 전 소비할 본문 크기의 상한입니다(초과 시 읽지 않고 연결만 닫음).</summary>
+        public int RejectBodyLimit = 2048;
+
         /// <summary>보호할 컨트롤러들과 가드를 연결해 서버를 만듭니다.</summary>
         /// <param name="port">청취 TCP 포트입니다.</param>
         /// <param name="controllers">[Route]/[Method] 컨트롤러 타입들입니다.</param>
@@ -83,12 +86,12 @@ namespace VagabondK.nF.WebAuth
 
                 if (decision == AccessDecision.Denied)
                 {
-                    WebApi.Error(context.Response, 401, "unauthorized");
+                    WebApi.Reject(context.Request, context.Response, 401, "unauthorized", RejectBodyLimit);
                     return;
                 }
                 if (decision == AccessDecision.LockedOut)
                 {
-                    WebApi.Error(context.Response, 429, "login locked, wait and retry");
+                    WebApi.Reject(context.Request, context.Response, 429, "login locked, wait and retry", RejectBodyLimit);
                     return;
                 }
             }

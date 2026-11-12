@@ -34,7 +34,9 @@ namespace VagabondK.nF.WebAuth
                 StripPort(host) != localAddress ||
                 (origin != null && origin != "http://" + host))
             {
-                WebApi.Error(context.Response, 403, BlockedMessage);
+                // 본문을 소비하지 않고 남기면 keep-alive 연결이 어긋나 다음 요청이
+                // 다른 핸들러로 새는 사고가 생길 수 있어 Reject로 함께 닫는다.
+                WebApi.Reject(context.Request, context.Response, 403, BlockedMessage, 2048);
                 return true;
             }
 

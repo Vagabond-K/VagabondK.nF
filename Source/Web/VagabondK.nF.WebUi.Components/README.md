@@ -47,9 +47,9 @@
 | `list-group` | html+js+css | `<list-group items="요약|상세|로그" selected="1"/>` 행 목록. 행 클릭 시 `on` 이동 + `wui:list-click {index,text}` 발행(1-based). drawer와 결합해 마스터-디테일 가능. 인스턴스. |
 | `drawer` | html+js+css | `<wui-drawer title="상세">본문</wui-drawer>` 우측 슬라이드 패널. host `open` 속성으로 열림. ×/배경 클릭 시 닫고 `wui:drawer-close` 발행. 참조는 `<!--@use:drawer-->`. 인스턴스. |
 | `reboot` | html+js+css | `<reboot api="/api/reboot" secs="8"/>` 라우터 UI식 재부팅. modal 확인 → POST → 카운트다운 → `location.reload()`. 인스턴스. |
-| `number` | html+js+css | `<number value="500" min="0" max="9999" step="100"/>` Ant InputNumber식 +/- 스테퍼. 변경마다 `wui:number-change {value}`. 인스턴스. |
-| `search` | html+js+css | `<search placeholder="검색"/>` Carbon식 필터 입력. 300ms 디바운스 후 `wui:search {q}`. ×로 초기화. 인스턴스. |
-| `password` | html+js+css | `<password placeholder="비밀번호"/>` show/hide 토글 비밀번호 입력. 인스턴스. |
+| `number` | html+js+css | `<number value="500" min="0" max="9999" step="100"/>` Ant InputNumber식 +/- 스테퍼. 변경마다 `wui:number-change {value}`. 인스턴스·폼 연관(`form`). 호스트에 `.value`/`.disabled`/`focus()` API. |
+| `search` | html+js+css | `<search placeholder="검색"/>` Carbon식 필터 입력. 300ms 디바운스 후 `wui:search {q}`. ×로 초기화. 인스턴스·폼 연관(`form`). 호스트에 `.value`/`.placeholder`/`focus()` API. |
+| `password` | html+js+css | `<password placeholder="비밀번호"/>` show/hide 토글 비밀번호 입력. 인스턴스·폼 연관(`form`). 호스트에 `.value`/`.disabled`/`focus()` API. |
 | `input-group` | html+js+css | `<wui-input-group placeholder="…"><b slot="pre">http://</b><b slot="post">:502</b></wui-input-group>` Bootstrap식 입력+접두/접미. `el.value` 왕복. 참조는 `<!--@use:input-group-->`. 인스턴스. |
 | `tooltip` | html+js+css | `<wui-tooltip text="설명">본문</wui-tooltip>` 호버 버블. 참조는 `<!--@use:tooltip-->` + 수동 태그. 인스턴스. |
 | `timeline` | html+js+css | `<timeline items="10:04 기동|10:05 연결"/>` Ant식 세로 이벤트 스트립. 인스턴스. |
@@ -265,3 +265,5 @@ createElement/body/addEventListener`. 실제 document에 이벤트를 발행해�
 본문이 필요한 컴포넌트(badge·chip·card)는 `<!--@use:이름-->` 마커 + `<wui-이름>` 수동 태그를 쓰고,
 빈 마커 인스턴스는 css에 `:host(:empty){display:none}`을 두어 숨긴다.
 `<!--@instance-->` 마커는 html 파일 **어디에든 같은 줄에 다른 내용과 함께 있어도** 인식된다(단독 줄 필수 아님).
+`<!--@instance form-->`은 폼 연관(Form-associated Custom Element) 선언으로, 생성 시 `def(..., {form:1})`가 붙어
+`form.elements[name]`이 호스트를 반환하고 `.value` 쓰기가 내부 값과 폼 값에 동기 반영된다(number·search·password).

@@ -44,6 +44,42 @@ namespace VagabondK.nF.WebAuth
             Json(response, status, "{\"ok\":false,\"error\":\"" + JsonEscape(message) + "\"}");
         }
 
+        /// <summary>
+        /// 거부 응답(401/403/429)을 쓰기 전에 요청 본문을 소비하고 연결을 닫습니다.
+        /// 본문을 스트림에 남기면 keep-alive 연결의 다음 요청이 어긋나서(phantom request)
+        /// 전혀 다른 핸들러가 그 본문을 받아들이는 사고가 생길 수 있습니다.
+        /// 본문이 상한을 넘으면 읽지 않고 연결만 닫습니다.
+        /// </summary>
+        public static void Reject(HttpListenerRequest request, HttpListenerResponse response, int status, string message, int maxBodyBytes)
+        {
+            // ReadBody는 ContentLength만큼 정확히 읽는다. 고정 버퍼로 InputStream.Read를
+            // 호출하면 nanoFramework 스트림이 버퍼 채울 데이터를 기다리며 막힐 수 있다.
+            try
+            {
+                request.ReadBody(maxBodyBytes);
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                response.KeepAlive = false;
+            }
+            catch
+            {
+            }
+
+            // 죽은 연결에 쓰면 예외가 서버 루프를 종료시킬 수 있어 삼킨다.
+            try
+            {
+                Error(response, status, message);
+            }
+            catch
+            {
+            }
+        }
+
         /// <summary>스트리밍 응답의 헤더만 설정합니다. 호출 직후 OutputStream에 직접 쓰세요.</summary>
         public static void BeginStream(HttpListenerResponse response, int status, string contentType, long length)
         {

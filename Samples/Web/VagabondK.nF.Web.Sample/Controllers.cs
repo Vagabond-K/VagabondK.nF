@@ -151,12 +151,44 @@ namespace VagabondK.nF.Web.Sample
             res.ContentType = "text/html; charset=utf-8";
             res.ContentLength64 = WebPage.Length;
             Stream o = res.OutputStream;
+            int remaining = WebPage.Length;
             for (int i = 0; i < WebPage.PartCount; i++)
             {
-                byte[] part = Convert.FromBase64String(WebPage.GetPart(i));
-                o.Write(part, 0, part.Length);
+                byte[] part = DecodePack7(WebPage.GetPart(i));
+                int n = part.Length < remaining ? part.Length : remaining;
+                o.Write(part, 0, n);
+                remaining -= n;
             }
             res.Close();
+        }
+
+        // Pack7 복호: PageComposer.ValueToChar와 짝.
+        static int CharToValue(char c)
+        {
+            if (c <= 0x09) return c - 1;
+            if (c == 0x0B) return 9;
+            if (c <= 0x21) return c - 4;
+            if (c <= 0x5B) return c - 5;
+            if (c <= 0x7E) return c - 6;
+            if (c == 0x7F) return 121;
+            return c - 70;
+        }
+
+        static byte[] DecodePack7(string s)
+        {
+            byte[] buf = new byte[s.Length * 7 / 8];
+            int bitBuf = 0, bitCount = 0, o = 0;
+            for (int i = 0; i < s.Length; i++)
+            {
+                bitBuf = (bitBuf << 7) | CharToValue(s[i]);
+                bitCount += 7;
+                if (bitCount >= 8)
+                {
+                    bitCount -= 8;
+                    buf[o++] = (byte)((bitBuf >> bitCount) & 0xFF);
+                }
+            }
+            return buf;
         }
 
         // ---------- 인증 ----------

@@ -220,12 +220,16 @@ body: document.body,
 addEventListener: function () { return document.addEventListener.apply(document, arguments); }
 };
 }
-function def(name, init, css) {
+// opts.form: form-associated custom element (FACE). The host joins form.elements by name and
+// the component publishes its value with this.__internals.setFormValue(v). See @instance form.
+function def(name, init, css, opts) {
+var fa = !!(opts && opts.form);
 var own = css == null ? null : { tried: false, sheet: null };
-customElements.define('wui-' + name.toLowerCase(), class extends HTMLElement {
+var cls = class extends HTMLElement {
 connectedCallback() {
 if (this.__wui) return;
 this.__wui = 1;
+if (fa) { try { this.__internals = this.attachInternals(); } catch (e) { this.__internals = null; } }
 var sr = this.attachShadow({ mode: 'open' });
 var t = document.getElementById('wui-t-' + name);
 if (t) sr.appendChild(t.content.cloneNode(true));
@@ -238,7 +242,9 @@ roots.push(sr);
 this.shadow = sr;
 if (init) init.call(this, sr, scope(sr), function (id) { return sr.getElementById(id); });
 }
-});
+};
+if (fa) cls.formAssociated = true;
+customElements.define('wui-' + name.toLowerCase(), cls);
 }
 return { def: def, roots: roots };
 })();

@@ -1,4 +1,8 @@
-.wn { display: inline-flex; align-items: stretch; border: 1px solid var(--line, #334155); border-radius: 6px; overflow: hidden; background: var(--card, #1e293b); }
-.wn button { border: 0; background: var(--card, #1e293b); color: var(--tx, #e2e8f0); width: 26px; cursor: pointer; font-size: 14px; padding: 0; margin: 0; line-height: 1; }
+:host { display: block; }
+.wn { display: flex; align-items: stretch; border: 1px solid var(--line, #334155); border-radius: 6px; overflow: hidden; background: var(--card, #1e293b); }
+.wn button { border: 0; background: var(--card, #1e293b); color: var(--tx, #e2e8f0); width: 26px; flex: none; cursor: pointer; font-size: 14px; padding: 0; margin: 0; line-height: 1; }
 .wn button:hover { background: var(--line, #334155); }
-.wn input { width: 64px; border: 0; border-left: 1px solid var(--line, #334155); border-right: 1px solid var(--line, #334155); background: transparent; color: var(--tx, #e2e8f0); text-align: center; padding: 4px 2px; outline: none; font: inherit; }
+.wn input { flex: 1; width: auto; min-width: 0; border: 0; border-left: 1px solid var(--line, #334155); border-right: 1px solid var(--line, #334155); background: transparent; color: var(--tx, #e2e8f0); text-align: center; padding: 4px 2px; outline: none; font: inherit; }
+.wn input:disabled { opacity: .45; }
+:host(:focus-within) .wn { outline: 2px solid var(--acc, #38bdf8); }
+:host(.invalid) .wn { border-color: var(--bad, #ef4444); }

@@ -25,16 +25,22 @@ namespace VagabondK.nF.WebUi
         static readonly string[] Markers = { "<!--@manifest-->", "<!--@core-->", "<!--@style-->", "<!--@views-->", "<!--@script-->" };
         const string ManifestMarker = "<!--@manifest-->";
         const string InstanceMarker = "<!--@instance-->";
+        // @instance 인수 허용: <!--@instance--> 또는 <!--@instance form-->(form=폼 연관 커스텀 엘리먼트).
+        static readonly Regex InstanceRe = new Regex(@"<!--@instance((?:\s+[a-zA-Z0-9_-]+)*)\s*-->", RegexOptions.Compiled);
         // 빌드타임 슬롯은 폐기되었다(Phase 2): 섀도잉 가능한 <name/> 컴포넌트로 대체.
         const string SlotRemovedMsg = "@slot syntax was removed: expose a shadowable name.nf.html component and reference it as <name/> instead";
         static readonly Regex UseToken = new Regex(@"^<!--@use:([A-Za-z0-9_-]+)-->$", RegexOptions.Compiled);
         // <name/> 문법: 비-void 요소의 자기종결은 HTML 금기 표기라 줄 전체가 마커다(Phase 2 로드맵).
         // 속성 허용(@instance 컴포넌트의 파라미터): <name a="1" b/> → 그룹2가 속성 문자열.
         static readonly Regex SelfCloseTag = new Regex(@"^<([a-z][a-z0-9-]*)((?:\s+[a-zA-Z0-9_-]+(?:=""[^""]*"")?)*)\s*/>$", RegexOptions.Compiled);
+        // 가드: 위와 같은 태그가 줄 전체에 없으면(인라인) 참조로 인식 못 하고 원문 통과→조용한 파손.
+        // known component 이름을 인라인에서 만나면 빌드 실패로 알린다.
+        static readonly Regex InlineRef = new Regex(@"<([a-z][a-z0-9-]*)((?:\s+[a-zA-Z0-9_-]+(?:=""[^""]*"")?)*)\s*/>", RegexOptions.Compiled);
         static readonly HashSet<string> VoidNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
             "br", "hr", "img", "input", "link", "meta", "base", "area", "embed", "col", "param", "source", "track", "wbr" };
         // 폼 컨트롤과 data-label/data-fmt 속성 스캔용(마크업 → manifest.form 자동 유도).
-        static readonly Regex ControlTag = new Regex(@"<(?:input|select|textarea)\b[^>]*>", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        // wui-number/wui-password/wui-search는 폼 연관(@instance form) 인스턴스 참조가 확장된 형태.
+        static readonly Regex ControlTag = new Regex(@"<(?:input|select|textarea|wui-number|wui-password|wui-search)\b[^>]*>", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         /// <summary>&lt;name&gt;.html과 같은 폴더의 &lt;name&gt;.{js,css} 한 벌. Html은 필수, 나머지는 선택.</summary>
         internal sealed class ComponentFiles
@@ -227,8 +233,10 @@ namespace VagabondK.nF.WebUi
                     string jsArg = c.Js.Length > 0
                         ? "function (root, document, $) {\n" + string.Join("\n", TrimLines(c.Js)) + "\n}"
                         : "null";
-                    string cssArg = c.Css.Length > 0 ? ", " + MiniJson.JsonOut(string.Join("\n", TrimLines(c.Css))) : "";
-                    compJs.Add("WUI.def(" + MiniJson.JsonOut(name) + ", " + jsArg + cssArg + ");");
+                    bool formAssoc = InstanceForm(c.Html);
+                    string cssArg = c.Css.Length > 0 ? ", " + MiniJson.JsonOut(string.Join("\n", TrimLines(c.Css)))
+                        : (formAssoc ? ", null" : "");
+                    compJs.Add("WUI.def(" + MiniJson.JsonOut(name) + ", " + jsArg + cssArg + (formAssoc ? ", {form:1}" : "") + ");");
                 }
                 else
                 {
@@ -337,7 +345,10 @@ namespace VagabondK.nF.WebUi
             uint hash = 2166136261;
             unchecked { foreach (byte value in html) { hash ^= value; hash *= 16777619; } }
 
-            const int PartBytes = 768;
+            // Pack7: 7비트 팩킹(문자 8개 = 바이트 7개). nanoFramework 문자열 힙은 어셈블리당
+            // 64KB(UTF-8, 16비트 인덱스) 제한이라 Base64(1.333B/B)보다 ~13% 작다.
+            // part당 UTF-8 바이트 ≤ 1024(문자열 길이 제한)를 평균+3시그마에서 만족하려면 830B.
+            const int PartBytes = 830;
             int partCount = (gzip.Length + PartBytes - 1) / PartBytes;
             if (string.IsNullOrEmpty(ns)) ns = "VagabondK.nF.WebUi";
             if (string.IsNullOrEmpty(cls)) cls = "WebPage";
@@ -352,7 +363,7 @@ namespace VagabondK.nF.WebUi
             {
                 int offset = i * PartBytes;
                 code.Append("                case ").Append(i).Append(": return \"")
-                    .Append(Convert.ToBase64String(gzip, offset, Math.Min(PartBytes, gzip.Length - offset))).Append("\";\n");
+                    .Append(EncodePack7(gzip, offset, Math.Min(PartBytes, gzip.Length - offset))).Append("\";\n");
             }
             code.Append("                default: return string.Empty;\n            }\n        }\n    }\n}\n");
 
@@ -363,6 +374,40 @@ namespace VagabondK.nF.WebUi
             return result;
         }
 
+        // Pack7: 7비트 값(0~127)을 C# 문자열 리터럴에 안전한 문자로 매핑.
+        // 122개는 UTF-8 1바이트(컨트롤 0x01~0x1F 중 개문자 제외 + printable에서 " \ 제외 + 0x7F),
+        // 나머지 6개(값 122~127)만 2바이트(0xC0~0xC5). 개행(0x0A,0x0C,0x0D,0x85)·인용부호·역슬래시 회피.
+        // 디코더(CharToValue)는 장치 측(PageController, Sample Controllers)에 짝으로 존재한다.
+        static char ValueToChar(int v)
+        {
+            if (v < 9) return (char)(v + 1);
+            if (v == 9) return (char)0x0B;
+            if (v < 30) return (char)(v + 4);   // 10..29 → 0x0E..0x21
+            if (v < 87) return (char)(v + 5);   // 30..86 → 0x23..0x5B (" 건너뜀)
+            if (v < 121) return (char)(v + 6);  // 87..120 → 0x5D..0x7E (\ 건너뜀)
+            if (v == 121) return (char)0x7F;
+            return (char)(v + 70);              // 122..127 → 0xC0..0xC5 (2바이트)
+        }
+
+        static string EncodePack7(byte[] data, int offset, int count)
+        {
+            var sb = new StringBuilder((count * 8 + 6) / 7);
+            int bitBuf = 0, bitCount = 0;
+            for (int i = offset; i < offset + count; i++)
+            {
+                bitBuf = (bitBuf << 8) | data[i];
+                bitCount += 8;
+                while (bitCount >= 7)
+                {
+                    bitCount -= 7;
+                    sb.Append(ValueToChar((bitBuf >> bitCount) & 0x7F));
+                }
+            }
+            if (bitCount > 0)
+                sb.Append(ValueToChar((bitBuf << (7 - bitCount)) & 0x7F));
+            return sb.ToString();
+        }
+
         // ---------- @use components ----------
         static bool IsSlotToken(string raw) { return raw.Trim().StartsWith("<!--@slot", StringComparison.Ordinal); }
 
@@ -371,7 +416,18 @@ namespace VagabondK.nF.WebUi
         static bool IsInstance(string[] lines)
         {
             foreach (string raw in lines)
-                if (raw.IndexOf(InstanceMarker, StringComparison.Ordinal) >= 0) return true;
+                if (InstanceRe.IsMatch(raw)) return true;
+            return false;
+        }
+
+        // <!--@instance form--> 인수 여부: 폼 연관 커스텀 엘리먼트로 등록(WUI.def의 opts.form).
+        static bool InstanceForm(string[] lines)
+        {
+            foreach (string raw in lines)
+            {
+                Match m = InstanceRe.Match(raw);
+                if (m.Success && m.Groups[1].Value.IndexOf("form", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+            }
             return false;
         }
 
@@ -407,7 +463,13 @@ namespace VagabondK.nF.WebUi
             {
                 if (IsSlotToken(raw)) { Fail(origin, SlotRemovedMsg); return false; }
                 string name = UseRef(raw.Trim());
-                if (name == null) continue;
+                if (name == null)
+                {
+                    foreach (Match im in InlineRef.Matches(raw))
+                        if (!VoidNames.Contains(im.Groups[1].Value) && components.ContainsKey(im.Groups[1].Value))
+                        { Fail(origin, "component reference <" + im.Groups[1].Value + "/> must be alone on its line (inline use is emitted as raw HTML and never expands)"); return false; }
+                    continue;
+                }
                 if (useDone.Contains(name)) continue;
                 if (useVisiting.Contains(name)) { Fail(origin, "circular component reference: \"" + name + "\""); return false; }
                 ComponentFiles c;
