@@ -1,3 +1,0 @@
-.ei { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.fi { display: inline-block; background: none; border: 1px solid var(--line, #334155); color: var(--mut, #94a3b8); font: inherit; border-radius: 6px; padding: 6px 10px; cursor: pointer; }
-.fi:hover { border-color: var(--in, #38bdf8); color: var(--tx, #e2e8f0); }

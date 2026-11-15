@@ -1,4 +1,0 @@
-:host(:empty) { display: none; }
-.wk { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 14px; border: 1px solid var(--line, #334155); font-size: 12px; color: var(--tx, #e2e8f0); background: var(--card, #1e293b); margin: 0 4px 4px 0; }
-.wk button { border: 0; background: none; color: var(--mut, #94a3b8); cursor: pointer; font-size: 13px; padding: 0 2px; margin: 0; line-height: 1; }
-.wk button:hover { color: var(--bad, #ef4444); }

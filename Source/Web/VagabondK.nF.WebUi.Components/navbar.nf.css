@@ -1,4 +1,0 @@
-:host(:empty) { display: none; }
-.wn { display: flex; align-items: center; gap: 10px; padding: 7px 12px; background: var(--card, #1e293b); border: 1px solid var(--line, #334155); border-radius: 8px; font-size: 13px; }
-.wn b { color: var(--tx, #e2e8f0); }
-.nS { margin-left: auto; display: inline-flex; align-items: center; gap: 10px; color: var(--mut, #94a3b8); }

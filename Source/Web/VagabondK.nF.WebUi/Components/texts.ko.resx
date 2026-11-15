@@ -1,0 +1,296 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <!-- Korean translation source. Pairs with texts.resx by name. Build-tool file only - never embedded. -->
+  <data name="apbar.text" xml:space="preserve">
+    <value>이 장치는 설정 AP 모드입니다. 운영 네트워크에 연결해 최종 설정하세요.</value>
+  </data>
+  <data name="conn.checking" xml:space="preserve">
+    <value>확인 중…</value>
+  </data>
+  <data name="conn.label" xml:space="preserve">
+    <value>연결</value>
+  </data>
+  <data name="conn.stale" xml:space="preserve">
+    <value>무응답 {n}초</value>
+  </data>
+  <data name="core.busy" xml:space="preserve">
+    <value>요청 처리 중…</value>
+  </data>
+  <data name="core.offline" xml:space="preserve">
+    <value>장치에 연결할 수 없습니다.</value>
+  </data>
+  <data name="core.timeout" xml:space="preserve">
+    <value>장치 응답 시간이 초과되었습니다.</value>
+  </data>
+  <data name="ei.badJson" xml:space="preserve">
+    <value>JSON 파싱 실패</value>
+  </data>
+  <data name="ei.export" xml:space="preserve">
+    <value>내보내기</value>
+  </data>
+  <data name="ei.exportFail" xml:space="preserve">
+    <value>내보내기 실패: {m}</value>
+  </data>
+  <data name="ei.exported" xml:space="preserve">
+    <value>내보내기 완료</value>
+  </data>
+  <data name="ei.exporting" xml:space="preserve">
+    <value>내보내는 중…</value>
+  </data>
+  <data name="ei.import" xml:space="preserve">
+    <value>가져오기</value>
+  </data>
+  <data name="ei.importFail" xml:space="preserve">
+    <value>가져오기 실패: {m}</value>
+  </data>
+  <data name="ei.imported" xml:space="preserve">
+    <value>가져오기 완료 — 새로고침</value>
+  </data>
+  <data name="ei.importing" xml:space="preserve">
+    <value>가져오는 중…</value>
+  </data>
+  <data name="ei.noKeys" xml:space="preserve">
+    <value>설정 키 없음</value>
+  </data>
+  <data name="ei.rejected" xml:space="preserve">
+    <value>장치가 거부: {m}</value>
+  </data>
+  <data name="empty.text" xml:space="preserve">
+    <value>데이터 없음</value>
+  </data>
+  <data name="form.clean" xml:space="preserve">
+    <value>장치에 저장된 설정과 같습니다.</value>
+  </data>
+  <data name="form.confirm" xml:space="preserve">
+    <value>설정을 저장할까요?</value>
+  </data>
+  <data name="form.invalid" xml:space="preserve">
+    <value>입력값을 확인하세요.</value>
+  </data>
+  <data name="form.loading" xml:space="preserve">
+    <value>설정을 불러오는 중…</value>
+  </data>
+  <data name="form.pending" xml:space="preserve">
+    <value>변경 {n}건 · 아직 저장하지 않음</value>
+  </data>
+  <data name="form.save" xml:space="preserve">
+    <value>저장</value>
+  </data>
+  <data name="form.saved" xml:space="preserve">
+    <value>저장했습니다.</value>
+  </data>
+  <data name="form.undo" xml:space="preserve">
+    <value>되돌리기</value>
+  </data>
+  <data name="fw.badTitle" xml:space="preserve">
+    <value>업로드 실패</value>
+  </data>
+  <data name="fw.choose" xml:space="preserve">
+    <value>펌웨어 선택</value>
+  </data>
+  <data name="fw.done" xml:space="preserve">
+    <value>업로드 완료 · {n}청크</value>
+  </data>
+  <data name="fw.fail" xml:space="preserve">
+    <value>실패: {m}</value>
+  </data>
+  <data name="fw.okSub" xml:space="preserve">
+    <value>장치가 반영 후 재부팅할 수 있습니다.</value>
+  </data>
+  <data name="fw.okTitle" xml:space="preserve">
+    <value>전송 완료</value>
+  </data>
+  <data name="fw.pick" xml:space="preserve">
+    <value>파일 선택</value>
+  </data>
+  <data name="fw.refused" xml:space="preserve">
+    <value>장치가 거부했습니다</value>
+  </data>
+  <data name="fw.sending" xml:space="preserve">
+    <value>전송 {n}%</value>
+  </data>
+  <data name="fw.upload" xml:space="preserve">
+    <value>업로드</value>
+  </data>
+  <data name="heap.label" xml:space="preserve">
+    <value>힙</value>
+  </data>
+  <data name="login.checking" xml:space="preserve">
+    <value>확인 중…</value>
+  </data>
+  <data name="login.fail" xml:space="preserve">
+    <value>로그인하지 못했습니다.</value>
+  </data>
+  <data name="login.intro" xml:space="preserve">
+    <value>이 장치는 보호되어 있습니다. 관리 비밀번호를 입력하세요.</value>
+  </data>
+  <data name="login.locked" xml:space="preserve">
+    <value>로그인이 잠겼습니다. {n}초 후 다시 시도됩니다.</value>
+  </data>
+  <data name="login.nostatus" xml:space="preserve">
+    <value>장치 상태를 받지 못했습니다.</value>
+  </data>
+  <data name="login.title" xml:space="preserve">
+    <value>로그인</value>
+  </data>
+  <data name="login.titleSuffix" xml:space="preserve">
+    <value> 로그인</value>
+  </data>
+  <data name="modal.cancel" xml:space="preserve">
+    <value>취소</value>
+  </data>
+  <data name="modal.ok" xml:space="preserve">
+    <value>확인</value>
+  </data>
+  <data name="panel.device" xml:space="preserve">
+    <value>장치 · {id}</value>
+  </data>
+  <data name="panel.name" xml:space="preserve">
+    <value>장치 이름</value>
+  </data>
+  <data name="pw.hide" xml:space="preserve">
+    <value>비밀번호 숨김</value>
+  </data>
+  <data name="pw.show" xml:space="preserve">
+    <value>비밀번호 표시</value>
+  </data>
+  <data name="reboot.body" xml:space="preserve">
+    <value>장치를 재시작합니다. 잠시 접속이 중단됩니다.</value>
+  </data>
+  <data name="reboot.btn" xml:space="preserve">
+    <value>재부팅</value>
+  </data>
+  <data name="reboot.count" xml:space="preserve">
+    <value>{n}초 후 재기동…</value>
+  </data>
+  <data name="reboot.fail" xml:space="preserve">
+    <value>재부팅 실패: {m}</value>
+  </data>
+  <data name="reboot.noresp" xml:space="preserve">
+    <value>응답 없음</value>
+  </data>
+  <data name="reboot.title" xml:space="preserve">
+    <value>재부팅</value>
+  </data>
+  <data name="sys.heap" xml:space="preserve">
+    <value>남은 힙</value>
+  </data>
+  <data name="sys.profile" xml:space="preserve">
+    <value>프로필</value>
+  </data>
+  <data name="sys.req" xml:space="preserve">
+    <value>요청 수</value>
+  </data>
+  <data name="sys.uptime" xml:space="preserve">
+    <value>가동 시간</value>
+  </data>
+  <data name="up.checking" xml:space="preserve">
+    <value>가동 시간 확인 중…</value>
+  </data>
+  <data name="up.hm" xml:space="preserve">
+    <value>{h}시간 {m}분</value>
+  </data>
+  <data name="up.hms" xml:space="preserve">
+    <value>{h}시간 {m}분 {s}초</value>
+  </data>
+  <data name="up.label" xml:space="preserve">
+    <value>가동</value>
+  </data>
+  <data name="up.ms" xml:space="preserve">
+    <value>{m}분 {s}초</value>
+  </data>
+  <data name="up.s" xml:space="preserve">
+    <value>{s}초</value>
+  </data>
+  <data name="val.no" xml:space="preserve">
+    <value>아니요</value>
+  </data>
+  <data name="val.yes" xml:space="preserve">
+    <value>예</value>
+  </data>
+  <data name="wifi.applying" xml:space="preserve">
+    <value>적용 중…</value>
+  </data>
+  <data name="wifi.connect" xml:space="preserve">
+    <value>연결</value>
+  </data>
+  <data name="wifi.fail" xml:space="preserve">
+    <value>실패: {m}</value>
+  </data>
+  <data name="wifi.failed" xml:space="preserve">
+    <value>실패</value>
+  </data>
+  <data name="wifi.pass" xml:space="preserve">
+    <value>비밀번호</value>
+  </data>
+  <data name="wifi.saved" xml:space="preserve">
+    <value>저장됨</value>
+  </data>
+  <data name="static.note" xml:space="preserve">
+    <value>노트: 이 조각은 컴포넌트 라이브러리(VagabondK.nF.WebUi.Components)에서 왔습니다.</value>
+  </data>
+  <!-- firmware/uptime 마크업의 정적 라벨 번역(en 원문과 짝). -->
+  <data name="static.firmwareLabels" xml:space="preserve">
+    <value>펌웨어 선택</value>
+  </data>
+  <data name="static.firmwareUpload" xml:space="preserve">
+    <value>올리기</value>
+  </data>
+  <data name="static.firmwarePick" xml:space="preserve">
+    <value>파일을 선택하세요</value>
+  </data>
+  <data name="static.uptimeChecking" xml:space="preserve">
+    <value>가동 시간 확인 중…</value>
+  </data>
+</root>

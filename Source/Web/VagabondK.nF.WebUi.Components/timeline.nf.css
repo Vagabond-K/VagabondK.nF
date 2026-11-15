@@ -1,4 +1,0 @@
-.wtl { list-style: none; margin: 0; padding: 0 0 0 4px; }
-.wtl li { position: relative; padding: 0 0 12px 16px; border-left: 2px solid var(--line, #334155); margin-left: 4px; font-size: 12px; color: var(--tx, #e2e8f0); }
-.wtl li:last-child { border-left-color: transparent; }
-.wtl li::before { content: ""; position: absolute; left: -5px; top: 3px; width: 8px; height: 8px; border-radius: 50%; background: var(--acc, #1d4ed8); }

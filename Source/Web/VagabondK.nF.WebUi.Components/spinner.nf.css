@@ -1,2 +1,0 @@
-.ws { display: inline-block; width: 18px; height: 18px; border: 3px solid var(--line, #334155); border-top-color: var(--acc, var(--in, #38bdf8)); border-radius: 50%; animation: wsr 0.8s linear infinite; vertical-align: -4px; }
-@keyframes wsr { to { transform: rotate(360deg); } }

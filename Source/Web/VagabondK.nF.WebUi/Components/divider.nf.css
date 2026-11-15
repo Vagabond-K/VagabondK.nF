@@ -1,0 +1,16 @@
+.wdr {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+}
+.wdr i {
+  flex: 1;
+  height: 1px;
+  background: var(--line, #334155);
+}
+.wdr b {
+  font-size: 11px;
+  color: var(--mut, #94a3b8);
+  font-weight: 600;
+}

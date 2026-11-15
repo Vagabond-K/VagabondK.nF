@@ -1,0 +1,16 @@
+.we {
+  text-align: center;
+  color: var(--mut, #94a3b8);
+  padding: 22px 10px;
+}
+.we i {
+  display: block;
+  font-size: 26px;
+  font-style: normal;
+  margin-bottom: 6px;
+  opacity: 0.6;
+}
+.we p {
+  margin: 0;
+  font-size: 13px;
+}

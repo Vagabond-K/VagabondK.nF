@@ -1,0 +1,16 @@
+/* 로그인·메인 두 페이지가 공유하는 테마(:root 토큰). WebUiTheme으로 지정.
+   링크 모드에서는 컴포넌트 css와 함께 /style.css 한 파일로 번들되어 두 페이지가 같은 파일을 link합니다.
+      라이브러리 login.css의 :root 기본값(청록)보다 나중에 적용되어 이 슬레이트 팔레트가 이깁니다. */
+:root {
+  color-scheme: dark;
+  --bg: #0f172a;
+  --card: #1e293b;
+  --line: #334155;
+  --tx: #e2e8f0;
+  --mut: #94a3b8;
+  --acc: #38bdf8;
+  --fld: #0b1220;
+  --bad: #ef4444;
+  --ok: #22c55e;
+  --in: #38bdf8;
+}

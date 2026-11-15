@@ -1,0 +1,68 @@
+:host {
+  display: block;
+}
+/* --fld: 테마의 필드 배경(입력란 통일용). 미정의면 카드색 유지. */
+.wn {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--line, #334155);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--fld, var(--card, #1e293b));
+}
+/* 셸 전역 button/input 규칙이 base 시트로 그늘에 스며들어 모서리가 겹칩니다 — 컨테이너 안은 평면 유지(마진 0으로 채움). */
+.wn button {
+  border: 0;
+  background: var(--fld, var(--card, #1e293b));
+  /* 스테퍼 ▲▼는 입력값(흰색)보다 한 톤 눌러야 위계가 살아남. */
+  color: var(--mut, #94a3b8);
+  width: 26px;
+  flex: none;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+  border-radius: 0;
+}
+.wn button:hover {
+  background: var(--line, #334155);
+}
+.wn input {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--tx, #e2e8f0);
+  text-align: left;
+  padding: 8px 6px;
+  outline: none;
+  font: inherit;
+  border-radius: 0;
+}
+/* 우측 스테퍼 페어: 네이티브 number 관례대로 세로(위 ▲증가 / 아래 ▼감소).
+   입력란과 페어 사이 구분선 하나, 페어 내부 위아래 구분선 하나. */
+.ws {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  border-left: 1px solid var(--line, #334155);
+}
+.ws button {
+  flex: 1;
+  min-height: 0;
+  font-size: 9px;
+}
+.ws button + button {
+  border-top: 1px solid var(--line, #334155);
+}
+.wn input:disabled {
+  opacity: 0.45;
+}
+:host(:focus-within) .wn {
+  outline: 2px solid var(--acc, #38bdf8);
+}
+:host(.invalid) .wn {
+  border-color: var(--bad, #ef4444);
+}

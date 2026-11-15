@@ -1,0 +1,45 @@
+:host(:empty) {
+  display: none;
+}
+.wcl {
+  border: 1px solid var(--line, #334155);
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 4px 0;
+}
+.wcl > button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 0;
+  background: var(--card, #1e293b);
+  color: var(--tx, #e2e8f0);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+.wcl > button i {
+  margin-left: auto;
+  font-style: normal;
+  color: var(--mut, #94a3b8);
+  transition: transform 0.15s;
+}
+.cP {
+  max-height: 0;
+  overflow: hidden;
+  transition:
+    max-height 0.2s ease,
+    padding 0.2s ease;
+  padding: 0 12px;
+  font-size: 13px;
+}
+:host([open]) > .wcl > .cP {
+  max-height: 400px;
+  padding: 8px 12px;
+}
+:host([open]) > .wcl > button i {
+  transform: rotate(180deg);
+}

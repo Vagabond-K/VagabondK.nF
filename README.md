@@ -24,7 +24,7 @@
 | MMS | 제한형 일반 MMS Client·Server, Read/Write·탐색·명명 목록·보고, 객체 매핑 | [MMS 안내](Source/MMS/README.md) |
 | IEC 61850 | MMS 기반 제한형 Client·Server, DataSet·URCB·SPC/DPC/APC 제어, 매핑·SCL 생성 | [IEC 61850 안내](Source/IEC61850/README.md) |
 | MQTT·Sparkplug | MQTT 3.1/3.1.1/5 클라이언트, QoS0/1/2·TLS·RAM 세션, 제한형 Sparkplug B, JSON·메트릭 정적 매핑 | [MQTT 안내](Source/MQTT/README.md) |
-| Web | 관리자 비밀번호 해시·RAM 세션·API 키·로그인 잠금이 있는 임베디드 웹 인증 | [Web 안내](Source/Web/README.md) |
+| Web | 임베디드 웹 인증(비밀번호 해시·RAM 세션·API 키·잠금)과 빌드 타임 장치 관리 화면 조립(WebUi) | [Web 안내](Source/Web/README.md) |
 
 프로토콜 간 자동 동기화 엔진은 제공하지 않습니다.
 MMS는 IEC 61850에 의존하지 않으며 IEC 61850이 MMS를 참조합니다. 나머지 프로토콜도 서로 독립입니다.
@@ -118,6 +118,17 @@ Sparkplug는 멤버 형식으로부터 메트릭 형식을 확정하는 선언�
 매핑 생성기는 다른 그룹과 마찬가지로 PC 빌드 전용이며, 샘플은 장치별 모델·설정과 생성 API 사용법을 보여 줍니다.
 MQTT 매핑은 제한된 JSON 계약을 제공하며 임의의 페이로드 형식을 자동으로 추정하지 않습니다.
 
+### Web
+
+| 프로젝트 | 종류 | 요약 |
+|---|---|---|
+| [VagabondK.nF.Web](Source/Web/VagabondK.nF.Web/README.md) | 런타임 | `GuardedWebServer` fail-closed 인증, `LoginGuard`/토큰 저장소, 표준 인증 API(`AuthController`), JSON 헬퍼 |
+| [VagabondK.nF.WebUi](Source/Web/VagabondK.nF.WebUi/README.md) | 도구 | HTML·JS·CSS 조각과 다국어 resx를 빌드 타임에 조립·축소·gzip해 이진 리소스로 임베드하는 MSBuild.targets + 컴포넌트 라이브러리 |
+| [VagabondK.nF.WebUi.Tasks](Source/Web/VagabondK.nF.WebUi/README.md) | 도구 | 위 생성기의 실제 동작(MSBuild 작업 어셈블리). 소비자 프로젝트에서는 targets가 자동으로 빌드·실행 |
+
+WebUi는 리플렉션·런타임 생성 없이 장치 힙을 쓰지 않는 관리 화면을 목표로 하며,
+인증 레이어(VagabondK.nF.Web)와 조합해 로그인 있는 웹 UI를 만든다(예: [Web 샘플](Samples/Web/VagabondK.nF.Web.Sample/README.md)).
+
 ### 공통 공유 소스
 
 | 프로젝트 | 종류 | 요약 |
@@ -140,6 +151,7 @@ MQTT 매핑은 제한된 JSON 계약을 제공하며 임의의 페이로드 형�
 | MMS | [일반 MMS 객체 매핑](Samples/MMS) | [일반 MMS·정적 매핑 회귀](Tests/MMS) |
 | IEC 61850 | [TCP Client·Server와 객체 매핑](Samples/IEC61850) | [IEC 서비스·SCL 생성·매핑·실물 검증](Tests/IEC61850) |
 | MQTT·Sparkplug | [생성 매핑을 사용하는 JSON·Sparkplug B 장치 간 데이터 공유](Samples/MQTT) | [생성기 진단·값 변환·MQTT/Sparkplug 계약, 공유·TLS·브로커·실물 검증](Tests/MQTT) |
+| Web | [WebUi + 인증 조합 관리 화면(로그인·탭·폼·다국어)](Samples/Web/VagabondK.nF.Web.Sample) | [인증·CSRF·서빙 계약 PC 회귀](Tests) |
 | 공통 | — | [장시간 반복 시험 계측 회귀·nanoCLR 가상 검증·공유 테스트 소스](Tests/Common) |
 
 매핑 샘플의 폴더·프로젝트·어셈블리·네임스페이스는 `VagabondK.nF.<그룹>.Mapping`으로 맞춥니다.

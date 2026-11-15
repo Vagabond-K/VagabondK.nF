@@ -2,16 +2,13 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <LangVersion>latest</LangVersion>
-    <IsRoslynComponent>true</IsRoslynComponent>
-    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <NoWarn>$(NoWarn);RS2008</NoWarn>
     <RootNamespace>VagabondK.nF.WebUi</RootNamespace>
+    <!-- 팩 내용은 targets+Assets+Components(Tasks가 dll 제공). 이 프로젝트는 VS 편집/컴파일 확인용. -->
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <IsPackable>false</IsPackable>
+    <!-- 이 프로젝트는 VS 편집/컴파일 확인용: Entry DTO 필드 할당은 Tasks 프로젝트 코드에서 일어난다. -->
+    <NoWarn>$(NoWarn);CS0649</NoWarn>
   </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" PrivateAssets="all" />
-    <None Include="$(OutputPath)$(AssemblyName).dll" Pack="true" PackagePath="analyzers\dotnet\cs" />
-  </ItemGroup>
 </Project>

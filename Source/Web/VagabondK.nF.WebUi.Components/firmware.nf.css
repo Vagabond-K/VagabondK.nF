@@ -1,6 +1,0 @@
-.fw { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.fw-bar { flex: 1 1 120px; min-width: 90px; height: 10px; border-radius: 5px; background: var(--bg, #0b1220); border: 1px solid var(--line, #334155); overflow: hidden; }
-.fw-bar i { display: block; height: 100%; width: 0; background: var(--in, #38bdf8); transition: width .2s; }
-.fw-bar i.done { background: var(--ok, #22c55e); }
-.fi { display: inline-block; background: none; border: 1px solid var(--line, #334155); color: var(--mut, #94a3b8); font: inherit; border-radius: 6px; padding: 6px 10px; cursor: pointer; }
-.fi:hover { border-color: var(--in, #38bdf8); color: var(--tx, #e2e8f0); }

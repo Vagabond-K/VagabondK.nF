@@ -1,0 +1,41 @@
+@route:/login login
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="icon" href="data:," />
+    <title id="t">{{BRAND}} Sign in</title>
+<nf-style/>
+    <style>
+/* i18n hold: 번역 적용(login.nf.js의 클래스 추가) 전까지만 숨김 — 시간 기반 애니메이션과
+   달리 사전이 늦어도 영어가 보이지 않습니다. :not 미지원 구형 브라우저서는 단순 무시(현상 유지). */
+html:not(.wui-i18n) body {
+        visibility: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <h1>{{BRAND}}</h1>
+      <p id="intro">
+        This device is protected. Enter the administrator password.
+      </p>
+      <form id="f">
+        <label id="lp"
+          >Password
+          <span class="pw"
+            ><input
+              id="p"
+              type="password"
+              autocomplete="current-password"
+              autofocus /><button id="eye" type="button"></button
+          ></span>
+        </label>
+        <button id="b" type="submit">Sign in</button>
+      </form>
+      <p id="e" class="err" hidden></p>
+    </main>
+<nf-script/>
+  </body>
+</html>

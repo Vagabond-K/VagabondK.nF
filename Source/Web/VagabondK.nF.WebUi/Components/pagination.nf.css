@@ -1,0 +1,33 @@
+.wpg {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line, #334155);
+  border-radius: 6px;
+  padding: 2px 6px;
+  background: var(--card, #1e293b);
+}
+.wpg button {
+  border: 0;
+  background: none;
+  /* 글자형 아이콘(‹ ›)은 본문 흰색보다 뮤트 색이 주제와 어울림. */
+  color: var(--mut, #94a3b8);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 6px;
+  margin: 0;
+  line-height: 1;
+}
+.wpg button:hover {
+  color: var(--acc, #1d4ed8);
+}
+.wpg button:disabled {
+  color: var(--line, #475569);
+  cursor: default;
+}
+.pi {
+  font-size: 12px;
+  color: var(--mut, #94a3b8);
+  min-width: 40px;
+  text-align: center;
+}

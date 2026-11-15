@@ -1,0 +1,17 @@
+:host {
+  display: block;
+  margin-bottom: 16px;
+}
+:host(:empty) {
+  display: none;
+}
+.wc {
+  background: var(--card, #1e293b);
+  border-radius: 10px;
+  padding: 16px;
+}
+.wc h2 {
+  font-size: 13px;
+  margin: 0 0 10px;
+  color: var(--mut, #94a3b8);
+}

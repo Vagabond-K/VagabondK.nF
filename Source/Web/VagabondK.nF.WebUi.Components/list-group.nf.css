@@ -1,5 +1,0 @@
-.wlg { list-style: none; margin: 4px 0; padding: 0; border: 1px solid var(--line, #334155); border-radius: 8px; overflow: hidden; }
-.wlg li { padding: 8px 12px; font-size: 13px; color: var(--tx, #e2e8f0); cursor: pointer; border-bottom: 1px solid var(--card, #1e293b); }
-.wlg li:last-child { border-bottom: 0; }
-.wlg li:hover { background: var(--card, #1e293b); }
-.wlg li.on { background: var(--acc, #1d4ed8); color: #fff; }

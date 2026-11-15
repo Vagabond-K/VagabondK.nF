@@ -1,0 +1,25 @@
+.wrb {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.wrb button {
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid #7f1d1d;
+  background: #7f1d1d;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.wrb button:hover {
+  background: #991b1b;
+}
+.wrb button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.wrb .msg {
+  font-size: 12px;
+}

@@ -1,0 +1,17 @@
+.wsk {
+  display: block;
+  background: linear-gradient(
+    90deg,
+    var(--card, #1e293b) 25%,
+    var(--line, #334155) 50%,
+    var(--card, #1e293b) 75%
+  );
+  background-size: 200% 100%;
+  animation: wskm 1.2s ease infinite;
+  border-radius: 6px;
+}
+@keyframes wskm {
+  to {
+    background-position: -200% 0;
+  }
+}

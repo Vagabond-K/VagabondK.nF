@@ -1,0 +1,296 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <!-- Base-language (en) dictionary source. Named entries = uiText fallbacks; static.NNN = static-region originals (comment shows the text). Build-tool file only - never embedded. -->
+  <data name="core.busy" xml:space="preserve">
+    <value>Working…</value>
+  </data>
+  <data name="core.timeout" xml:space="preserve">
+    <value>The device did not respond in time.</value>
+  </data>
+  <data name="core.offline" xml:space="preserve">
+    <value>Cannot reach the device.</value>
+  </data>
+  <data name="val.yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="val.no" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="form.loading" xml:space="preserve">
+    <value>Loading settings…</value>
+  </data>
+  <data name="form.invalid" xml:space="preserve">
+    <value>Check the entered values.</value>
+  </data>
+  <data name="form.pending" xml:space="preserve">
+    <value>{n} change(s) pending - not saved yet</value>
+  </data>
+  <data name="form.clean" xml:space="preserve">
+    <value>Matches the settings stored on the device.</value>
+  </data>
+  <data name="form.saved" xml:space="preserve">
+    <value>Saved.</value>
+  </data>
+  <data name="form.confirm" xml:space="preserve">
+    <value>Save these settings?</value>
+  </data>
+  <data name="form.save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="form.undo" xml:space="preserve">
+    <value>Undo</value>
+  </data>
+  <data name="conn.label" xml:space="preserve">
+    <value>Connected</value>
+  </data>
+  <data name="conn.checking" xml:space="preserve">
+    <value>Checking…</value>
+  </data>
+  <data name="conn.stale" xml:space="preserve">
+    <value>No response for {n}s</value>
+  </data>
+  <data name="up.label" xml:space="preserve">
+    <value>Uptime</value>
+  </data>
+  <data name="up.checking" xml:space="preserve">
+    <value>Checking uptime…</value>
+  </data>
+  <data name="up.hms" xml:space="preserve">
+    <value>{h}h {m}m {s}s</value>
+  </data>
+  <data name="up.hm" xml:space="preserve">
+    <value>{h}h {m}m</value>
+  </data>
+  <data name="up.ms" xml:space="preserve">
+    <value>{m}m {s}s</value>
+  </data>
+  <data name="up.s" xml:space="preserve">
+    <value>{s}s</value>
+  </data>
+  <data name="heap.label" xml:space="preserve">
+    <value>Heap</value>
+  </data>
+  <data name="sys.uptime" xml:space="preserve">
+    <value>Uptime</value>
+  </data>
+  <data name="sys.heap" xml:space="preserve">
+    <value>Free heap</value>
+  </data>
+  <data name="sys.req" xml:space="preserve">
+    <value>Requests</value>
+  </data>
+  <data name="sys.profile" xml:space="preserve">
+    <value>Profile</value>
+  </data>
+  <data name="reboot.btn" xml:space="preserve">
+    <value>Reboot</value>
+  </data>
+  <data name="reboot.title" xml:space="preserve">
+    <value>Reboot</value>
+  </data>
+  <data name="reboot.body" xml:space="preserve">
+    <value>The device will restart. Access will pause briefly.</value>
+  </data>
+  <data name="reboot.fail" xml:space="preserve">
+    <value>Reboot failed: {m}</value>
+  </data>
+  <data name="reboot.noresp" xml:space="preserve">
+    <value>no response</value>
+  </data>
+  <data name="reboot.count" xml:space="preserve">
+    <value>Restarting in {n}s…</value>
+  </data>
+  <data name="wifi.pass" xml:space="preserve">
+    <value>Password</value>
+  </data>
+  <data name="wifi.connect" xml:space="preserve">
+    <value>Connect</value>
+  </data>
+  <data name="wifi.applying" xml:space="preserve">
+    <value>Applying…</value>
+  </data>
+  <data name="wifi.saved" xml:space="preserve">
+    <value>Saved</value>
+  </data>
+  <data name="wifi.failed" xml:space="preserve">
+    <value>Failed</value>
+  </data>
+  <data name="wifi.fail" xml:space="preserve">
+    <value>Failed: {m}</value>
+  </data>
+  <data name="modal.ok" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="modal.cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="ei.export" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="ei.import" xml:space="preserve">
+    <value>Import</value>
+  </data>
+  <data name="ei.exporting" xml:space="preserve">
+    <value>Exporting…</value>
+  </data>
+  <data name="ei.exported" xml:space="preserve">
+    <value>Exported.</value>
+  </data>
+  <data name="ei.exportFail" xml:space="preserve">
+    <value>Export failed: {m}</value>
+  </data>
+  <data name="ei.badJson" xml:space="preserve">
+    <value>Failed to parse JSON.</value>
+  </data>
+  <data name="ei.importing" xml:space="preserve">
+    <value>Importing…</value>
+  </data>
+  <data name="ei.noKeys" xml:space="preserve">
+    <value>No setting keys</value>
+  </data>
+  <data name="ei.imported" xml:space="preserve">
+    <value>Imported - reloading</value>
+  </data>
+  <data name="ei.rejected" xml:space="preserve">
+    <value>Rejected by device: {m}</value>
+  </data>
+  <data name="ei.importFail" xml:space="preserve">
+    <value>Import failed: {m}</value>
+  </data>
+  <data name="fw.choose" xml:space="preserve">
+    <value>Choose firmware</value>
+  </data>
+  <data name="fw.upload" xml:space="preserve">
+    <value>Upload</value>
+  </data>
+  <data name="fw.pick" xml:space="preserve">
+    <value>Choose a file</value>
+  </data>
+  <data name="fw.refused" xml:space="preserve">
+    <value>the device refused it</value>
+  </data>
+  <data name="fw.sending" xml:space="preserve">
+    <value>Sending {n}%</value>
+  </data>
+  <data name="fw.done" xml:space="preserve">
+    <value>Upload complete - {n} chunks</value>
+  </data>
+  <data name="fw.okTitle" xml:space="preserve">
+    <value>Transfer complete</value>
+  </data>
+  <data name="fw.okSub" xml:space="preserve">
+    <value>The device may restart to apply it.</value>
+  </data>
+  <data name="fw.fail" xml:space="preserve">
+    <value>Failed: {m}</value>
+  </data>
+  <data name="fw.badTitle" xml:space="preserve">
+    <value>Upload failed</value>
+  </data>
+  <data name="apbar.text" xml:space="preserve">
+    <value>This device is in setup AP mode. Connect it to the production network to finish setup.</value>
+  </data>
+  <data name="pw.show" xml:space="preserve">
+    <value>Show password</value>
+  </data>
+  <data name="pw.hide" xml:space="preserve">
+    <value>Hide password</value>
+  </data>
+  <data name="empty.text" xml:space="preserve">
+    <value>No data</value>
+  </data>
+  <data name="panel.device" xml:space="preserve">
+    <value>Device - {id}</value>
+  </data>
+  <data name="panel.name" xml:space="preserve">
+    <value>Device name</value>
+  </data>
+  <data name="login.title" xml:space="preserve">
+    <value>Sign in</value>
+  </data>
+  <data name="login.titleSuffix" xml:space="preserve">
+    <value> Sign in</value>
+  </data>
+  <data name="login.intro" xml:space="preserve">
+    <value>This device is protected. Enter the administrator password.</value>
+  </data>
+  <data name="login.locked" xml:space="preserve">
+    <value>Sign-in is locked. Try again in {n}s.</value>
+  </data>
+  <data name="login.nostatus" xml:space="preserve">
+    <value>Could not read device status.</value>
+  </data>
+  <data name="login.checking" xml:space="preserve">
+    <value>Checking...</value>
+  </data>
+  <data name="login.fail" xml:space="preserve">
+    <value>Sign-in failed.</value>
+  </data>
+  <data name="static.note" xml:space="preserve">
+    <value>note: this fragment comes from the component library (VagabondK.nF.WebUi.Components).</value>
+  </data>
+  <!-- firmware/uptime 마크업의 정적 라벨: static.nf.js의 en 원문 치환용. -->
+  <data name="static.firmwareLabels" xml:space="preserve">
+    <value>Choose firmware</value>
+  </data>
+  <data name="static.firmwareUpload" xml:space="preserve">
+    <value>Upload</value>
+  </data>
+  <data name="static.firmwarePick" xml:space="preserve">
+    <value>Choose a file</value>
+  </data>
+  <data name="static.uptimeChecking" xml:space="preserve">
+    <value>Checking uptime…</value>
+  </data>
+</root>

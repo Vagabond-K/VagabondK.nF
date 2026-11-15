@@ -1,0 +1,155 @@
+/* 라이브러리 표준 로그인 스타일입니다. 색감은 :root 토큰이 정합니다:
+   공유 테마(기본 Assets\theme.css 또는 WebUiTheme 지정 파일)가 link/인라인로 주입되어
+   이 기본값을 나중에 덮어씁니다(값은 기본 테마와 동일하게 유지). */
+:root {
+  color-scheme: dark;
+  --bg: #0c1318;
+  --card: #141f27;
+  --line: #263843;
+  --tx: #e6eff3;
+  --mut: #8ba2ad;
+  --acc: #4fd1a5;
+  --fld: #0e171d;
+  --bad: #ff6b6b;
+}
+/* 마크업의 영어 리터럴은 login.js가 사전으로 갈아쓰므로 첫 페인트 깜빔이 생깁니다 —
+   셸(main)과 같은 지연 게이트로 치환 완료 후 노출합니다(실패해도 애니메이션이 자동 해제). */
+@keyframes wui-in {
+  from {
+    opacity: 0;
+  }
+}
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  color: var(--tx);
+  font-family: system-ui, "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  animation: wui-in 0.01s linear 0.25s backwards;
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 24px 28px;
+  width: 300px;
+}
+/* 메인 화면 .brand와 동일 구조: 본문 색 + 강조 어미(Gate). 분할은 login.js가 합니다. */
+h1 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+h1 b {
+  color: var(--acc);
+  font-weight: inherit;
+}
+p {
+  margin: 0 0 16px;
+  color: var(--mut);
+  font-size: 13px;
+}
+label {
+  display: block;
+  font-size: 13px;
+  color: var(--mut);
+  margin-bottom: 12px;
+}
+input {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--fld);
+  color: var(--tx);
+  font: inherit;
+}
+input:focus {
+  outline: 2px solid var(--acc);
+  border-color: transparent;
+}
+button {
+  width: 100%;
+  padding: 9px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--acc);
+  color: var(--bg);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.5;
+}
+.err {
+  color: var(--bad);
+  font-size: 13px;
+  margin: 12px 0 0;
+}
+/* 표시(눈) 버튼 — wui-password 컴포넌트와 같은 메커니즘: 텍스트 눈글자 + .slash 대각선(CSS), 네이티브 눈은 숨깁니다. */
+.pw {
+  display: flex;
+  margin-top: 4px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--fld);
+  overflow: hidden;
+}
+.pw input {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  margin-top: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--tx);
+  padding: 8px 10px;
+  outline: none;
+  font: inherit;
+}
+.pw input::-webkit-textfield-decoration-container,
+.pw input::-ms-reveal {
+  display: none;
+}
+/* width:auto 필수: 위 범용 button{width:100%}(Sign in용)가 same-cascade에서 남습니다. */
+.pw button {
+  flex: none;
+  width: auto;
+  border: 0;
+  border-left: 1px solid var(--line);
+  background: var(--fld);
+  color: var(--tx);
+  cursor: pointer;
+  padding: 0 10px;
+  font-size: 14px;
+  line-height: 1;
+  position: relative;
+  border-radius: 0;
+}
+.pw button:hover {
+  background: var(--line);
+}
+.pw button.slash::after {
+  content: "";
+  position: absolute;
+  left: 25%;
+  right: 25%;
+  top: 50%;
+  height: 1px;
+  background: currentColor;
+  transform: rotate(-30deg);
+}
+.pw:focus-within {
+  outline: 2px solid var(--acc);
+}

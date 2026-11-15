@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -10,36 +11,95 @@ namespace VagabondK.nF.WebUi
 {
     /// <summary>
     /// 셸+프로필 페이지를 머지/축소/gzip/해시하여 WebPage 소스 텍스트로 만드는 순수 로직.
-    /// VagabondK.nF.WebUi.targets의 인라인 RoslynCodeTask 로직에서 그대로 이식했다.
+    /// VagabondK.nF.WebUi.targets의 인라인 RoslynCodeTask 로직에서 그대로 이식했습니다.
     /// </summary>
     internal sealed class PageComposer
     {
         internal sealed class Result
         {
-            public string Source;      // 생성 실패 시 null
             public string ErrorFile;   // 실패 원본 파일 경로
             public string ErrorMessage;
             public string Info;        // 크기 요약 메시지
+            public byte[] Gzip;        // 축약 페이지의 gzip 바이트(리소스 파츠로 분할 저장)
+            public uint Hash;          // html 원문 FNV-1a(ETag)
+            // linkCss=true일 때 /style.css 자산으로 합칠 테마+컴포넌트 css 조각(페이지 자기 css는
+            // 제외 — 항상 페이지 HTML에 인라인). Task가 여러 페이지의 것을 유니온해 자산 하나로 만듭니다.
+            public List<string> CssAssetLines;
+            public byte[] TextsGzip;   // /texts.js: 다국어 사전(번역 언어만 — en은 텍스트에 주입되므로 사전에서 제외)
+            public uint TextsHash;
+            public byte[] I18nGzip;    // /i18n.js: 공용 i18n 런타임(코어·로그인 공유 — uiText 복제 방지)
+            public uint I18nHash;
+            public List<string> EnMisses; // en 사전에 없어 폴백이 주입되지 않은 uiText 키(빌드 경고용)
         }
 
-        static readonly string[] Markers = { "<!--@manifest-->", "<!--@core-->", "<!--@style-->", "<!--@views-->", "<!--@script-->" };
-        const string ManifestMarker = "<!--@manifest-->";
-        const string InstanceMarker = "<!--@instance-->";
-        // @instance 인수 허용: <!--@instance--> 또는 <!--@instance form-->(form=폼 연관 커스텀 엘리먼트).
-        static readonly Regex InstanceRe = new Regex(@"<!--@instance((?:\s+[a-zA-Z0-9_-]+)*)\s*-->", RegexOptions.Compiled);
-        // 빌드타임 슬롯은 폐기되었다(Phase 2): 섀도잉 가능한 <name/> 컴포넌트로 대체.
+        // 주입 마커: <nf-core/> 같은 요소 표기 단독 줄(슬래시 생략 <nf-core>도 동일).
+        // 구 <!--@x--> 주석 표기는 script/style 안에서 VS TS1206 경고를 내므로 폐기되고,
+        // 태그 밖 단독 줄로 옮겼습니다. 발견 시 빌드 실패로 마이그레이션을 안내합니다.
+        static readonly Regex NfMarkerRe = new Regex(@"^<nf-(core|style|views|script)/?>$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        static readonly string[] Markers = { "<nf-core/>", "<nf-style/>", "<nf-views/>", "<nf-script/>" };
+        static readonly Regex LegacyMarker = new Regex(@"<!--@(manifest|core|style|views|script|instance|route|slot|use)", RegexOptions.Compiled);
+        const string MarkerMigrationMsg = "comment markers were removed: put <nf-core/>/<nf-style/>/<nf-views/>/<nf-script/> alone on their own lines outside script/style blocks, and write routes/instances as @route:/path opts / @instance [form] (see README)";
+        // @instance: 단독 줄에서만 성립. @instance 또는 @instance form(form=폼 연관 커스텀 엘리먼트).
+        static readonly Regex InstanceRe = new Regex(@"^@instance((?:\s+[a-zA-Z0-9_-]+)*)\s*$", RegexOptions.Compiled);
+        // 라우트 마커: *.nf.html 파일의 첫 줄에만 성립. @route:/path login public 형식.
+        // 옵션 쉼표/공백 구분: login(가드 LoginPagePath 지정 + 텍스트 부분집합 인라인 + no-store),
+        // public([PublicEndpoint]로 익명 개방). none은 공유 페이지 섀도잉용(라우트 생성에서 제외).
+        // 첫 줄이 아니면 라우트 마커가 아니다(본문의 @instance 등과의 혼동 방지).
+        static readonly Regex RouteRe = new Regex(@"^@route:(\S+)(?:\s+([A-Za-z0-9_ ,\-]+))?\s*$", RegexOptions.Compiled);
+
+        internal sealed class PageRoute
+        {
+            public string Path;
+            public bool IsLogin;
+            public bool IsPublic;
+            public bool IsNone;
+        }
+
+        // 첫 줄에서 라우트 마커를 판정합니다. 반환 null = 마커 없음(= 컴포넌트).
+        // err != null = 마커는 있는데 형식 오류(빌드 오류로 알릴 것).
+        internal static PageRoute ParseRoute(string[] lines, out string err)
+        {
+            err = null;
+            if (lines.Length == 0) return null;
+            Match m = RouteRe.Match(lines[0].Trim());
+            if (!m.Success) return null;
+            var pr = new PageRoute();
+            string p = m.Groups[1].Value;
+            if (p.Equals("none", StringComparison.OrdinalIgnoreCase)) { pr.IsNone = true; return pr; }
+            if (p.Length == 0 || p[0] != '/') p = "/" + p;
+            while (p.Length > 1 && p[p.Length - 1] == '/') p = p.Substring(0, p.Length - 1);
+            pr.Path = p;
+            if (m.Groups[2].Success)
+            {
+                string[] opts = m.Groups[2].Value.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
+                for (int i = 0; i < opts.Length; i++)
+                {
+                    if (opts[i].Equals("login", StringComparison.OrdinalIgnoreCase)) pr.IsLogin = true;
+                    else if (opts[i].Equals("public", StringComparison.OrdinalIgnoreCase)) pr.IsPublic = true;
+                    else { err = "unknown @route option \"" + opts[i] + "\" (allowed: login, public, or path \"none\")"; return pr; }
+                }
+            }
+            return pr;
+        }
+        // 빌드타임 슬롯은 폐기되었습니다(Phase 2): 섀도잉 가능한 <name/> 컴포넌트로 대체됩니다.
         const string SlotRemovedMsg = "@slot syntax was removed: expose a shadowable name.nf.html component and reference it as <name/> instead";
-        // @use 마커는 제거되었다: 참조는 <name/>(줄 전체) 또는 인스턴스의 <wui-name> 태그만 인정한다.
-        // 오래된 마커가 조용히 무력화되지 않도록 발견 시 빌드 실패로 알린다.
+        // @use 마커는 제거되었습니다: 참조는 <name/>(줄 전체) 또는 인스턴스의 <wui-name> 태그만 인정합니다.
+        // 오래된 마커가 조용히 무력화되지 않도록 발견 시 빌드 실패로 알립니다.
         static readonly Regex UseMarkerGone = new Regex(@"<!--@use:", RegexOptions.Compiled);
         // <wui-name ...> 여는 태그 = 인스턴스 컴포넌트 참조(본문 보유 컴포넌트의 마크업 방식).
         static readonly Regex WuiTag = new Regex(@"<wui-([a-z][a-z0-9-]*)(?=[\s/>])", RegexOptions.Compiled);
-        // <name/> 문법: 비-void 요소의 자기종결은 HTML 금기 표기라 줄 전체가 마커다(Phase 2 로드맵).
+        // <name/> 문법: 비-void 요소의 자기종결은 HTML 금기 표기라 줄 전체가 마커입니다(Phase 2 로드맵).
         // 속성 허용(@instance 컴포넌트의 파라미터): <name a="1" b/> → 그룹2가 속성 문자열.
         static readonly Regex SelfCloseTag = new Regex(@"^<([a-z][a-z0-9-]*)((?:\s+[a-zA-Z0-9_-]+(?:=""[^""]*"")?)*)\s*/>$", RegexOptions.Compiled);
         // 가드: 위와 같은 태그가 줄 전체에 없으면(인라인) 참조로 인식 못 하고 원문 통과→조용한 파손.
-        // known component 이름을 인라인에서 만나면 빌드 실패로 알린다.
+        // known component 이름을 인라인에서 만나면 빌드 실패로 알립니다.
         static readonly Regex InlineRef = new Regex(@"<([a-z][a-z0-9-]*)((?:\s+[a-zA-Z0-9_-]+(?:=""[^""]*"")?)*)\s*/>", RegexOptions.Compiled);
+        // 여러 줄로 들여쓰기된 자기종결 참조의 시작 줄: <name 또는 <name attr="v" …로 끝나고 >가 없는 줄.
+        // MergeRefs가 이런 블록을 한 줄로 합쳐 SelfCloseTag 규칙(<name attrs/>)에 태웁니다(들여쓰기 가독성 보존).
+        static readonly Regex MultiOpen = new Regex(@"^<([a-z][a-z0-9-]*)((?:\s+[a-zA-Z0-9_-]+(?:=""[^""]*"")?)*)$", RegexOptions.Compiled);
+        // 가드: <wui-name .../> 자기종결 표기. 커스텀 엘리먼트는 HTML에서 자기종결이 무시되어
+        // 브라우저가 여는 태그로 해석하고 뒤 형제를 shadow 안으로 삼켜버리므로 짝 표기(<wui-name ...></wui-name>)만 허용합니다.
+        static readonly Regex WuiSelfClose = new Regex(@"(<wui-[a-z][a-z0-9-]*)((?:\s+[a-zA-Z0-9_-]+(?:=""[^""]*"")?)*)\s*/>", RegexOptions.Compiled);
         static readonly HashSet<string> VoidNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
             "br", "hr", "img", "input", "link", "meta", "base", "area", "embed", "col", "param", "source", "track", "wbr" };
         // 폼 컨트롤과 data-label/data-fmt 속성 스캔용(마크업 → manifest.form 자동 유도).
@@ -73,7 +133,7 @@ namespace VagabondK.nF.WebUi
 
         internal static string[] ReadLines(string text)
         {
-            // File.ReadAllLines와 동일하게: 줄바꿈으로 자르고 마지막 빈 원소는 버린다.
+            // File.ReadAllLines와 동일하게: 줄바꿈으로 자르고 마지막 빈 원소는 버립니다.
             if (text.Length == 0) return new string[0];
             string[] lines = text.Replace("\r\n", "\n").Replace("\r", "\n").Split('\n');
             if (lines.Length > 0 && lines[lines.Length - 1].Length == 0)
@@ -85,8 +145,8 @@ namespace VagabondK.nF.WebUi
             return lines;
         }
 
-        // WUI(Web Components) 메커니즘은 인스턴스 컴포넌트에만 필요하다.
-        // 인스턴스가 없으면 센티널 이후를 버려 페이지 바이트(nF 문자열 힙)를 아낀다.
+        // WUI(Web Components) 메커니즘은 인스턴스 컴포넌트에만 필요합니다.
+        // 인스턴스가 없으면 센티널 이후를 버려 페이지 바이트(nF 문자열 힙)를 아낍니다.
         internal static System.Collections.Generic.IEnumerable<string> CoreLines(string coreText, bool includeWui)
         {
             foreach (string l in ReadLines(coreText))
@@ -96,121 +156,72 @@ namespace VagabondK.nF.WebUi
             }
         }
 
-        internal static Result Compose(string shellText, string profileText, string coreText, string shellPath, string profilePath, string ns, string cls,
-            string id, string componentsRoot, Dictionary<string, ComponentFiles> components)
+        internal static Result Compose(string[] pageLines, string coreText, string pagePath, string ns, string cls,
+            string id, string componentsRoot, Dictionary<string, ComponentFiles> components, bool linkCss, string themeText, string textsText, string i18nText,
+            Dictionary<string, string> enFallbacks, string brand, string[] ownCss, string[] ownJs, string inlineTexts, bool isLogin)
         {
             var c = new PageComposer();
-            return c.Run(shellText, profileText, coreText, shellPath, profilePath, ns, cls, id, componentsRoot, components);
+            return c.Run(pageLines, coreText, pagePath, ns, cls, id, componentsRoot, components, linkCss, themeText, textsText, i18nText, enFallbacks, brand, ownCss, ownJs, inlineTexts, isLogin);
         }
 
         void Fail(string file, string message) { res.ErrorFile = file; res.ErrorMessage = message; }
 
         static string MarkerOf(string raw)
         {
-            string line = raw.Trim();
-            for (int i = 0; i < Markers.Length; i++) if (Markers[i] == line) return line;
-            return null;
+            Match m = NfMarkerRe.Match(raw.Trim());
+            return m.Success ? "<nf-" + m.Groups[1].Value.ToLowerInvariant() + "/>" : null;
         }
 
-        Result Run(string shellText, string profileText, string coreText, string shellPath, string profilePath, string ns, string cls,
-            string id, string componentsRoot, Dictionary<string, ComponentFiles> components)
+        Result Run(string[] shellLines, string coreText, string pagePath, string ns, string cls,
+            string id, string componentsRoot, Dictionary<string, ComponentFiles> components, bool linkCss, string themeText, string textsText, string i18nText,
+            Dictionary<string, string> enFallbacks, string brand, string[] ownCss, string[] ownJs, string inlineTexts, bool isLogin)
         {
             res = new Result();
+            res.EnMisses = new List<string>();
             var result = res;
+            // 공유 테마(WebUiTheme): :root 토큰 한 꾸러미. 링크 모드면 /style.css 자산에
+            // 컴포넌트 css와 함께 들어가 모든 페이지가 같은 파일을 link하고,
+            // 인라인 모드면 각 페이지의 @style 자리에 같은 텍스트로 인라인됩니다.
+            var themeLines = MinifyLines(themeText ?? string.Empty);
             this.componentsRoot = (componentsRoot ?? string.Empty).Replace('|', ';');
             this.components = components ?? new Dictionary<string, ComponentFiles>(StringComparer.Ordinal);
-            string[] shellLines = ReadLines(shellText);
-            // 페이지 모드(WebUiPage): 프로필 없는 단일 루트 페이지. @manifest/@views 마커는 선택이고,
-            // @manifest 줄에는 같은 줄에 JSON을 적을 수 있다(마이그레이션 기간의 features 임시 보관처).
-            bool pageMode = string.IsNullOrEmpty(profileText) || profileText.Trim().Length == 0;
-            string contentPath = pageMode ? shellPath : profilePath;
-            string inlineManifest = null;
+            // 페이지 첫 줄 라우트 마커(@route)는 판정 전용이므로 여기서 제거한다(Task는 원본 줄을 그대로 넘김).
+            // <nf-views>/<nf-core>는 선택, <nf-style>/<nf-script>는 필수 마커.
+            if (shellLines.Length > 0 && RouteRe.IsMatch(shellLines[0].Trim()))
+            {
+                var stripped = new string[shellLines.Length - 1];
+                Array.Copy(shellLines, 1, stripped, 0, stripped.Length);
+                shellLines = stripped;
+            }
+            // manifest는 페이지가 선언하지 않습니다: id는 WebUiId 속성, form은 마크업 유도(Phase 1.5 완결).
+            string contentPath = pagePath;
             var shellAt = new Dictionary<string, int>();
             for (int i = 0; i < shellLines.Length; i++)
             {
                 string m = MarkerOf(shellLines[i]);
-                if (m == null && pageMode)
+                if (m == null)
                 {
-                    string t = shellLines[i].Trim();
-                    if (t.StartsWith(ManifestMarker, StringComparison.Ordinal))
-                    {
-                        m = ManifestMarker;
-                        inlineManifest = t.Substring(ManifestMarker.Length).Trim();
-                    }
+                    if (LegacyMarker.IsMatch(shellLines[i])) { Fail(pagePath, MarkerMigrationMsg); return result; }
+                    continue;
                 }
-                if (m == null) continue;
-                if (shellAt.ContainsKey(m)) { Fail(shellPath, "duplicate marker " + m); return result; }
+                if (shellAt.ContainsKey(m)) { Fail(pagePath, "duplicate marker " + m); return result; }
                 shellAt[m] = i;
             }
             foreach (string m in Markers)
-                if (!shellAt.ContainsKey(m) && !(pageMode && (m == ManifestMarker || m == "<!--@views-->"))) { Fail(shellPath, "missing marker " + m); return result; }
-            if (shellAt.ContainsKey(ManifestMarker) && shellAt["<!--@core-->"] < shellAt[ManifestMarker]) { Fail(shellPath, "@core marker must come after @manifest"); return result; }
+                if (!shellAt.ContainsKey(m) && m != "<nf-views/>" && m != "<nf-core/>") { Fail(pagePath, "missing marker " + m); return result; }
+
+            var manifestObj = new Dictionary<string, object>();
+            if (!string.IsNullOrEmpty(id)) manifestObj["id"] = id;
+            object manifest = manifestObj;
 
             var sections = new Dictionary<string, List<string>>();
-            if (pageMode)
-            {
-                foreach (string m in Markers) if (m != "<!--@core-->") sections[m] = new List<string>();
-                if (!string.IsNullOrEmpty(inlineManifest)) sections[ManifestMarker].Add(inlineManifest);
-            }
-            else
-            {
-            string current = null;
-            foreach (string raw in ReadLines(profileText))
-            {
-                if (IsSlotToken(raw)) { Fail(profilePath, SlotRemovedMsg); return result; }
-                string m = MarkerOf(raw);
-                if (m != null)
-                {
-                    if (m == "<!--@core-->") { Fail(profilePath, "@core is provided by the library; remove it from the profile"); return result; }
-                    if (sections.ContainsKey(m)) { Fail(profilePath, "duplicate marker " + m); return result; }
-                    current = m;
-                    sections[m] = new List<string>();
-                    continue;
-                }
-                if (current == null) { if (raw.Trim().Length > 0) { Fail(profilePath, "content before the first marker"); return result; } continue; }
-                sections[current].Add(raw);
-            }
-            foreach (string m in Markers)
-                if (m != "<!--@core-->" && !sections.ContainsKey(m)) { Fail(profilePath, "missing marker " + m); return result; }
-            }
-
-            var parts = new List<string>();
-            foreach (string raw in sections[ManifestMarker]) { string t = raw.Trim(); if (t.Length > 0) parts.Add(t); }
-            string manifestJson = string.Join(" ", parts.ToArray());
-            // 페이지 모드에서 @manifest 마커는 선택이다(README 약속): 마커가 없으면 빈 manifest로 본다.
-            if (pageMode && manifestJson.Trim().Length == 0) manifestJson = "{}";
-            object manifest;
-            try { manifest = new MiniJson().Parse(manifestJson); }
-            catch (Exception e) { Fail(contentPath, "manifest JSON: " + e.Message); return result; }
-            if (pageMode)
-            {
-                // 페이지 모드에서 schema는 선택(레거시 필드): 없으면 1로 간주.
-                var pm = manifest as Dictionary<string, object>;
-                if (pm != null && !pm.ContainsKey("schema")) pm["schema"] = 1.0;
-            }
-            // WebUiId(msbuild 속성)는 manifest.id를 대체한다: 주입 시 선두로 옮기고, 값이 다르면 오류(단일 출처 강제).
-            if (!string.IsNullOrEmpty(id))
-            {
-                var md = manifest as Dictionary<string, object>;
-                if (md != null)
-                {
-                    object cur;
-                    if (md.TryGetValue("id", out cur) && (cur as string) != id)
-                    { Fail(contentPath, "manifest.id conflicts with WebUiId \"" + id + "\"; keep one source"); return result; }
-                    var nd = new Dictionary<string, object>();
-                    nd["id"] = id;
-                    foreach (string k in md.Keys) if (k != "id") nd[k] = md[k];
-                    manifest = nd;
-                }
-            }
-            if (!ValidateManifest(manifest, contentPath)) return result;
+            foreach (string m in Markers) if (m != "<nf-core/>") sections[m] = new List<string>();
 
             // 컴포넌트 발견·확장: useOrder는 서브→부모 순서(자식이 먼저 나열되어 CSS 우선순위가 올바르게 겹침).
             useOrder = new List<string>();
             useDone = new HashSet<string>(StringComparer.Ordinal);
             useVisiting = new HashSet<string>(StringComparer.Ordinal);
-            if (!DiscoverUses(shellLines, shellPath)) return result;
-            if (!pageMode && !DiscoverUses(sections["<!--@views-->"], profilePath)) return result;
+            if (!DiscoverUses(shellLines, pagePath)) return result;
             var expanded = new Dictionary<string, string[]>(StringComparer.Ordinal);
             var compCss = new List<string>();
             var compJs = new List<string>();
@@ -222,9 +233,9 @@ namespace VagabondK.nF.WebUi
                 string[] body = ExpandComponent(c.Html, expanded);
                 if (IsInstance(c.Html))
                 {
-                    // 인스턴스 컴포넌트: html은 <template>으로 보내고 참조 자리(<name/> 또는 태그 자체)는 <wui-name>이 된다.
+                    // 인스턴스 컴포넌트: html은 <template>으로 보내고 참조 자리(<name/> 또는 태그 자체)는 <wui-name>이 됩니다.
                     // js/css는 커스텀 엘리먼트 정의에 포장되어 인스턴스마다 shadow root 안에서 실행되므로
-                    // id가 인스턴스별로 격리되고 여러 위치에서 안전하게 재사용할 수 있다.
+                    // id가 인스턴스별로 격리되고 여러 위치에서 안전하게 재사용할 수 있습니다.
                     string tag = "wui-" + name.ToLowerInvariant();
                     instTag[name] = tag;
                     instBody[name] = body;
@@ -232,8 +243,8 @@ namespace VagabondK.nF.WebUi
                     templates.Add("<template id=\"wui-t-" + name + "\">");
                     templates.AddRange(body);
                     templates.Add("</template>");
-                    // js/css 조각은 한 줄 문자열로 합쳐지므로 최종 Trim이 끝부분만 건드린다.
-                    // 여기서 미리 각 줄을 Trim해 들여쓰기 공백을 없앤다(JS에서 줄 앞 공백은 무의미).
+                    // js/css 조각은 한 줄 문자열로 합쳐지므로 최종 Trim이 끝부분만 건드립니다.
+                    // 여기서 미리 각 줄을 Trim해 들여쓰기 공백을 제거합니다(JS에서 줄 앞 공백은 무의미).
                     string jsArg = c.Js.Length > 0
                         ? "function (root, document, $) {\n" + string.Join("\n", TrimLines(c.Js)) + "\n}"
                         : "null";
@@ -251,10 +262,9 @@ namespace VagabondK.nF.WebUi
             }
 
             var allViews = new List<string>();
-            // 페이지 모드의 루트 페이지는 자기 마크업 자체가 뷰다: 폼 유도/교차 검증을 스캔에 포함한다.
-            if (pageMode) allViews.AddRange(ExpandTokens(shellLines, expanded));
-            allViews.AddRange(ExpandTokens(sections["<!--@views-->"], expanded));
-            var allScript = new List<string>(sections["<!--@script-->"]);
+            // 루트 페이지의 자기 마크업 자체가 뷰입니다: 폼 유도/교차 검증을 스캔에 포함합니다.
+            allViews.AddRange(ExpandTokens(shellLines, expanded));
+            var allScript = new List<string>(sections["<nf-script/>"]);
             foreach (string name in useOrder)
             {
                 string[] b;
@@ -263,25 +273,74 @@ namespace VagabondK.nF.WebUi
             }
             string views = string.Join("\n", allViews.ToArray());
             string script = string.Join("\n", allScript.ToArray());
-            if (!DeriveForm(manifest, allViews, contentPath)) return result;
-            if (!ValidateCross(manifest, views, script, contentPath, pageMode)) return result;
+            if (isLogin)
+            {
+                // 로그인 페이지: core/MANIFEST 없는 고정 템플릿이라 profilePoint 훅과 폼 유도
+                // 검증을 면제합니다(비밀번호 입력은 login.nf.js가 직접 처리).
+                manifestObj["form"] = new List<object>();
+            }
+            else
+            {
+                if (!DeriveForm(manifest, allViews, contentPath)) return result;
+                if (!ValidateCross(manifest, views, script, contentPath)) return result;
+            }
 
             var merged = new List<string>();
-            foreach (string raw in shellLines)
+            bool textsDone = false;
+            // 판정(DiscoverUses)과 같은 줄 보기를 봐야 하므로 여러 줄 참조도 여기서 병합됩니다.
+            foreach (string raw in MergeRefs(shellLines))
             {
                 string m = MarkerOf(raw);
-                if (m == null && pageMode && raw.TrimStart().StartsWith(ManifestMarker, StringComparison.Ordinal)) m = ManifestMarker;
                 if (m == null)
                 {
+                    // @instance 줄은 판정 전용 마커: 출력에서 사라집니다(구 주석형은 Minify가 지웠던 자리).
+                    if (InstanceRe.IsMatch(raw.Trim())) continue;
                     string uref = UseRef(raw.Trim());
                     if (uref != null) { merged.AddRange(ExpandRef(uref, raw.Trim(), expanded) ?? expanded[uref]); continue; }
                     merged.Add(raw); continue;
                 }
-                if (m == "<!--@manifest-->") merged.Add("const MANIFEST = " + MiniJson.JsonOut(manifest) + ";");
-                else if (m == "<!--@core-->") merged.AddRange(CoreLines(coreText, templates.Count > 0));
-                else if (m == "<!--@style-->") { merged.AddRange(compCss); merged.AddRange(sections[m]); }
-                else if (m == "<!--@script-->") { merged.AddRange(compJs); merged.AddRange(sections[m]); }
-                else merged.AddRange(ExpandTokens(sections[m], expanded));
+                if (m == "<nf-core/>")
+                {
+                    // 다국어 사전+공용 i18n 런타임은 core.js보다 먼저 실행되어야 합니다(uiText 정의).
+                    // 마커가 태그 밖에 있으므로 주입 블록의 <script> 태그를 우리가 생성합니다.
+                    TextsBlock(merged, ref textsDone, inlineTexts, textsText, i18nText);
+                    merged.Add("<script>");
+                    merged.Add("const MANIFEST = " + MiniJson.JsonOut(manifest) + ";");
+                    merged.AddRange(CoreLines(coreText, templates.Count > 0));
+                    merged.Add("</script>");
+                }
+                else if (m == "<nf-style/>")
+                {
+                    // 페이지 자기 css가 테마/컴포넌트보다 먼저(자기 파일이 라이브러리를 덮습니다).
+                    // 링크 모드: 테마+컴포넌트 CSS는 /style.css 자산으로 외부화하고 <link> 한 줄로 부릅니다.
+                    var css = new List<string>();
+                    if (ownCss != null) css.AddRange(ownCss);
+                    if (!linkCss)
+                    {
+                        css.AddRange(themeLines);
+                        css.AddRange(compCss);
+                    }
+                    css.AddRange(ExpandTokens(sections[m], expanded));
+                    if (css.Count > 0)
+                    {
+                        merged.Add("<style>");
+                        merged.AddRange(css);
+                        merged.Add("</style>");
+                    }
+                    if (linkCss && (themeLines.Count > 0 || compCss.Count > 0))
+                        merged.Add("<link rel=\"stylesheet\" href=\"/style.css\">");
+                }
+                else if (m == "<nf-script/>")
+                {
+                    // @core가 없는 페이지(로그인 등)는 텍스트 블록 자리가 여기로 이동합니다.
+                    TextsBlock(merged, ref textsDone, inlineTexts, textsText, i18nText);
+                    merged.Add("<script>");
+                    merged.AddRange(compJs);
+                    if (ownJs != null) merged.AddRange(ownJs);
+                    merged.AddRange(sections[m]);
+                    merged.Add("</script>");
+                }
+                // <nf-views/>: 뷰 조각은 이미 유도 스캔에 포함되므로 출력 생성 없이 소멸합니다.
             }
             if (templates.Count > 0)
             {
@@ -290,12 +349,129 @@ namespace VagabondK.nF.WebUi
                 merged.InsertRange(at, templates);
             }
 
-            // 최종 축소: 줄 앞뒤 공백 제거 + 온줄 주석 제거. 소스는 들여쓰기 자유롭게 써도
-            // 결과에서는 공백·주석이 사라진다(nF 문자열 힙 절약). 여러 줄로 퍼진 <!-- -->와
-            // /* */ 주석도 상태 추적 제거; script 안의 <!-- 는 JS 레거시 온줄 주석으로 다룬다.
+            string minified = Minify(merged).Replace("{{BRAND}}", string.IsNullOrEmpty(brand) ? "WebUi" : brand);
+            byte[] html = new UTF8Encoding(false).GetBytes(InjectFallbacks(minified, enFallbacks, res.EnMisses));
+            byte[] gzip;
+            using (var memory = new MemoryStream())
+            {
+                using (var compressor = new GZipStream(memory, CompressionLevel.Optimal, true))
+                    compressor.Write(html, 0, html.Length);
+                gzip = memory.ToArray();
+            }
+            // 해시는 gzip이 아닌 html 원문에 대해 계산: deflate 출력은 호스트 런타임에
+            // 따라 바이트가 달라질 수 있어 ETag가 비결정적이 됨 (FNV-1a over html)
+            uint hash = 2166136261;
+            unchecked { foreach (byte value in html) { hash ^= value; hash *= 16777619; } }
+            result.Gzip = gzip;
+            result.Hash = hash;
+
+            // 링크 모드: 테마+컴포넌트 CSS 조각을 전달합니다 — Task가 페이지 전체에서 유니온해
+            // /style.css 단일 gzip 자산 하나로 만듭니다(페이지 자기 css는 인라인 유지, 자산화하지 않음).
+            if (linkCss && (themeLines.Count > 0 || compCss.Count > 0))
+            {
+                result.CssAssetLines = new List<string>(themeLines);
+                result.CssAssetLines.AddRange(compCss);
+            }
+
+            // 다국어 사전 자산: texts*.resx에서 병합된 JS를 /texts.js gzip로 생성합니다(메인·로그인 공유).
+            if (!string.IsNullOrEmpty(textsText))
+            {
+                byte[] txGzip; uint txHash;
+                GzipAndHash(Minify(ReadLines(textsText)), out txGzip, out txHash);
+                result.TextsGzip = txGzip;
+                result.TextsHash = txHash;
+            }
+
+            // 공용 i18n 런타임 자산: Assets\i18n.js를 /i18n.js gzip로 생성합니다(메인·로그인 공유).
+            if (!string.IsNullOrEmpty(i18nText))
+            {
+                byte[] ijGzip; uint ijHash;
+                GzipAndHash(Minify(ReadLines(i18nText)), out ijGzip, out ijHash);
+                result.I18nGzip = ijGzip;
+                result.I18nHash = ijHash;
+            }
+
+            string pid;
+            var md = manifest as Dictionary<string, object>;
+            object idv;
+            pid = (md != null && md.TryGetValue("id", out idv)) ? idv as string : null;
+            result.Info = "WebUi page" + (string.IsNullOrEmpty(pid) ? string.Empty : " (" + pid + ")") + ": " +
+                html.Length.ToString(CultureInfo.InvariantCulture) + " B minified, " + gzip.Length.ToString(CultureInfo.InvariantCulture) + " B gzip.";
+            return result;
+        }
+
+        // 다국어 사전과 공용 i18n 런타임을 독립 <script> 태그로.emit합니다. 페이지당 한 번
+        // 실행(<nf-core/> 자리가 우선, 없으면 <nf-script/> 자리): 사전은 코어/페이지 js의
+        // uiText 정의보다 먼저 실행되어야 합니다. inlineTexts(로그인 키 부분집합)가 있으면
+        // 링크 왕복 없이 인라인 블록으로 넣습니다 — 첫 페인트부터 모국어라 영어 깜빡임이 사라집니다.
+        static void TextsBlock(List<string> merged, ref bool done, string inlineTexts, string textsText, string i18nText)
+        {
+            if (done) return;
+            if (inlineTexts == null && string.IsNullOrEmpty(textsText) && string.IsNullOrEmpty(i18nText)) return;
+            done = true;
+            if (inlineTexts != null)
+            {
+                merged.Add("<script>");
+                merged.AddRange(MinifyLines(inlineTexts));
+                merged.Add("</script>");
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(textsText)) merged.Add("<script src=\"/texts.js\"></script>");
+                if (!string.IsNullOrEmpty(i18nText)) merged.Add("<script src=\"/i18n.js\"></script>");
+            }
+        }
+
+        // 최종 축소: 줄 앞뒤 공백 제거 + 온줄 주석 제거. 소스는 들여쓰기 자유롭게 써도
+        // 결과에서는 공백·주석이 사라집니다(nF 문자열 힙 절약). 여러 줄로 퍼진 <!-- -->와
+        // /* */ 주석도 상태 추적 제거; script 안의 <!-- 는 JS 레거시 한 줄 주석으로 다룹니다.
+        // ===== 빌드 타임 en 폴백 주입 =====
+        // 호출부는 uiText('key'[, params])만 쓰고 두 번째 인자(폴백 문자열)를 작성하지 않습니다.
+        // 주입기가 텍스트 전체에서 uiText('key' 후속이 ',' 또는 ')'인 지점을 찾아
+        // en 사전(texts.resx의 이름 있는 항목) 값을 복원합니다 → uiText('key','en',...).
+        // 런타임 uiText(key, en, params) 서명과는 무관하게 소스 형식 그대로 되돌리는 것입니다.
+        static readonly Regex UiTextCall = new Regex(@"uiText\(\s*('(?:[^'\\]|\\.)*'|""(?:[^""\\]|\\.)*"")\s*([,)])", RegexOptions.Compiled);
+
+        // 스크립트가 부르는 uiText 키 집합(로그인 페이지 인라인 사전 부분집합 추출용).
+        internal static HashSet<string> ExtractTextKeys(string js)
+        {
+            var set = new HashSet<string>(StringComparer.Ordinal);
+            foreach (Match m in UiTextCall.Matches(js)) set.Add(Unquote(m.Groups[1].Value));
+            return set;
+        }
+
+        static string InjectFallbacks(string text, Dictionary<string, string> en, List<string> misses)
+        {
+            if (en == null || en.Count == 0 || string.IsNullOrEmpty(text)) return text;
+            return UiTextCall.Replace(text, m =>
+            {
+                string key = Unquote(m.Groups[1].Value);
+                string fb;
+                if (!en.TryGetValue(key, out fb))
+                {
+                    if (misses != null && !misses.Contains(key)) misses.Add(key);
+                    return m.Value;
+                }
+                return "uiText('" + EscapeJs(key) + "', '" + EscapeJs(fb) + "'" + m.Groups[2].Value;
+            });
+        }
+
+        static string Unquote(string literal)
+        {
+            char q = literal[0];
+            return literal.Substring(1, literal.Length - 2).Replace("\\" + q, q.ToString()).Replace("\\\\", "\\");
+        }
+
+        static string EscapeJs(string s)
+        {
+            return s.Replace("\\", "\\\\").Replace("'", "\\'").Replace("\r", "").Replace("\n", "\\n");
+        }
+
+        internal static string Minify(IEnumerable<string> lines)
+        {
             var page = new StringBuilder();
             bool inScript = false, skipHtmlComment = false, skipBlockComment = false;
-            foreach (string raw in merged)
+            foreach (string raw in lines)
             {
                 string line = raw.Trim();
                 if (skipHtmlComment)
@@ -335,101 +511,75 @@ namespace VagabondK.nF.WebUi
                 if (page.Length > 0) page.Append('\n');
                 page.Append(line);
             }
+            return page.ToString();
+        }
 
-            byte[] html = new UTF8Encoding(false).GetBytes(page.ToString());
-            byte[] gzip;
+        static List<string> MinifyLines(string text)
+        {
+            return new List<string>(Minify(ReadLines(text)).Split('\n'));
+        }
+
+        // css 줄 목록을 중괄호 균형으로 최상위 "블록" 단위로 분할합니다(linkCss 유니온의 중복 제거 단위).
+        // 줄 단위로 중복을 제거하면 안 됩니다: 다줄 규칙의 닫는 `}` 줄은 문자열이 전부 같아도
+        // HashSet이 첫 `}`만 남기고 모두 삼키며, 이후 모든 다줄 규칙이 닫는 대괄호를 잃고 깨집니다.
+        internal static IEnumerable<string> SplitCssBlocks(IEnumerable<string> lines)
+        {
+            var block = new StringBuilder();
+            int depth = 0;
+            foreach (string raw in lines)
+            {
+                string line = raw.Trim();
+                if (line.Length == 0) continue;
+                if (block.Length > 0) block.Append('\n');
+                block.Append(line);
+                for (int i = 0; i < line.Length; i++)
+                {
+                    char ch = line[i];
+                    if (ch == '{') depth++;
+                    else if (ch == '}') depth--;
+                }
+                if (depth <= 0)
+                {
+                    yield return block.ToString();
+                    block.Clear();
+                    depth = 0;
+                }
+            }
+            if (block.Length > 0) yield return block.ToString();
+        }
+
+        // 텍스트를 UTF-8 축약 바이트로 만들어 gzip하고, gzip 전 텍스트 바이트 기준
+        // FNV-1a 해시를 생성합니다(ETag 결정성 규칙은 페이지와 동일: deflate 출력은 무시).
+        internal static void GzipAndHash(string text, out byte[] gzip, out uint hash)
+        {
+            byte[] raw = new UTF8Encoding(false).GetBytes(text);
             using (var memory = new MemoryStream())
             {
                 using (var compressor = new GZipStream(memory, CompressionLevel.Optimal, true))
-                    compressor.Write(html, 0, html.Length);
+                    compressor.Write(raw, 0, raw.Length);
                 gzip = memory.ToArray();
             }
-            // 해시는 gzip이 아닌 html 원문에 대해 계산: deflate 출력은 호스트 런타임에
-            // 따라 바이트가 달라질 수 있어 ETag가 비결정적이 됨 (FNV-1a over html)
-            uint hash = 2166136261;
-            unchecked { foreach (byte value in html) { hash ^= value; hash *= 16777619; } }
-
-            // Pack7: 7비트 팩킹(문자 8개 = 바이트 7개). nanoFramework 문자열 힙은 어셈블리당
-            // 64KB(UTF-8, 16비트 인덱스) 제한이라 Base64(1.333B/B)보다 ~13% 작다.
-            // part당 UTF-8 바이트 ≤ 1024(문자열 길이 제한)를 평균+3시그마에서 만족하려면 830B.
-            const int PartBytes = 830;
-            int partCount = (gzip.Length + PartBytes - 1) / PartBytes;
-            if (string.IsNullOrEmpty(ns)) ns = "VagabondK.nF.WebUi";
-            if (string.IsNullOrEmpty(cls)) cls = "WebPage";
-            var code = new StringBuilder();
-            code.Append("// <auto-generated>\n// Generated by VagabondK.nF.WebUi. Do not edit.\n// </auto-generated>\n");
-            code.Append("namespace ").Append(ns).Append("\n{\n    internal static class ").Append(cls).Append("\n    {\n");
-            code.Append("        internal const int Length = ").Append(gzip.Length).Append(";\n");
-            code.Append("        internal const int PartCount = ").Append(partCount).Append(";\n");
-            code.Append("        internal const string ETag = \"\\\"").Append(hash.ToString("x8")).Append("\\\"\";\n\n");
-            code.Append("        internal static string GetPart(int index)\n        {\n            switch (index)\n            {\n");
-            for (int i = 0; i < partCount; i++)
-            {
-                int offset = i * PartBytes;
-                code.Append("                case ").Append(i).Append(": return \"")
-                    .Append(EncodePack7(gzip, offset, Math.Min(PartBytes, gzip.Length - offset))).Append("\";\n");
-            }
-            code.Append("                default: return string.Empty;\n            }\n        }\n    }\n}\n");
-
-            result.Source = code.ToString();
-            result.Info = "WebUi page (" + ((string)((Dictionary<string, object>)manifest)["id"]) + "): " +
-                html.Length.ToString(CultureInfo.InvariantCulture) + " B minified, " + gzip.Length.ToString(CultureInfo.InvariantCulture) + " B gzip, " +
-                partCount.ToString(CultureInfo.InvariantCulture) + " parts.";
-            return result;
-        }
-
-        // Pack7: 7비트 값(0~127)을 C# 문자열 리터럴에 안전한 문자로 매핑.
-        // 122개는 UTF-8 1바이트(컨트롤 0x01~0x1F 중 개문자 제외 + printable에서 " \ 제외 + 0x7F),
-        // 나머지 6개(값 122~127)만 2바이트(0xC0~0xC5). 개행(0x0A,0x0C,0x0D,0x85)·인용부호·역슬래시 회피.
-        // 디코더(CharToValue)는 장치 측(PageController, Sample Controllers)에 짝으로 존재한다.
-        static char ValueToChar(int v)
-        {
-            if (v < 9) return (char)(v + 1);
-            if (v == 9) return (char)0x0B;
-            if (v < 30) return (char)(v + 4);   // 10..29 → 0x0E..0x21
-            if (v < 87) return (char)(v + 5);   // 30..86 → 0x23..0x5B (" 건너뜀)
-            if (v < 121) return (char)(v + 6);  // 87..120 → 0x5D..0x7E (\ 건너뜀)
-            if (v == 121) return (char)0x7F;
-            return (char)(v + 70);              // 122..127 → 0xC0..0xC5 (2바이트)
-        }
-
-        static string EncodePack7(byte[] data, int offset, int count)
-        {
-            var sb = new StringBuilder((count * 8 + 6) / 7);
-            int bitBuf = 0, bitCount = 0;
-            for (int i = offset; i < offset + count; i++)
-            {
-                bitBuf = (bitBuf << 8) | data[i];
-                bitCount += 8;
-                while (bitCount >= 7)
-                {
-                    bitCount -= 7;
-                    sb.Append(ValueToChar((bitBuf >> bitCount) & 0x7F));
-                }
-            }
-            if (bitCount > 0)
-                sb.Append(ValueToChar((bitBuf << (7 - bitCount)) & 0x7F));
-            return sb.ToString();
+            hash = 2166136261;
+            unchecked { foreach (byte value in raw) { hash ^= value; hash *= 16777619; } }
         }
 
         // ---------- component references ----------
         static bool IsSlotToken(string raw) { return raw.Trim().StartsWith("<!--@slot", StringComparison.Ordinal); }
 
-        // 마커는 html 어디든 허용(단독 줄뿐 아니라 태그와 같은 줄도 인식). 줄 전체가 마커일 때와
-        // 동일하게 주석으로 출력에 남으므로 동작 차이가 없다.
+        // 마커는 단독 줄에서만 성립(bare @instance): 태그와 같은 줄 표기는 인정하지 않는다.
         static bool IsInstance(string[] lines)
         {
             foreach (string raw in lines)
-                if (InstanceRe.IsMatch(raw)) return true;
+                if (InstanceRe.IsMatch(raw.Trim())) return true;
             return false;
         }
 
-        // <!--@instance form--> 인수 여부: 폼 연관 커스텀 엘리먼트로 등록(WUI.def의 opts.form).
+        // @instance form 인수 여부: 폼 연관 커스텀 엘리먼트로 등록(WUI.def의 opts.form).
         static bool InstanceForm(string[] lines)
         {
             foreach (string raw in lines)
             {
-                Match m = InstanceRe.Match(raw);
+                Match m = InstanceRe.Match(raw.Trim());
                 if (m.Success && m.Groups[1].Value.IndexOf("form", StringComparison.OrdinalIgnoreCase) >= 0) return true;
             }
             return false;
@@ -445,11 +595,17 @@ namespace VagabondK.nF.WebUi
 
         // 컴포넌트 참조 판정: 줄 전체가 <name/>(비-void)면 이름 반환.
         // void 요소(<br/> 등)는 HTML 그대로이므로 null(=참조 아님).
+        // wui- 접두 이름은 제외: <wui-name .../>는 자기종결 태그 금지 대상(아래 가드)이며,
+        // <wui-name> 여는 태그 참조는 WuiTag 루프가 이미 처리합니다(이 함수가 가로채면 이름에
+        // "wui-"가 남아 가짜 컴포넌트 조회 실패로 이어집니다).
         static string UseRef(string trimmed)
         {
             Match sc = SelfCloseTag.Match(trimmed);
-            if (sc.Success && !VoidNames.Contains(sc.Groups[1].Value)) return sc.Groups[1].Value;
-            return null;
+            if (!sc.Success || VoidNames.Contains(sc.Groups[1].Value)) return null;
+            if (sc.Groups[1].Value.StartsWith("wui-", StringComparison.Ordinal)) return null;
+            // <nf-core/> 같은 마커 요소는 주입 자리 표시자이지 컴포넌트 참조가 아니다(DiscoverUses 오탐 방지).
+            if (sc.Groups[1].Value.StartsWith("nf-", StringComparison.Ordinal)) return null;
+            return sc.Groups[1].Value;
         }
 
         // <name attr="v"/>의 속성 부분(없거나 참조가 아니면 빈 문자열). 속성은 @instance만 허용.
@@ -459,13 +615,58 @@ namespace VagabondK.nF.WebUi
             return sc.Success && !VoidNames.Contains(sc.Groups[1].Value) ? sc.Groups[2].Value.Trim() : "";
         }
 
+        // 여러 줄 자기종결 참조를 한 줄로 합칩니다: <name\n attr="v"\n/> → <name attr="v" />.
+        // 대상은 known 컴포넌트 이름의 시작 줄만(일반 HTML의 여러 줄 태그는 건드리지 않음),
+        // 블록 끝이 '/>'로 끝나고 합친 결과가 SelfCloseTag에 맞을 때만 치환합니다.
+        // 판정(DiscoverUses)과 확장(ExpandTokens/ExpandComponent)이 동일한 줄 보기를 봐야 하므로
+        // 세 경로가 모두 이 함수를 먼저 통과합니다.
+        string[] MergeRefs(IEnumerable<string> lines)
+        {
+            var src = lines as string[] ?? lines.ToArray();
+            var outL = new List<string>(src.Length);
+            for (int i = 0; i < src.Length; i++)
+            {
+                string t = src[i].Trim();
+                Match m = MultiOpen.Match(t);
+                if (!m.Success || VoidNames.Contains(m.Groups[1].Value) || !components.ContainsKey(m.Groups[1].Value))
+                {
+                    outL.Add(src[i]);
+                    continue;
+                }
+                string joined = t;
+                bool closed = false;
+                int j = i + 1;
+                for (; j < src.Length && j - i <= 40; j++)
+                {
+                    string u = src[j].Trim();
+                    if (u.EndsWith("/>", StringComparison.Ordinal)) { joined += " " + u; closed = true; break; }
+                    if (u.IndexOf('>') >= 0 || u.IndexOf('<') >= 0) break; // 일반 요소 시작/자식 등장 → 병합 포기
+                    joined += " " + u;
+                }
+                if (closed && SelfCloseTag.IsMatch(joined.Trim()))
+                {
+                    outL.Add(joined);
+                    i = j; // 합쳐진 블록 전체를 소비(다음 줄부터 계속)
+                    continue;
+                }
+                // 병합 포기: 시작~직전 줄은 원문으로 두고, break가 발생한 줄은 다음 순회 재정복(손실 방지)
+                for (int k = i; k < j; k++) outL.Add(src[k]);
+                i = j - 1;
+            }
+            return outL.ToArray();
+        }
+
         bool DiscoverUses(IEnumerable<string> lines, string origin)
         {
-            foreach (string raw in lines)
+            foreach (string raw in MergeRefs(lines))
             {
                 if (IsSlotToken(raw)) { Fail(origin, SlotRemovedMsg); return false; }
+                Match wsc = WuiSelfClose.Match(raw);
+                if (wsc.Success)
+                { Fail(origin, "<wui-name .../> cannot be self-closed in HTML: write " + wsc.Groups[1].Value + wsc.Groups[2].Value + "></" + wsc.Groups[1].Value.Substring(1) + ">"); return false; }
                 if (UseMarkerGone.IsMatch(raw))
                 { Fail(origin, "@use markers were removed: reference a component as <name/> (alone on its line) or use its <wui-name> tag directly"); return false; }
+                if (LegacyMarker.IsMatch(raw)) { Fail(origin, MarkerMigrationMsg); return false; }
                 string trimmed = raw.Trim();
                 string name = UseRef(trimmed);
                 if (name != null)
@@ -476,7 +677,7 @@ namespace VagabondK.nF.WebUi
                 foreach (Match im in InlineRef.Matches(raw))
                     if (!VoidNames.Contains(im.Groups[1].Value) && components.ContainsKey(im.Groups[1].Value))
                     { Fail(origin, "component reference <" + im.Groups[1].Value + "/> must be alone on its line (inline use is emitted as raw HTML and never expands)"); return false; }
-                // <wui-name> 여는 태그 자체가 인스턴스 참조: 위치와 무관하게 컴포넌트를 번들에 포함한다.
+                // <wui-name> 여는 태그 자체가 인스턴스 참조: 위치와 무관하게 컴포넌트를 번들에 포함합니다.
                 foreach (Match wm in WuiTag.Matches(raw))
                 {
                     ComponentFiles c;
@@ -512,7 +713,7 @@ namespace VagabondK.nF.WebUi
             return true;
         }
 
-        // 참조 줄을 최종 조각으로: instance 사용 위치는 마크업의 속성을 <wui-name ...>로 옮겨 담는다.
+        // 참조 줄을 최종 조각으로: instance 사용 위치는 마크업의 속성을 <wui-name ...>로 옮겨 담습니다.
         string[] ExpandRef(string uref, string trimmed, Dictionary<string, string[]> expanded)
         {
             string[] e;
@@ -529,7 +730,7 @@ namespace VagabondK.nF.WebUi
         List<string> ExpandTokens(IEnumerable<string> lines, Dictionary<string, string[]> expanded)
         {
             var outLines = new List<string>();
-            foreach (string raw in lines)
+            foreach (string raw in MergeRefs(lines))
             {
                 string trimmed = raw.Trim();
                 string uref = UseRef(trimmed);
@@ -544,9 +745,10 @@ namespace VagabondK.nF.WebUi
         string[] ExpandComponent(string[] html, Dictionary<string, string[]> expanded)
         {
             var outLines = new List<string>();
-            foreach (string raw in html)
+            foreach (string raw in MergeRefs(html))
             {
                 string trimmed = raw.Trim();
+                if (InstanceRe.IsMatch(trimmed)) continue; // @instance 마커는 판정 전용, 출력에서 제거.
                 string uref = UseRef(trimmed);
                 if (uref != null)
                 {
@@ -560,10 +762,10 @@ namespace VagabondK.nF.WebUi
         }
 
         // ---------- form 자동 유도 (Phase 1: manifest 소멸 로드맵의 첫 단계) ----------
-        // 마크업의 data-label/data-fmt 속성이 manifest.form의 새 고향이다.
+        // 마크업의 data-label/data-fmt 속성이 manifest.form의 새 위치입니다.
         // 컨트롤 태그(input/select/textarea)에 두 속성 중 하나라도 있으면 form 항목으로 유도하고,
         // 수동 manifest.form과 이름이 충돌하면 빌드 오류(단일 출처 강제). 수동 항목은 유도 전에
-        // 이름 집합으로 제외하므로 기존 프로젝트(속성 없음)는 동작이 그대로다.
+        // 이름 집합으로 제외하므로 기존 프로젝트(속성 없음)는 동작이 그대로입니다.
         bool DeriveForm(object manifest, List<string> viewLines, string origin)
         {
             var m = (Dictionary<string, object>)manifest;
@@ -574,45 +776,44 @@ namespace VagabondK.nF.WebUi
 
             var derived = new List<object>();
             var seen = new Dictionary<string, string>(StringComparer.Ordinal); // name → label+fmt 서명(중복·불일치 검사)
-            foreach (string raw in viewLines)
+            // 여러 줄로 나뉜 태그(prettier 서식)도 놓치지 않습니다: 줄 단위 대신 전체를 이어서 스캔합니다.
+            // (ControlTag의 [^>]*는 개행도 삼키므로 이을 수 있습니다. 참조 조각은 ExpandRef가 이미 단일 줄로 만듭니다.)
+            foreach (Match tm in ControlTag.Matches(string.Join("\n", viewLines.ToArray())))
             {
-                foreach (Match tm in ControlTag.Matches(raw))
+                string tag = tm.Value;
+                string label = Attr(tag, "data-label"), fmt = Attr(tag, "data-fmt");
+                if (label == null && fmt == null) continue;
+                string name = Attr(tag, "name");
+                if (name == null) { Fail(origin, "control with data-label/data-fmt has no name: " + tag); return false; }
+                if (fmt != null)
                 {
-                    string tag = tm.Value;
-                    string label = Attr(tag, "data-label"), fmt = Attr(tag, "data-fmt");
-                    if (label == null && fmt == null) continue;
-                    string name = Attr(tag, "name");
-                    if (name == null) { Fail(origin, "control with data-label/data-fmt has no name: " + tag); return false; }
-                    if (fmt != null)
-                    {
-                        bool ok = false;
-                        foreach (string x in Fmts) if (x == fmt) ok = true;
-                        if (!ok) { Fail(origin, "data-fmt \"" + fmt + "\" on \"" + name + "\" must be one of ms/pin/secret/bool/text"); return false; }
-                    }
-                    if (manualNames.Contains(name))
-                    { Fail(origin, "form field \"" + name + "\" is defined in both manifest.form and markup data-label/data-fmt; keep one source"); return false; }
-                    string effLabel = label ?? name;
-                    if (effLabel.Length == 0) { Fail(origin, "data-label on \"" + name + "\" is empty"); return false; }
-                    string sig = effLabel + "\n" + (fmt ?? string.Empty);
-                    string prev;
-                    if (seen.TryGetValue(name, out prev))
-                    {
-                        // 같은 컴포넌트가 인라인+검증용 병합으로 두 번 보이는 경우(동일 서명)는 정상. 불일치만 오류.
-                        if (prev != sig) { Fail(origin, "form field \"" + name + "\" has conflicting data-label/data-fmt in markup"); return false; }
-                        continue;
-                    }
-                    seen[name] = sig;
-                    var e = new Dictionary<string, object>();
-                    e["name"] = name;
-                    e["label"] = effLabel;
-                    if (fmt != null) e["fmt"] = fmt;
-                    derived.Add(e);
+                    bool ok = false;
+                    foreach (string x in Fmts) if (x == fmt) ok = true;
+                    if (!ok) { Fail(origin, "data-fmt \"" + fmt + "\" on \"" + name + "\" must be one of ms/pin/secret/bool/text"); return false; }
                 }
+                if (manualNames.Contains(name))
+                { Fail(origin, "form field \"" + name + "\" is defined in both manifest.form and markup data-label/data-fmt; keep one source"); return false; }
+                string effLabel = label ?? name;
+                if (effLabel.Length == 0) { Fail(origin, "data-label on \"" + name + "\" is empty"); return false; }
+                string sig = effLabel + "\n" + (fmt ?? string.Empty);
+                string prev;
+                if (seen.TryGetValue(name, out prev))
+                {
+                    // 같은 컴포넌트가 인라인+검증용 병합으로 두 번 보이는 경우(동일 서명)는 정상. 불일치만 오류.
+                    if (prev != sig) { Fail(origin, "form field \"" + name + "\" has conflicting data-label/data-fmt in markup"); return false; }
+                    continue;
+                }
+                seen[name] = sig;
+                var e = new Dictionary<string, object>();
+                e["name"] = name;
+                e["label"] = effLabel;
+                if (fmt != null) e["fmt"] = fmt;
+                derived.Add(e);
             }
 
             if (manual == null && derived.Count == 0)
             {
-                // 표시 전용 페이지(<form> 마크업 자체가 없음)는 합법. form 마크업이 있는데 필드가 0개일 때만 누락으로 본다.
+                // 표시 전용 페이지(<form> 마크업 자체가 없음)는 합법. form 마크업이 있는데 필드가 0개일 때만 누락으로 봅니다.
                 string markup = string.Join("\n", viewLines.ToArray());
                 if (markup.IndexOf("<form", StringComparison.OrdinalIgnoreCase) >= 0)
                 { Fail(origin, "no form fields: declare manifest.form or add data-label/data-fmt to form controls"); return false; }
@@ -630,7 +831,7 @@ namespace VagabondK.nF.WebUi
 
         static string Attr(string tag, string name)
         {
-            // 속성은 태그명 직후나 다른 속성 뒤 공백으로 시작하므로 (?:^|\s)로 data-name 같은 부분일치를 막는다.
+            // 속성은 태그명 직후나 다른 속성 뒤 공백으로 시작하므로 (?:^|\s)로 data-name 같은 부분일치를 막습니다.
             Match x = Regex.Match(tag, "(?:^|\\s)" + name + "=\"([^\"]*)\"");
             return x.Success ? x.Groups[1].Value : null;
         }
@@ -767,24 +968,14 @@ namespace VagabondK.nF.WebUi
             return Regex.IsMatch(script, @"(^|[^A-Za-z0-9_$.])(function|const|let|var)\s+" + name + @"(\s|=|\()");
         }
 
-        bool ValidateCross(object manifest, string views, string script, string profilePath, bool pageMode)
+        bool ValidateCross(object manifest, string views, string script, string contentPath)
         {
             var m = (Dictionary<string, object>)manifest;
             foreach (string name in Legacy)
-                if (HasDef(script, name)) { Fail(profilePath, "\"" + name + "\" is now provided by the shell/WebUi; remove it from the profile"); return false; }
-            // 레거시 훅 계약은 셸+프로필 모드 전용. 페이지 모드는 bindForm/wui:status/wui:tick 이벤트 계약으로 대체된다.
-            if (!pageMode)
-                foreach (string hook in new string[] { "profileRender", "profileTick", "checkSettings", "syncForm" })
-                    if (!HasDef(script, hook)) { Fail(profilePath, "profile script must define " + hook); return false; }
-            var feat = m.ContainsKey("features") ? m["features"] as Dictionary<string, object> : null;
-            bool points = feat == null || !feat.ContainsKey("points") || (bool)feat["points"];
-            // 페이지 모드에서는 페이지 자기 스크립트가 views(전체 페이지 텍스트)에 속한다: 훅 검사도 거기서 찾는다.
-            string hookSrc = pageMode ? views + "\n" + script : script;
-            if (points && !HasDef(hookSrc, "profilePoint")) { Fail(profilePath, "profile script must define profilePoint (or set features.points=false)"); return false; }
-            if (feat != null && feat.ContainsKey("cacheCols") && !HasDef(hookSrc, "profileCacheRow")
-                && Regex.IsMatch(hookSrc, @"component\s*\(\s*['""]cacheRow['""]") == false)
-            { Fail(profilePath, "features.cacheCols requires a profileCacheRow(p) function or a WebUi.component(\"cacheRow\", ...) in the profile script"); return false; }
-            // <form/> 컴포넌트는 MANIFEST.form으로 컨트롤을 런타임에 렌더한다: 마크업에 name=가 없는 것이 정상이라 생략.
+                if (HasDef(script, name)) { Fail(contentPath, "\"" + name + "\" is now provided by core.js; remove it from the page"); return false; }
+            // features(manifest)는 폐기되어 capabilities가 유일한 출처입니다: profilePoint 등 훅의
+            // 필수 여부는 런타임에 CAPS가 결정하므로, 빌드 시 검사는 Legacy 중복 정의와 form 대조만 남깁니다.
+            // <form/> 컴포넌트는 MANIFEST.form으로 컨트롤을 런타임에 렌더합니다: 마크업에 name=가 없는 것이 정상이라 생략합니다.
             if (!useOrder.Contains("form"))
             {
                 var form = (List<object>)m["form"];
@@ -792,7 +983,7 @@ namespace VagabondK.nF.WebUi
                 {
                     string name = (string)((Dictionary<string, object>)item)["name"];
                     if (views.IndexOf("name=\"" + name + "\"", StringComparison.Ordinal) < 0)
-                    { Fail(profilePath, "form field \"" + name + "\" has no matching name=\"" + name + "\" control in the @views section"); return false; }
+                    { Fail(contentPath, "form field \"" + name + "\" has no matching name=\"" + name + "\" control in the page markup"); return false; }
                 }
             }
             return true;

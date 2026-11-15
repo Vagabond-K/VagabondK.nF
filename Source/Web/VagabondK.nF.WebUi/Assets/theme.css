@@ -1,0 +1,27 @@
+/* VagabondK.nF.WebUi 기본 공유 테마(:root 토큰)입니다. 프로젝트가 WebUiTheme을 지정하지 않으면
+   이 파일이 사용되고, 지정하면 그 파일이 기본값을 완전히 대체합니다.
+   링크 모드(WebUiLinkCss=true)에서는 컴포넌트 css와 함께 /style.css 한 파일로 번들되어
+   로그인·메인 페이지가 같은 테마를 공유합니다.
+   긴 이름 계열(--card/--line/--mut/--acc/--ok/--bad/--bg/--tx/--fld/--in)은 라이브러리
+   컴포넌트와 login.css가, 짧은 이름 계열(--p/--p2/--ln/--mu/--wa/--in)은 페이지 shell css가
+   사용할 수 있도록 두 가지를 모두 정의하고 별명으로 묶었습니다. 색을 바꾸려면 프로젝트에서
+   WebUiTheme으로 자신만의 테마 파일을 지정하면 됩니다(예: samples\Web\...\WebUi\theme.css). */
+:root {
+  color-scheme: dark;
+  --bg: #0c1318;
+  --p: #141f27;
+  --p2: #1b2933;
+  --ln: #263843;
+  --tx: #e6eff3;
+  --mu: #8ba2ad;
+  --ac: #4fd1a5;
+  --wa: #f2b450;
+  --bad: #ff6b6b;
+  --in: #6cb6ff;
+  --fld: #0e171d;
+  --card: var(--p);
+  --mut: var(--mu);
+  --line: var(--ln);
+  --acc: var(--ac);
+  --ok: var(--ac);
+}

@@ -3,18 +3,18 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using nanoFramework.WebServer;
-using VagabondK.nF.WebAuth;
+using VagabondK.nF.Web;
 
 namespace VagabondK.nF.Web.Sample
 {
     /// <summary>
-    /// 샘플 장치의 설정 값. 웹에서 저장하면 파일에 영속화되어 재부팅 후에도 유지된다.
+    /// 샘플 장치의 설정 값. 웹에서 저장하면 파일에 영속화되어 재부팅 후에도 유지됩니다.
     /// </summary>
     public static class SampleConfig
     {
         public const string Path = "I:\\web-sample.cfg";
 
-        // 검증 한계값의 단일 출처. /api/auth/status의 limits로 클라이언트에 전달된다.
+        // 검증 한계값의 단일 출처. /api/auth/status의 limits로 클라이언트에 전달됩니다.
         public const int NameMax = 30, PollMin = 200, PollMax = 60000, Schema = 1, ModeMax = 2;
 
         public static string DeviceName = "ESP32 샘플";
@@ -53,16 +53,29 @@ namespace VagabondK.nF.Web.Sample
             File.Move(tmp, Path);
         }
 
+        /// <summary>열려 있는 객체 안에 설정 4필드를 병합합니다(JsonWriter 컨벤션: 값은 문자열).</summary>
+        public static void WriteProps(JsonWriter w)
+        {
+            w.Prop("deviceName", DeviceName)
+             .Prop("pollMs", PollMs.ToString())
+             .Prop("debug", Debug ? "1" : "0")
+             .Prop("mode", Mode.ToString());
+        }
+
         public static string Json()
         {
-            return "{\"deviceName\":\"" + WebApi.JsonEscape(DeviceName) + "\",\"pollMs\":\"" + PollMs.ToString() +
-                   "\",\"debug\":\"" + (Debug ? "1" : "0") + "\",\"mode\":\"" + Mode.ToString() + "\"}";
+            JsonWriter w = new JsonWriter();
+            w.BeginObject();
+            WriteProps(w);
+            w.EndObject();
+            return w.ToString();
         }
     }
 
     /// <summary>
-    /// 로그인 보호 상태(비밀번호 해시 + API 키)를 파일에 영속화한다.
-    /// 최초 실행 시 기본 비밀번호 "sample1234"로 초기화한다 — 실사용 전 반드시 변경.
+    /// 로그인 보호 상태(비밀번호 해시 + API 키)를 CredentialFile로 영속화합니다.
+    /// 최초 실행 시 기본 비밀번호 "sample1234"로 초기화합니다 — 실사용 전 반드시 변경.
+    /// 엔드포인트 자체는 라이브러리 AuthController가 제공하므로 여기엔 파일 I/O와 훅만 남습니다.
     /// </summary>
     public static class SampleAuth
     {
@@ -73,187 +86,54 @@ namespace VagabondK.nF.Web.Sample
 
         public static void Load()
         {
-            try
-            {
-                if (File.Exists(FilePath))
-                {
-                    string[] lines = File.ReadAllText(FilePath).Split('\n');
-                    for (int i = 0; i < lines.Length; i++)
-                    {
-                        string line = lines[i].Trim();
-                        if (line.StartsWith("h=")) Guard.PasswordHash = line.Substring(2);
-                        else if (line.StartsWith("k=")) Guard.ApiKey = line.Substring(2);
-                    }
-                    if (Guard.PasswordHash != null && Guard.PasswordHash.Length > 0) return;
-                }
-                Guard.SetPassword(DefaultPassword);
-                Save();
-            }
-            catch (Exception)
+            if (!CredentialFile.Load(Guard, FilePath))
             {
                 Guard.SetPassword(DefaultPassword);
+                CredentialFile.Save(Guard, FilePath);
             }
         }
 
-        private static void Save()
+        /// <summary>AuthController.Persist 훅: password/apikey 변경 시 호출되어 파일로 저장합니다.</summary>
+        public static string Save()
         {
-            string tmp = FilePath + ".tmp";
-            string body = "h=" + Guard.PasswordHash + "\r\nk=" + (Guard.ApiKey == null ? "" : Guard.ApiKey) + "\r\n";
-            if (File.Exists(tmp)) File.Delete(tmp);
-            File.WriteAllText(tmp, body);
-            if (File.Exists(FilePath)) File.Delete(FilePath);
-            File.Move(tmp, FilePath);
+            return CredentialFile.Save(Guard, FilePath);
         }
 
-        /// <summary>설정 저장 시 함께 호출되어 비밀번호 변경을 반영한다(샘플에서는 미사용).</summary>
-        public static void ChangePassword(string newPassword)
+        /// <summary>AuthController.StatusExtras 훅: 상태 응답에 샘플 고유 필드를 병합합니다.</summary>
+        public static void WriteStatusExtras(JsonWriter w)
         {
-            Guard.SetPassword(newPassword);
-            Save();
+            w.Prop("schemaVersion", SampleConfig.Schema)
+             .Prop("limits").BeginObject()
+             .Prop("nameMax", SampleConfig.NameMax)
+             .Prop("pollMin", SampleConfig.PollMin)
+             .Prop("pollMax", SampleConfig.PollMax)
+             .EndObject();
         }
     }
 
     /// <summary>
     /// 라우트 핸들러. [PublicEndpoint]가 없는 엔드포인트는 GuardedWebServer가 자동 401 차단(fail-closed).
-    /// POST는 CsrfGuard로 마커 헤더(x-web-sample) + Origin 지역 주소 검사를 함께 통과해야 한다.
+    /// POST는 CsrfGuard로 마커 헤더(x-web-sample) + Origin 지역 주소 검사를 함께 통과해야 합니다.
+    /// /api/auth/*는 같은 규칙으로 라이브러리 AuthController가 처리합니다(Program에서 배선).
     /// </summary>
     public class SampleController
     {
         public const string CsrfMarker = "x-web-sample";
 
-        public static GuardedWebServer Server;
-        public static string LocalAddress = "";
+        // CSRF Host 검사 주소는 인증 컨트롤러와 단일 출처를 씁니다(Program 루프가 갱신).
+        public static string LocalAddress
+        {
+            get { return AuthController.LocalAddress; }
+            set { AuthController.LocalAddress = value; }
+        }
 
         private static readonly long BootTick = Environment.TickCount64;
         private static int requests;
 
-        // ---------- 페이지 ----------
-
-        [Route("/")]
-        [Method("GET")]
-        [PublicEndpoint]
-        public void Page(WebServerEventArgs e)
-        {
-            HttpListenerRequest req = e.Context.Request;
-            HttpListenerResponse res = e.Context.Response;
-            res.Headers.Add("Cache-Control", "no-cache");
-            res.Headers.Add("ETag", WebPage.ETag);
-            res.Headers.Add("X-Content-Type-Options", "nosniff");
-            res.Headers.Add("X-Frame-Options", "DENY");
-            if (req.Headers["if-none-match"] == WebPage.ETag)
-            {
-                WebServer.OutputHttpCode(res, HttpStatusCode.NotModified);
-                return;
-            }
-            // WebPage.g.cs는 gzip된 바이트이므로 Content-Encoding을 반드시 붙인다.
-            res.Headers.Add("Content-Encoding", "gzip");
-            res.StatusCode = 200;
-            res.ContentType = "text/html; charset=utf-8";
-            res.ContentLength64 = WebPage.Length;
-            Stream o = res.OutputStream;
-            int remaining = WebPage.Length;
-            for (int i = 0; i < WebPage.PartCount; i++)
-            {
-                byte[] part = DecodePack7(WebPage.GetPart(i));
-                int n = part.Length < remaining ? part.Length : remaining;
-                o.Write(part, 0, n);
-                remaining -= n;
-            }
-            res.Close();
-        }
-
-        // Pack7 복호: PageComposer.ValueToChar와 짝.
-        static int CharToValue(char c)
-        {
-            if (c <= 0x09) return c - 1;
-            if (c == 0x0B) return 9;
-            if (c <= 0x21) return c - 4;
-            if (c <= 0x5B) return c - 5;
-            if (c <= 0x7E) return c - 6;
-            if (c == 0x7F) return 121;
-            return c - 70;
-        }
-
-        static byte[] DecodePack7(string s)
-        {
-            byte[] buf = new byte[s.Length * 7 / 8];
-            int bitBuf = 0, bitCount = 0, o = 0;
-            for (int i = 0; i < s.Length; i++)
-            {
-                bitBuf = (bitBuf << 7) | CharToValue(s[i]);
-                bitCount += 7;
-                if (bitCount >= 8)
-                {
-                    bitCount -= 8;
-                    buf[o++] = (byte)((bitBuf >> bitCount) & 0xFF);
-                }
-            }
-            return buf;
-        }
-
-        // ---------- 인증 ----------
-
-        [Route("api/auth/status")]
-        [Method("GET")]
-        [PublicEndpoint]
-        public void AuthStatus(WebServerEventArgs e)
-        {
-            LoginGuard g = SampleAuth.Guard;
-            bool logged = !g.IsEnabled || g.Sessions.Validate(Server.ReadSessionToken(e.Context.Request));
-            WebApi.Json(e.Context.Response, 200,
-                "{\"ok\":true,\"authEnabled\":" + (g.IsEnabled ? "true" : "false") +
-                ",\"loggedIn\":" + (logged ? "true" : "false") +
-                ",\"lockedOut\":" + (g.IsLockedOut ? "true" : "false") +
-                ",\"remaining\":" + g.RemainingAttempts.ToString() +
-                ",\"lockSec\":" + g.LockoutSecondsRemaining.ToString() +
-                ",\"csrfHeader\":\"" + CsrfMarker + "\"" +
-                ",\"schemaVersion\":" + SampleConfig.Schema.ToString() +
-                ",\"limits\":{\"nameMax\":" + SampleConfig.NameMax.ToString() +
-                ",\"pollMin\":" + SampleConfig.PollMin.ToString() +
-                ",\"pollMax\":" + SampleConfig.PollMax.ToString() + "}}");
-        }
-
-        [Route("api/auth/login")]
-        [Method("POST")]
-        [PublicEndpoint]
-        public void Login(WebServerEventArgs e)
-        {
-            if (CsrfGuard.Check(e.Context, CsrfMarker, LocalAddress)) return;
-            string password = FormReader.Read(e.Context.Request, 2048, "password");
-            string token;
-            LoginResult r = SampleAuth.Guard.TryLogin(password, out token);
-            if (r == LoginResult.Success)
-            {
-                Server.SetSessionCookie(e.Context.Response, token);
-                WebApi.Json(e.Context.Response, 200, "{\"ok\":true}");
-                return;
-            }
-            if (r == LoginResult.LockedOut)
-            {
-                WebApi.Error(e.Context.Response, 429, "시도 횟수를 초과했습니다. " +
-                    SampleAuth.Guard.LockoutSecondsRemaining.ToString() + "초 후 다시 시도하세요.");
-                return;
-            }
-            if (r == LoginResult.Disabled)
-            {
-                WebApi.Error(e.Context.Response, 400, "인증이 꺼져 있습니다.");
-                return;
-            }
-            Server.SetSessionCookie(e.Context.Response, null);
-            WebApi.Error(e.Context.Response, 401, "비밀번호가 올바르지 않습니다. 남은 시도 " +
-                SampleAuth.Guard.RemainingAttempts.ToString() + "회.");
-        }
-
-        [Route("api/auth/logout")]
-        [Method("POST")]
-        [PublicEndpoint]
-        public void Logout(WebServerEventArgs e)
-        {
-            if (CsrfGuard.Check(e.Context, CsrfMarker, LocalAddress)) return;
-            SampleAuth.Guard.Sessions.Revoke(Server.ReadSessionToken(e.Context.Request));
-            Server.SetSessionCookie(e.Context.Response, null);
-            WebApi.Json(e.Context.Response, 200, "{\"ok\":true}");
-        }
+        // 페이지/자산 라우트는 생성된 WebUiRoutes가 전담합니다(WebUi\*.nf.html의 첫 줄
+        // @route 마커 → Task가 WebUiRoutes.g.cs 생성). 미인증 html 요청의 /login 302는
+        // GuardedWebServer.LoginPagePath가 처리하고, 이 파일에는 API 핸들러만 남습니다.
+        // 인증 3엔드포인트(status/login/logout)는 라이브러리 AuthController로 통합되어 여기엔 없습니다.
 
         // ---------- 상태/설정 (인증 필요) ----------
 
@@ -265,27 +145,34 @@ namespace VagabondK.nF.Web.Sample
             long uptimeSec = (Environment.TickCount64 - BootTick) / 1000;
             if (SampleConfig.Debug)
                 Debug.WriteLine("status request #" + requests.ToString() + " uptime=" + uptimeSec.ToString());
-            WebApi.Json(e.Context.Response, 200,
-                "{\"ok\":true,\"uptime\":" + uptimeSec.ToString() +
-                ",\"heapFree\":" + nanoFramework.Runtime.Native.GC.Run(false).ToString() +
-                ",\"ip\":\"" + LocalAddress + "\"" +
-                ",\"requests\":" + requests.ToString() +
-                ",\"authEnabled\":" + (SampleAuth.Guard.IsEnabled ? "true" : "false") +
-                // 서버 자기서술(Phase 2 설계): capabilities는 manifest.features의 최종 고향, settingsKeys는
-                // 이 서버가 실제로 받는 설정 키(폼 검증 상실 방어). manifest 소멸 로드맵의 additive groundwork.
-                ",\"capabilities\":{\"points\":false}" +
-                ",\"ap\":false" +
-                ",\"settingsKeys\":[\"deviceName\",\"pollMs\",\"debug\",\"mode\"]" +
-                "," + SampleConfig.Json().Substring(1)); // deviceName/pollMs/debug 병합
+            // 서버 자기서술(Phase 2 설계): capabilities는 manifest.features의 최종 고향, settingsKeys는
+            // 이 서버가 실제로 받는 설정 키(폼 검증 상실 방어). manifest 소멸 로드맵의 additive groundwork.
+            JsonWriter w = new JsonWriter();
+            w.BeginObject().Prop("ok", true)
+             .Prop("uptime", uptimeSec)
+             .Prop("heapFree", nanoFramework.Runtime.Native.GC.Run(false))
+             .Prop("ip", LocalAddress)
+             .Prop("requests", requests)
+             .Prop("authEnabled", SampleAuth.Guard.IsEnabled)
+             .PropRaw("capabilities", "{\"points\":false}")
+             .Prop("ap", false)
+             .PropArr("settingsKeys", new string[] { "deviceName", "pollMs", "debug", "mode" });
+            SampleConfig.WriteProps(w); // deviceName/pollMs/debug/mode 병합
+            w.EndObject();
+            WebApi.Json(e.Context.Response, 200, w.ToString());
         }
 
         [Route("api/settings")]
         [Method("GET")]
         public void SettingsGet(WebServerEventArgs e)
         {
-            WebApi.Json(e.Context.Response, 200,
-                "{\"ok\":true,\"schemaVersion\":" + SampleConfig.Schema.ToString() +
-                ",\"gatewayProfile\":\"web-sample\"," + SampleConfig.Json().Substring(1));
+            JsonWriter w = new JsonWriter();
+            w.BeginObject().Prop("ok", true)
+             .Prop("schemaVersion", SampleConfig.Schema)
+             .Prop("gatewayProfile", "web-sample");
+            SampleConfig.WriteProps(w);
+            w.EndObject();
+            WebApi.Json(e.Context.Response, 200, w.ToString());
         }
 
         [Route("api/settings")]
@@ -308,10 +195,10 @@ namespace VagabondK.nF.Web.Sample
             SampleConfig.Debug = dbg == "1";
             SampleConfig.Mode = modeV;
             SampleConfig.Save();
-            WebApi.Json(e.Context.Response, 200, "{\"ok\":true}");
+            WebApi.Json(e.Context.Response, 200, WebApi.OkJson);
         }
 
-        // firmware 컴포넌트용 수신 데모 엔드포인트: 청크를 누적 계수만 한다(실제 플래싱은 부트로터 영역).
+        // firmware 컴포넌트용 수신 데모 엔드포인트: 청크를 누적 계수만 합니다(실제 플래싱은 부트로터 영역).
         static int fwBytes;
 
         [Route("api/firmware")]
@@ -327,23 +214,24 @@ namespace VagabondK.nF.Web.Sample
             { WebApi.Error(e.Context.Response, 400, "firmware 필드 오류"); return; }
             if (seq == 0) fwBytes = 0;
             fwBytes += data.Length * 3 / 4; // base64 → 원바이트 근사
-            WebApi.Json(e.Context.Response, 200,
-                "{\"ok\":true,\"seq\":" + seq.ToString() + ",\"received\":" + fwBytes.ToString() + "}");
+            JsonWriter w = new JsonWriter();
+            w.BeginObject().Prop("ok", true).Prop("seq", seq).Prop("received", fwBytes).EndObject();
+            WebApi.Json(e.Context.Response, 200, w.ToString());
         }
 
-        // reboot 컴포넌트용 데모 엔드포인트: 확인만 반환하고 실제 재부팅은 하지 않는다
-        // (실전 프로젝트에서는 Microsoft.Devices.Software.Reboot를 호출한다).
+        // reboot 컴포넌트용 데모 엔드포인트: 확인만 반환하고 실제 재부팅은 하지 않습니다
+                // (실전 프로젝트에서는 Microsoft.Devices.Software.Reboot를 호출합니다).
         [Route("api/reboot")]
         [Method("POST")]
         public void RebootPost(WebServerEventArgs e)
         {
             if (CsrfGuard.Check(e.Context, CsrfMarker, LocalAddress)) return;
-            WebApi.Json(e.Context.Response, 200, "{\"ok\":true}");
+            WebApi.Json(e.Context.Response, 200, WebApi.OkJson);
         }
 
         // ---------- 11차 컴포넌트 데모 (log-tail / register-view / wifi-form) ----------
 
-        // log-tail용: 호출마다 새 줄 2개를 생성해 보낸다(클라이언트가 꼬리 유지).
+        // log-tail용: 호출마다 새 줄 2개를 생성해 보냅니다(클라이언트가 꼬리 유지).
         static int logSeq;
 
         static string Tstr(long sec)
@@ -364,23 +252,23 @@ namespace VagabondK.nF.Web.Sample
             string b = "[" + Tstr(up) + "] polling #" + (logSeq + 2).ToString() +
                 (logSeq % 10 == 8 ? " warn: slow response" : " ok");
             logSeq += 2;
-            WebApi.Json(e.Context.Response, 200,
-                "{\"ok\":true,\"lines\":[\"" + WebApi.JsonEscape(a) + "\",\"" + WebApi.JsonEscape(b) + "\"]}");
+            JsonWriter w = new JsonWriter();
+            w.BeginObject().Prop("ok", true).Prop("lines").BeginArray().Str(a).Str(b).EndArray().EndObject();
+            WebApi.Json(e.Context.Response, 200, w.ToString());
         }
 
-        // register-view용: 가동 시간의 결정적 함수라 폴링마다 값이 갱신된다.
+        // register-view용: 가동 시간의 결정적 함수라 폴링마다 값이 갱신됩니다.
         [Route("api/registers")]
         [Method("GET")]
         public void RegistersGet(WebServerEventArgs e)
         {
             long up = (Environment.TickCount64 - BootTick) / 1000;
-            string body = "";
+            JsonWriter w = new JsonWriter(160);
+            w.BeginObject().Prop("ok", true).Prop("values").BeginArray();
             for (int i = 0; i < 16; i++)
-            {
-                if (i > 0) body += ",";
-                body += ((up * 13 + i * 257) & 0xFFFF).ToString();
-            }
-            WebApi.Json(e.Context.Response, 200, "{\"ok\":true,\"values\":[" + body + "]}");
+                w.Num((up * 13 + i * 257) & 0xFFFF);
+            w.EndArray().EndObject();
+            WebApi.Json(e.Context.Response, 200, w.ToString());
         }
 
         // wifi-form용: 네트워크 설정 데모(실전에서는 무선 라디오 API 호출 자리).
@@ -390,8 +278,9 @@ namespace VagabondK.nF.Web.Sample
         [Method("GET")]
         public void NetworkGet(WebServerEventArgs e)
         {
-            WebApi.Json(e.Context.Response, 200,
-                "{\"ok\":true,\"ssid\":\"" + WebApi.JsonEscape(NetSsid) + "\"}");
+            JsonWriter w = new JsonWriter();
+            w.BeginObject().Prop("ok", true).Prop("ssid", NetSsid).EndObject();
+            WebApi.Json(e.Context.Response, 200, w.ToString());
         }
 
         [Route("api/network")]
@@ -405,7 +294,7 @@ namespace VagabondK.nF.Web.Sample
             { WebApi.Error(e.Context.Response, 400, "ssid는 1~32자"); return; }
             NetSsid = ssid;
             if (pass != null && pass.Length > 0) NetPass = pass;
-            WebApi.Json(e.Context.Response, 200, "{\"ok\":true}");
+            WebApi.Json(e.Context.Response, 200, WebApi.OkJson);
         }
     }
 }

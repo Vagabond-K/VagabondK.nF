@@ -1,9 +1,25 @@
 <section data-tab="설정" data-hash="settings" hidden>
   <h1>설정</h1>
-  <!-- form 컴포넌트: 입력 컨트롤은 manifest의 form 스키마로 런타임에 렌더되고,
-       저장/되돌리기/dirty/상태문구는 WebUi.autoForm이 bindForm으로 배선한다. -->
-  <form/>
+  <!-- 설정 폼: 컨트롤은 마크업이 유일한 선언부입니다(data-label/data-fmt를 빌드가 읽어 MANIFEST.form 생성).
+       저장/되돌리기/dirty/상태문구는 WebUi.bindForm이 배선합니다(settings.nf.js). -->
+  <form id="wform" novalidate>
+    <label class="field"><span>장치 이름</span
+      ><input name="deviceName" data-label="장치 이름" data-fmt="text" maxlength="32" /></label>
+    <label class="field"><span>폴링 주기(ms)</span
+      ><input name="pollMs" data-label="폴링 주기" data-fmt="ms" inputmode="numeric" /></label>
+    <label class="field"><span>동작 모드</span
+      ><select name="mode" data-label="동작 모드">
+        <option value="0">간이</option>
+        <option value="1">표준</option>
+        <option value="2">상세</option>
+      </select></label>
+    <label class="field"><span>진단 모드</span
+      ><select name="debug" data-label="진단 모드" data-fmt="bool">
+        <option value="0">끔</option>
+        <option value="1">켬</option>
+      </select></label>
+  </form>
   <!-- 반복 인스턴스 데모: 상태 탭의 status-card(→heartbeat)와 같은 컴포넌트를 다시 사용.
-       인스턴스라 태그마다 shadow root·타이머가 독립이며 id가 충돌하지 않는다. -->
-  <heartbeat/>
+       인스턴스라 태그마다 shadow root·타이머가 독립이며 id가 충돌하지 않습니다. -->
+  <heartbeat />
 </section>

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- MSBuild task assembly for WebUi resource generation. Dual-targeted so the same
+       targets file works on .NET Framework and .NET (core) MSBuild hosts.
+       PageComposer/MiniJson are shared via links: one page pipeline for generator+task. -->
+  <PropertyGroup>
+    <TargetFrameworks>net472;netstandard2.0</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>VagabondK.nF.WebUi.Tasks</RootNamespace>
+    <AssemblyName>VagabondK.nF.WebUi.Tasks</AssemblyName>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="GenerateWebUiResourcesTask.cs" />
+    <Compile Include="..\VagabondK.nF.WebUi\PageComposer.cs" Link="PageComposer.cs" />
+    <Compile Include="..\VagabondK.nF.WebUi\MiniJson.cs" Link="MiniJson.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.IO.Compression" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.3.2" PrivateAssets="all" ExcludeAssets="runtime" />
+  </ItemGroup>
+</Project>

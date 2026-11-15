@@ -5,7 +5,7 @@
   <Import Project="..\..\..\Build\Network.props" />
   <PropertyGroup><OutputType>Exe</OutputType><StartupObject>VagabondK.nF.Web.Sample.Program</StartupObject></PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Source\Web\VagabondK.nF.WebAuth\VagabondK.nF.WebAuth.nfproj" />
+    <ProjectReference Include="..\..\..\Source\Web\VagabondK.nF.Web\VagabondK.nF.Web.nfproj" />
     <Reference Include="mscorlib"><HintPath>$(PackagesPath)nanoFramework.CoreLibrary.1.17.11\lib\mscorlib.dll</HintPath><Private>true</Private></Reference>
     <Reference Include="System.IO.FileSystem"><HintPath>$(PackagesPath)nanoFramework.System.IO.FileSystem.1.1.96\lib\System.IO.FileSystem.dll</HintPath><Private>true</Private></Reference>
 <Reference Include="System.Collections"><HintPath>$(PackagesPath)nanoFramework.System.Collections.1.5.75\lib\nanoFramework.System.Collections.dll</HintPath><Private>true</Private></Reference>
@@ -13,27 +13,32 @@
     <Reference Include="nanoFramework.WebServer"><HintPath>$(PackagesPath)nanoFramework.WebServer.1.2.162\lib\nanoFramework.WebServer.dll</HintPath><Private>true</Private></Reference>
     <Reference Include="nanoFramework.System.Security.Cryptography"><HintPath>$(PackagesPath)nanoFramework.System.Security.Cryptography.1.0.43\lib\nanoFramework.System.Security.Cryptography.dll</HintPath><Private>true</Private></Reference>
   </ItemGroup>
-  <!-- WebUi 빌드타임 페이지 생성: 셸+프로필 머지/축소/gzip은 VagabondK.nF.WebUi(소스 생성기)가 수행. -->
+  <!-- WebUi 페이지 생성: VagabondK.nF.WebUi.targets의 MSBuild task가 병합/축소/gzip 후
+       바이트를 바이너리 리소스(.resx → PE embed)로 내보낸다(리터럴 무제한·장치 디코딩 불필요). -->
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Source\Web\VagabondK.nF.WebUi\VagabondK.nF.WebUi.csproj"
-                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" />
+    <Reference Include="nanoFramework.ResourceManager"><HintPath>$(PackagesPath)nanoFramework.ResourceManager.1.2.32\lib\nanoFramework.ResourceManager.dll</HintPath><Private>true</Private></Reference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="WebUi\index.html" />
     <None Include="WebUi\**\*.nf.html" />
     <None Include="WebUi\**\*.nf.js" />
     <None Include="WebUi\**\*.nf.css" />
+    <None Include="WebUi\theme.css" />
+    <None Include="WebUi\**\*.resx" />
   </ItemGroup>
   <PropertyGroup>
-    <WebUiPage>$(MSBuildThisFileDirectory)WebUi\index.html</WebUiPage>
-    <WebUiNamespace>VagabondK.nF.Web.Sample</WebUiNamespace>
-    <WebUiClassName>WebPage</WebUiClassName>
-    <!-- manifest의 "id" 대신 프로젝트 속성으로 페이지 id를 선언한다(Phase 2: manifest 소멸 로드맵). -->
+    <!-- 라우팅은 .nf.html 첫 줄의 @route 마커가 결정한다: index.nf.html이 `/`,
+         라이브러리 Pages\login.nf.html이 `/login`(표준 로그인). 별도 페이지 속성 없음. -->
     <WebUiId>web-sample</WebUiId>
-    <!-- 컴포넌트 루트 둘: 프로젝트 WebUi(로컬, 우선) + 표준 컴포넌트 라이브러리.
-         페이지가 <name/> 또는 <wui-name> 태그로 참조한 것만 번들에 들어가고, 같은 이름의 로컬 조각이 라이브러리를 섀도잉한다
-         (예: panel은 라이브러리 버전이 있지만 로컬 panel.nf.html이 승리 → 라이브러리 panel은 0바이트). -->
-    <WebUiComponents>$(MSBuildThisFileDirectory)WebUi;$(MSBuildThisFileDirectory)..\..\..\Source\Web\VagabondK.nF.WebUi.Components</WebUiComponents>
+    <WebUiNamespace>VagabondK.nF.Web.Sample</WebUiNamespace>
+    <!-- {{BRAND}} 치환(로그인 제목·제목줄). -->
+    <WebUiBrand>Web Sample</WebUiBrand>
+    <!-- 컴포넌트 루트: 프로젝트 WebUi(기본값, 로컬이 라이브러리를 섀도잉) + 표준
+         Components\는 targets가 자동 후미 추가. -->
+    <!-- 라이브러리 기본 테마(청록 teal)를 이 프로젝트의 slate 팔레트(WebUi\theme.css)로
+         덮어써 테마 커스터마이징을 실증한다. -->
+    <WebUiTheme>$(MSBuildThisFileDirectory)WebUi\theme.css</WebUiTheme>
+    <!-- css 링크 분리: 테마+컴포넌트 css가 /style.css 한 파일로 번들되어 로그인/메인이 공유한다. -->
+    <WebUiLinkCss>true</WebUiLinkCss>
   </PropertyGroup>
   <Import Project="..\..\..\Source\Web\VagabondK.nF.WebUi\VagabondK.nF.WebUi.targets" />
   <Import Project="..\..\..\Build\Library.targets" />

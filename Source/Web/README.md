@@ -9,14 +9,14 @@
 
 | 프로젝트 문서 | 역할 |
 |---|---|
-| [VagabondK.nF.WebAuth](VagabondK.nF.WebAuth/README.md) | 관리자 비밀번호 해시 저장·검증, 메모리 세션, 정적 API 키, 로그인 실패 잠금 |
+| [VagabondK.nF.Web](VagabondK.nF.Web/README.md) | 관리자 비밀번호 해시 저장·검증, 메모리 세션, 정적 API 키, 로그인 실패 잠금 |
 
 런타임 폴더의 `.nfproj`는 nanoFramework DLL을, 같은 폴더의 `.csproj`는 PC 검증용 빌드를 만듭니다.
 
 ## 사용 예
 
 ```csharp
-using VagabondK.nF.WebAuth;
+using VagabondK.nF.Web;
 
 var guard = new LoginGuard();
 guard.SetPassword("s3cret!");            // 저장되는 것은 해시 문자열뿐

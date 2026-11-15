@@ -78,7 +78,7 @@ GC 후 MCU 가용 heap은 기준 755,256바이트, 최소 755,244바이트, 종�
 | BACnet/IP | BVLC/NPDU/APDU 거절, UDP 빈/짧은/초과 데이터그램 각각 뒤 Who-Is/I-Am | 손상 Write 4종 거절·값/쓰기 횟수 보존 뒤 Read/Write/Who-Is | 손상 APDU Write 32종 각각 Reject/Error/Abort 관측·AV/BV 값 보존·정상 Write/Read; 독립 Client 256 cycles | 반복 오류 부하·내부 QueueWrite 호출 횟수 관측 |
 | SNMP UDP | BER 절단·길이/형식/OID 변이, UDP 오류 뒤 SET/GET/Trap, 잘못된 community 무응답; 12종 정확한 거절·값 보존 | 손상 BER SET 7종 거절·두 값/쓰기 횟수 보존 뒤 GET/SET | 독립 Manager: 손상 BER 10종 각각 장치 거절 + 값/쓰기 횟수 보존 + 후속 GET/SET. 초과 UDP 2종 송신 후 복구, 256 SET/GET rounds | **초과 UDP의 MCU 애플리케이션 도달·거절은 미확인**; 반복 오류 부하·Trap 실물 수신 |
 | MMS | BER/Report 경계·변이, TPKT 오류 뒤 decoder Reset, Report callback 실패 후 새 세션 정상 교환 | TPKT 손상/부분 EOF 4종 Faulted·Reset, 잘못된 TPKT/COTP Association 거절 뒤 새 메모리 채널 왕복 | IEC 공유 MMS 경로: Server 손상13종/Client 손상응답12종, TPKT/COTP/Association/BER/invoke ID 등 Faulted·후속 호출 거절·새 Association, warmup 후 heap 유지 | 일반 MMS 전 기능 시험·장시간 연속 손상 부하·전원 장애 |
-| IEC61850 | TPKT/분할·BER·무응답/EOF, 서비스 오류 후 연결 유지, 잘못된 종료 후 Faulted; 독립 IED 장애는 별도 옵션 | 전용 IEC 장애 시험 없음 | Server 손상13종 제어 미호출·값 보존, 독립 Client14회/1,344 requests. MCU Client 손상응답12종 및 제어 응답 폐기1종, 정상15cycles/900values/300errors, 송신·실행1회/재호출 무송신. 양 역할 warmup 후 heap 유지 | 물리 네트워크 유실·반복 오류 부하·재접속 후 앱 제어 정책・재부팅을 넘는 중복 제거 |
+| IEC61850 | TPKT/분할·BER·무응답/EOF, 서비스 오류 후 연결 유지, 잘못된 종료 후 Faulted; 독립 IED 장애는 별도 옵션 | 전용 IEC 장애 시험 없음 | Server 손상13종 제어 미호출·값 보존, 독립 Client14회/1,344 requests. MCU Client 손상응답12종 및 제어 응답 폐기1종, 정상15cycles/900values/300errors, 송신·실행1회/재호출 무송신. 양 역할 warmup 후 heap 유지 | 물리 네트워크 유실·반복 오류 부하·재접속 후 앱 제어 정책·재부팅을 넘는 중복 제거 |
 
 BACnet의 현재 구현은 `SEGMENTATION_NONE`입니다. 분할 메시지 재조립·유실 복구를 지원 기능처럼
 시험 범위에 넣지 않습니다. 미지원 분할 요청 거절은 별도 항목입니다.
