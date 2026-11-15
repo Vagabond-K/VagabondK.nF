@@ -17,7 +17,7 @@ WebUi.on("wui:status", (s) =>
       WebUi.node("dd", {
         key: "pm",
         text: WebUi.showValue(
-          document.getElementById("wf"),
+          document.getElementById("wform"),
           "pollMs",
           s.pollMs,
         ),

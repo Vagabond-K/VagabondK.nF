@@ -8,7 +8,7 @@
     <label class="field"><span>폴링 주기(ms)</span
       ><input name="pollMs" data-label="폴링 주기" data-fmt="ms" inputmode="numeric" /></label>
     <label class="field"><span>동작 모드</span
-      ><select name="mode" data-label="동작 모드">
+      ><select name="mode" data-label="동작 모드" data-fmt="seg">
         <option value="0">간이</option>
         <option value="1">표준</option>
         <option value="2">상세</option>
@@ -19,6 +19,12 @@
         <option value="1">켬</option>
       </select></label>
   </form>
+  <!-- 저장/되돌리기: bindForm이 disabled·상태문구를 배선합니다(settings.nf.js의 saveBtn/undoBtn/stateEl). -->
+  <p>
+    <button id="wsave" class="act" disabled>저장</button>
+    <button id="wundo" class="gh" type="button" disabled>되돌리기</button>
+    <span id="wstate" class="msg"></span>
+  </p>
   <!-- 반복 인스턴스 데모: 상태 탭의 status-card(→heartbeat)와 같은 컴포넌트를 다시 사용.
        인스턴스라 태그마다 shadow root·타이머가 독립이며 id가 충돌하지 않습니다. -->
   <heartbeat />

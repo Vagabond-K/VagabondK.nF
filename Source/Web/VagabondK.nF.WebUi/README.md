@@ -78,7 +78,7 @@ manifest는 페이지가 선언하지 않습니다: `id`는 `<WebUiId>` 속성, 
 블록 어디든 됩니다 — 훅 요구 검사는 페이지 전체(뷰+스크립트)를 대상으로 하므로 위치에
 관계없이 발견되고, 출력 순서는 컴포넌트 JS → 페이지 JS로 보장됩니다.
 `<nf-style/>` 줄 뒤에는 페이지 고유 CSS를 리터럴로 둘 수 있으며 컴포넌트 CSS 뒤에 적용됩니다.
-폼 유도: 폼 필드는 `data-label`(표시 이름)과 선택 `data-fmt`(ms/pin/secret/bool/text)를
+폼 유도: 폼 필드는 `data-label`(표시 이름)과 선택 `data-fmt`(ms/pin/secret/bool/switch/seg/text)를
 가지면 빌드가 MANIFEST.form을 자동 생성합니다. `<form>` 마크업이 전혀 없는 표시 전용
 페이지는 form 필드 요구가 면제됩니다.
 

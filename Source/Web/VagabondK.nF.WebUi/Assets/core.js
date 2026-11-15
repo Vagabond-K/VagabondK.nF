@@ -64,7 +64,7 @@ var WebUi = (function () {
       if (f.fmt === "bool" || f.fmt === "switch")
         return v === "1" ? uiText("val.yes") : uiText("val.no");
     }
-    if (!f || !f.fmt) {
+    if (!f || !f.fmt || f.fmt === "seg") {
       if (el && el.querySelector) {
         o = el.querySelector('option[value="' + v + '"]');
         if (o) return o.text;
@@ -334,6 +334,136 @@ var WebUi = (function () {
     var age = (Date.now() - SEEN) / 1000;
     fire("wui:tick", { uptime: (ST.uptime || 0) + age, age: age, status: ST });
   }
+  // ---- 마크업 선언형 컨트롤 업그레이드 (Phase 1.5) ----
+  // data-fmt가 렌더링의 단일 출처: bool/switch → .sw 토글(라디오 0/1), seg → .sg 세그먼트(select options 이식).
+  // 값은 라디오 그룹 form.elements[k].value로 왕복되므로 bindForm 저장/dirty 기치는 그대로 재사용한다.
+  // 스타일은 themes.css가 프로젝트에 의해 통째로 교체될 수 있어 최초 업그레이드 시 한 번 직접 주입한다.
+  var CTL_CSS =
+    ".sw{position:relative;display:inline-block;width:44px;height:24px;vertical-align:middle;cursor:pointer}" +
+    ".sw input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}" +
+    ".sw i{position:absolute;left:0;top:0;right:0;bottom:0;border-radius:12px;background:var(--line,#334155);transition:background .15s;pointer-events:none}" +
+    '.sw i::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--tx,#e2e8f0);transition:left .15s}' +
+    '.sw:has(input[value="1"]:checked) i{background:var(--in,#38bdf8)}' +
+    '.sw:has(input[value="1"]:checked) i::after{left:23px}' +
+    ".sw:focus-visible{outline:2px solid var(--acc,#38bdf8);border-radius:12px}" +
+    ".sg{display:inline-flex;border:1px solid var(--line,#334155);border-radius:8px;overflow:hidden;vertical-align:middle}" +
+    ".sg label{margin:0}" +
+    ".sg input{position:absolute;opacity:0;width:1px;height:1px}" +
+    ".sg span{display:inline-block;padding:6px 14px;color:var(--mut,#94a3b8);cursor:pointer;white-space:nowrap}" +
+    ".sg input:checked+span{background:var(--in,#38bdf8);color:#04252f;font-weight:600}" +
+    ".sg input:focus-visible+span{outline:2px solid var(--acc,#38bdf8)}";
+  function ctlCss() {
+    if (ctlCss.on) return;
+    ctlCss.on = 1;
+    var s = document.createElement("style");
+    s.textContent = CTL_CSS;
+    document.head.appendChild(s);
+  }
+  function switchCtl(name, el) {
+    var on =
+      el.tagName === "SELECT"
+        ? el.value === "1"
+        : el.type === "checkbox"
+          ? el.checked
+          : String(el.value) === "1";
+    var w = document.createElement("span");
+    w.className = "sw";
+    w.setAttribute("role", "switch");
+    w.tabIndex = 0;
+    var a = document.createElement("input"),
+      b = document.createElement("input");
+    a.type = b.type = "radio";
+    a.name = b.name = name;
+    a.value = "0";
+    b.value = "1";
+    b.checked = on;
+    w.appendChild(a);
+    w.appendChild(b);
+    w.appendChild(document.createElement("i"));
+    w.setAttribute("aria-checked", on ? "true" : "false");
+    function tog() {
+      var t = b.checked ? a : b;
+      t.checked = true;
+      w.setAttribute("aria-checked", b.checked ? "true" : "false");
+      t.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    w.addEventListener("click", tog);
+    w.addEventListener("keydown", function (e) {
+      if (e.key === " " || e.key === "Enter") {
+        e.preventDefault();
+        tog();
+      }
+    });
+    return w;
+  }
+  function segCtl(name, sel) {
+    var g = document.createElement("span");
+    g.className = "sg";
+    for (var j = 0; j < sel.options.length; j++) {
+      var o = sel.options[j],
+        l = document.createElement("label"),
+        r = document.createElement("input"),
+        s = document.createElement("span");
+      r.type = "radio";
+      r.name = name;
+      r.value = o.value;
+      if (o.value === sel.value) r.checked = true;
+      s.textContent = o.textContent;
+      l.appendChild(r);
+      l.appendChild(s);
+      g.appendChild(l);
+    }
+    return g;
+  }
+  function secretCtl(el) {
+    // markup의 <input type="password" data-fmt="secret"> → <password> 컴포넌트로 승격.
+    // 값 왕복은 호스트의 .value(formAssociated)가 form.elements[name]를 통해 그대로 작동합니다.
+    // 런타임 생성이므로 wui- 접두사(빌드 시 FACE가 정의하는 실제 등록명)를 직접 씁니다.
+    var w = document.createElement(window.customElements && customElements.get("wui-password") ? "wui-password" : "password");
+    var at = ["data-fmt", "data-label", "name", "maxlength", "placeholder", "autocomplete"];
+    for (var j = 0; j < at.length; j++)
+      if (el.getAttribute(at[j]) != null) w.setAttribute(at[j], el.getAttribute(at[j]));
+    if (el.disabled) w.setAttribute("disabled", "");
+    return w;
+  }
+  function upgradeCtls(f) {
+    if (!f || !f.querySelectorAll) return;
+    var list = f.querySelectorAll("[data-fmt]"),
+      i,
+      el,
+      fmt;
+    for (i = 0; i < list.length; i++) {
+      el = list[i];
+      fmt = el.getAttribute("data-fmt");
+      if (!el.name || !el.parentNode) continue;
+      if (fmt === "bool" || fmt === "switch") {
+        ctlCss();
+        el.parentNode.replaceChild(switchCtl(el.name, el), el);
+      } else if (fmt === "seg" && el.tagName === "SELECT") {
+        ctlCss();
+        el.parentNode.replaceChild(segCtl(el.name, el), el);
+      } else if (fmt === "secret" && el.tagName === "INPUT") {
+        el.parentNode.replaceChild(secretCtl(el), el);
+      }
+    }
+  }
+  // bindForm을 타지 않는 정적 페이지용: name 있는 secret input을 <password>로 승격.
+  function upgradeSecrets(root) {
+    var list = root.querySelectorAll('input[data-fmt="secret"]'),
+      i,
+      el;
+    for (i = 0; i < list.length; i++) {
+      el = list[i];
+      if (el.name && el.parentNode) el.parentNode.replaceChild(secretCtl(el), el);
+    }
+  }
+  // 부트: core 인라인 스크립트보다 뒤에 파싱되는 마크업도 잡으도록 DOM 준비 후 1회 스캔.
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function () {
+      upgradeSecrets(document);
+    });
+  } else upgradeSecrets(document);
+
   // ---- bindForm (Phase 1.5): 설정 폼의 저장/되돌리기/dirty 기계장치 ----
   // opts는 {check(v)->errs, save(v,changed)->Promise, errors(form,errs), mark(form,changedKeys),
   //   confirm(bool|fn(v,changed)->bool), stateEl, saveBtn, undoBtn, dotEl, keys, texts} 형태의 설정 객체입니다.
@@ -342,6 +472,9 @@ var WebUi = (function () {
     var o = opts || {},
       base = null,
       src = null;
+    if (typeof form === "string") form = document.getElementById(form);
+    // data-fmt 마크업을 .sw/.sg 컨트롤로 승격 (opts.upgrade:false로 끄기 가능)
+    if (o.upgrade !== false) upgradeCtls(form);
     var keys = o.keys || KEYS;
     function node(x) {
       return typeof x === "string" ? document.getElementById(x) : x;
@@ -464,6 +597,11 @@ var WebUi = (function () {
       undoBtn.onclick = function () {
         if (src) fill(src);
       };
+    // 최초 wui:status 수신 시 자동 채움 (구 autoForm의 구독 경로 대체, opts.fillOnStatus:false로 끄기 가능)
+    if (o.fillOnStatus !== false)
+      on("wui:status", function (s) {
+        if (!base) fill(s);
+      });
     return {
       fill: fill,
       values: vals,

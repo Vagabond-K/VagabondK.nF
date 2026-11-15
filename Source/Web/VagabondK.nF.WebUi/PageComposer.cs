@@ -789,7 +789,7 @@ namespace VagabondK.nF.WebUi
                 {
                     bool ok = false;
                     foreach (string x in Fmts) if (x == fmt) ok = true;
-                    if (!ok) { Fail(origin, "data-fmt \"" + fmt + "\" on \"" + name + "\" must be one of ms/pin/secret/bool/text"); return false; }
+                    if (!ok) { Fail(origin, "data-fmt \"" + fmt + "\" on \"" + name + "\" must be one of ms/pin/secret/bool/switch/seg/text"); return false; }
                 }
                 if (manualNames.Contains(name))
                 { Fail(origin, "form field \"" + name + "\" is defined in both manifest.form and markup data-label/data-fmt; keep one source"); return false; }

@@ -7,6 +7,9 @@
 
 WebUi.bindForm(document.getElementById("wform"), {
   dotEl: WebUi.tabs.el(1),
+  saveBtn: "wsave",
+  undoBtn: "wundo",
+  stateEl: "wstate",
 
   check(v) {
     const e = {},

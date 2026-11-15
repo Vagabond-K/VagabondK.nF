@@ -13,7 +13,7 @@ VagabondK.nF.Web.Sample\
 ├── Program.cs                        네트워크 대기 → GuardedWebServer(80) 시작 + AuthController 배선
 ├── Controllers.cs                    라우트 핸들러(페이지/자산/상태/설정) + 설정·인증 파일 영속화
 └── WebUi\
-    ├── index.nf.html                 루트 페이지(페이지 모드): manifest + 탭 + 조립 + 폴러만 남긴 얇은 셸
+    ├── index.nf.html                 루트 페이지(페이지 모드): 탭 + 조립 + 폴러만 남긴 얇은 셸 (컨트롤은 마크업이 선언)
     ├── theme.css                     라이브러리 기본 테마(청록)를 slate 팔레트로 덮는 :root 토큰 css
     │                                 (WebUiTheme 지정 → 로그인·메인이 /style.css 하나로 공유)
     ├── heartbeat.nf.{html,js,css}    @instance 컴포넌트: 상태·설정 탭에서 재사용(태그마다 shadow root),
@@ -80,7 +80,7 @@ nanoff --deploy --image Samples\Web\VagabondK.nF.Web.Sample\bin\Release\Vagabond
 |---|---|---|
 | 로그인 페이지(`/login`) | `POST api/auth/login` | 비밀번호 → 세션 쿠키(`wsauth`) 발급. 실패 5회 시 60초 잠금. 미인증 `GET /`는 여기서 302 |
 | 상태 탭 | `GET api/status` | sysinfo(가동/힙/요청 수) + heartbeat 인스턴스 + panel(프로필 패널) |
-| 설정 탭 | `GET/POST api/settings` | 폼 렌더·변경 감지·저장 확인은 form 컴포넌트(`WebUi.autoForm`), `I:\web-sample.cfg` 영속화 |
+| 설정 탭 | `GET/POST api/settings` | 폼은 `settings.nf.html` 마크업이 선언하고 저장·변경 감지·되돌리기는 `WebUi.bindForm`, `I:\web-sample.cfg` 영속화 |
 | 로그아웃 | `POST api/auth/logout` | 세션 폐기 + 쿠키 삭제 |
 
 ## 내 프로젝트로 확장하기

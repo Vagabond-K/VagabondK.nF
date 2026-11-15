@@ -46,8 +46,11 @@ WebUi.autoForm = function (opts) {
       }
       ctl += "</span>";
     } else if (fmt === "secret")
+      // data-fmt="secret" 유지: bindForm의 upgradeCtls가 <password> 컴포넌트로 승격(표시 버튼 포함).
       ctl =
-        '<input type="password" name="' + k + '" autocomplete="new-password">';
+        '<input type="password" name="' +
+        k +
+        '" data-fmt="secret" autocomplete="new-password">';
     else if (fmt === "ms" || fmt === "num" || fmt === "int")
       ctl = '<input name="' + k + '" inputmode="numeric">';
     else ctl = '<input name="' + k + '">';

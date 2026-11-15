@@ -54,6 +54,9 @@
         border-radius: 6px; padding: 6px 10px; cursor: pointer;
       }
       .msg { color: var(--mut); margin: 6px 0; }
+      /* 설정 폼 필드: 라벨+컨트롤 한 줄 (마크업이 레이아웃을 선언하면 CSS가 받는다) */
+      .field { display: flex; align-items: center; gap: 10px; margin: 12px 0; }
+      .field > span:not([class]) { min-width: 96px; color: var(--mut); font-size: 13px; }
       .bad { color: var(--bad); }
       .dot::after {
         content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%;
@@ -226,7 +229,7 @@
         const a = await WebUi.api("/api/auth/status");
         if (a.csrfHeader) WebUi.csrf(a.csrfHeader);
         SRV = a;
-        if (a.limits) $("wf").deviceName.maxLength = a.limits.nameMax;
+        if (a.limits && $("wform")) $("wform").deviceName.maxLength = a.limits.nameMax;
         const authed = !a.authEnabled || a.loggedIn;
         $("btnOut").hidden = !(a.authEnabled && a.loggedIn);
         if (!authed) location.replace("/login" + location.hash);
