@@ -76,7 +76,12 @@ WebUi.autoForm = function (opts) {
         t.dispatchEvent(new Event("input", { bubbles: true }));
       };
       w.setAttribute("aria-checked", ins[1].checked ? "true" : "false");
-      w.addEventListener("click", tog);
+      // preventDefault: 래퍼가 <label> 안에 있을 경우 라벨 활성 동작이 첫 라디오로
+      // click을 재전달해 토글을 되돌려 버립니다. 기본 동작을 차단해야 클릭이 유지됩니다.
+      w.addEventListener("click", function (e) {
+        e.preventDefault();
+        tog();
+      });
       w.addEventListener("keydown", function (e) {
         if (e.key === " " || e.key === "Enter") {
           e.preventDefault();

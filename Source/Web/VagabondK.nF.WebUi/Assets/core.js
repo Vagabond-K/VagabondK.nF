@@ -387,7 +387,12 @@ var WebUi = (function () {
       w.setAttribute("aria-checked", b.checked ? "true" : "false");
       t.dispatchEvent(new Event("input", { bubbles: true }));
     }
-    w.addEventListener("click", tog);
+    // preventDefault: .sw가 <label> 안에 있으면 라벨 활성 동작이 첫 라디오(value=0)로
+    // click을 재전달해 tog의 반전을 되돌립니다(클릭이 무효과). 기본 동작을 막아야 토글이 유지됩니다.
+    w.addEventListener("click", function (e) {
+      e.preventDefault();
+      tog();
+    });
     w.addEventListener("keydown", function (e) {
       if (e.key === " " || e.key === "Enter") {
         e.preventDefault();
@@ -413,6 +418,10 @@ var WebUi = (function () {
       l.appendChild(s);
       g.appendChild(l);
     }
+    // 라벨 안 공백 클릭이 바깥 <label> 활성 동작으로 첫 라디오에 전달되는 것만 차단(선택은 그대로).
+    g.addEventListener("click", function (e) {
+      if (e.target === g) e.preventDefault();
+    });
     return g;
   }
   function secretCtl(el) {
@@ -550,7 +559,20 @@ var WebUi = (function () {
     function fill(s) {
       src = s;
       base = fill2(form, s);
+      syncAria(form);
       return sync();
+    }
+    // 프로그램 checked(예: 상태 폴링로 인한 채움)는 input 이벤트를 발생시키지 않으므로
+    // .sw 래퍼의 aria-checked가 어긋난 채로 남습니다. fill 후 한 번 맞춰줍니다.
+    function syncAria(f) {
+      var sws = f.querySelectorAll(".sw"),
+        i,
+        ins;
+      for (i = 0; i < sws.length; i++) {
+        ins = sws[i].getElementsByTagName("input");
+        if (ins.length > 1)
+          sws[i].setAttribute("aria-checked", ins[1].checked ? "true" : "false");
+      }
     }
     function fill2(f, s) {
       var e = f.elements,
