@@ -2,8 +2,8 @@
 
 [VagabondK.nF.WebUi](../../../Source/Web/VagabondK.nF.WebUi/README.md)(빌드타임 웹 페이지 생성)와
 [VagabondK.nF.Web](../../../Source/Web/VagabondK.nF.Web/README.md)(로그인·API 키·CSRF·세션 인증)를
-함께 쓰는 **가장 작은 참조 샘플**이다. 게이트웨이 없이도 단독으로 동작하며,
-"내 장치에 웹 관리 화면을 붙이려면 이 파일을 이렇게 고치면 된다"는 출발점을 제공한다.
+함께 쓰는 **가장 작은 참조 샘플**입니다. 게이트웨이 없이도 단독으로 동작하며,
+"내 장치에 웹 관리 화면을 붙이려면 이 파일을 이렇게 고치면 된다"는 출발점을 제공합니다.
 
 ## 구성
 
@@ -26,30 +26,30 @@ VagabondK.nF.Web.Sample\
 
 - **반복 인스턴스**: heartbeat.nf.html 첫 줄의 `@instance` 마커가 있으면 인라인 병합 대신
   `<wui-heartbeat>` 태그 + `<template>`으로 바뀌고, WUI 런타임이 태그마다 shadow root와
-  클로저 상태를 만든다. 같은 컴포넌트를 여러 곳에 써도 id가 충돌하지 않는다(설정 탭에도 하나 더 있음).
+  클로저 상태를 만듭니다. 같은 컴포넌트를 여러 곳에 써도 id가 충돌하지 않습니다(설정 탭에도 하나 더 있음).
 - **라이브러리 컴포넌트**: sysinfo·uptime·conn-dot·badge·groupbox·modal·tabs 등은
-  `Components\` 표준 라이브러리를 그대로 쓴다(프로젝트에 복사 없음, 참조된 것만 번들).
+  `Components\` 표준 라이브러리를 그대로 씁니다(프로젝트에 복사 없음, 참조된 것만 번들).
 - **빌드 시점**: `VagabondK.nF.WebUi.targets`가 페이지+컴포넌트를 머지·검증·축소·gzip해서
-  `obj\...\WebPage.g.cs`(internal static class)로 생성한다. 마커/manifest 규칙 위반은 컴파일 실패로 드러난다.
+  `obj\...\WebPage.g.cs`(internal static class)로 생성합니다. 마커/manifest 규칙 위반은 컴파일 실패로 드러납니다.
 - **런타임**: `GET /`는 미인증이면 302로 `/login` 페이지로 보내고(보호 마크업이 익명에게 노출되지 않음),
-  인증되면 ETag 재검증 후 gzip 파트를 스트림에 직접 쓴다. `login` 라우트도 `[PublicEndpoint]`이며
-  이미 로그인된 클라이언트는 `/`로 되돌린다. 페이지 안의 401은 core.js가 `/login`으로 리다이렉트한다.
-  `[PublicEndpoint]`가 없는 `api/*`는 `GuardedWebServer`가 자동 401 차단(fail-closed).
-  모든 POST는 `CsrfGuard`(마커 헤더 `x-web-sample` + Origin 지역 주소)를 통과해야 한다.
+  인증되면 ETag 재검증 후 gzip 파트를 스트림에 직접 씁니다. `login` 라우트도 `[PublicEndpoint]`이며
+  이미 로그인된 클라이언트는 `/`로 되돌립니다. 페이지 안의 401은 core.js가 `/login`으로 리다이렉트합니다.
+  `[PublicEndpoint]`가 없는 `api/*`는 `GuardedWebServer`가 자동으로 401 차단합니다(fail-closed).
+  모든 POST는 `CsrfGuard`(마커 헤더 `x-web-sample` + Origin 지역 주소)를 통과해야 합니다.
 
 ## 사용자 정의 다국어(i18n)
 
 이 샘플은 프로젝트 루트 `WebUi\texts.resx`(en 원문)와 `WebUi\texts.ko.resx`(번역)로
-라이브러리 사전을 직접 확장·재정의한다. 빌드 시 프로젝트 루트가 라이브러리
-`Components\` 사전보다 우선하여 **키 단위**로 덮어쓴다.
+라이브러리 사전을 직접 확장·재정의합니다. 빌드 시 프로젝트 루트가 라이브러리
+`Components\` 사전보다 우선하여 **키 단위**로 덮어씁니다.
 
 - `hb.checking` / `hb.title`: 앱 전용 신규 키. `heartbeat.nf.js`가 `uiText('hb.title', { n: … })`로 읽고
-  en 원문은 빌드가 두 번째 인자로 자동 주입하므로 호출부에는 키만 적는다.
+  en 원문은 빌드가 두 번째 인자로 자동 주입하므로 호출부에는 키만 적습니다.
 - `conn.label`: 라이브러리 키를 의도적으로 재정의한 예 — conn-dot 문구가
-  "연결(샘플 재정의)" / "Connected (sample override)"로 바뀐 것을 화면에서 확인할 수 있다.
+  "연결(샘플 재정의)" / "Connected (sample override)"로 바뀐 것을 화면에서 확인할 수 있습니다.
 - 빌드가 아니라 런타임에 사전만 보강/재정의하려면 페이지 스크립트에서
-  `uiAddTexts('ko', { 'hb.title': '커스텀 문구 · {n}초' })`를 호출하면 된다.
-- 언어 선택은 `localStorage['wui.lang']` > 브라우저 언어 순이고, `uiSetLang('en')`으로 전환한다.
+  `uiAddTexts('ko', { 'hb.title': '커스텀 문구 · {n}초' })`를 호출하면 됩니다.
+- 언어 선택은 `localStorage['wui.lang']` > 브라우저 언어 순이고, `uiSetLang('en')`으로 전환합니다.
 
 ## 빌드
 
@@ -68,11 +68,11 @@ nanoff --deploy --image Samples\Web\VagabondK.nF.Web.Sample\bin\Release\Vagabond
 ```
 
 --image는 반드시 **빌드가 만든 .bin 배포 이미지**(PE+어셈블리 전체)여야 합니다.
-`.pe` 단편 배포는 기기에 이미 같은 어셈블리가 있을 때만 동작하므로 주의.
-플래시 후 부팅에 약 35초 걸린다.
+`.pe` 단편 배포는 기기에 이미 같은 어셈블리가 있을 때만 동작하므로 주의하십시오.
+플래시 후 부팅에 약 35초 걸립니다.
 
 장치 IP로 브라우저 접속 → 로그인. **기본 비밀번호는 `sample1234`**이며
-첫 실행 시 `I:\web-sample.auth`에 해시로 저장된다(실사용 전 변경 필수).
+첫 실행 시 `I:\web-sample.auth`에 해시로 저장됩니다(실사용 전 변경 필수).
 
 ## 동작
 
@@ -85,16 +85,16 @@ nanoff --deploy --image Samples\Web\VagabondK.nF.Web.Sample\bin\Release\Vagabond
 
 ## 내 프로젝트로 확장하기
 
-1. `WebUi\index.nf.html`의 첫 줄 `@route:`과 탭 구성을 바꾼다. 매니페스트 `id`는 csproj의 `<WebUiId>` 속성이고,
-   폼 필드는 페이지·컴포넌트 마크업의/ `data-label`/`data-fmt`에서 빌드 타임에 유도된다.
+1. `WebUi\index.nf.html`의 첫 줄 `@route:`과 탭 구성을 바꿉니다. 매니페스트 `id`는 csproj의 `<WebUiId>` 속성이고,
+   폼 필드는 페이지·컴포넌트 마크업의/ `data-label`/`data-fmt`에서 빌드 타임에 유도됩니다.
 2. 화면 조각은 `이름.nf.html`(+선택 `.nf.js`/`.nf.css`) 컴포넌트로 빼고
-   페이지에서 `<이름/>` 한 줄로 조립한다. 여러 곳에서 쓸 컴포넌트는 `@instance` 마커 줄을 붙인다.
-3. `Controllers.cs`의 `SampleConfig`/`Status`/`SettingsPost`를 실제 장치 값에 맞춰 확장한다.
+   페이지에서 `<이름/>` 한 줄로 조립합니다. 여러 곳에서 쓸 컴포넌트는 `@instance` 마커 줄을 붙입니다.
+3. `Controllers.cs`의 `SampleConfig`/`Status`/`SettingsPost`를 실제 장치 값에 맞춰 확장합니다.
 4. 페이지 코드에는 폴러(`refresh`/`tick`)와 조립만 남기고, 기계장치(bindForm·transport)는
-   core.js가 담당하므로 손대지 않는 것이 WebUi의 의도다.
+   core.js가 담당하므로 손대지 않는 것이 WebUi의 의도입니다.
 
 ## 보안 참고
 
-- 이 샘플은 HTTPS를 제공하지 않는다. 같은 LAN 전용으로 쓰고, 공개망에서는 리버스 프록시 뒤에만 두세요.
-- API 키 인증도 지원한다: `web-sample.auth`의 `k=` 줄에 값을 넣으면 `x-web-sample-key` 헤더로 호출 가능.
-- 설정 파일·인증 파일은 장치 파일시스템(`I:\`)에 평문(해시)으로 저장된다.
+- 이 샘플은 HTTPS를 제공하지 않습니다. 같은 LAN 전용으로 쓰고, 공개망에서는 리버스 프록시 뒤에만 두세요.
+- API 키 인증도 지원합니다: `web-sample.auth`의 `k=` 줄에 값을 넣으면 `x-web-sample-key` 헤더로 호출할 수 있습니다.
+- 설정 파일·인증 파일은 장치 파일시스템(`I:\`)에 평문(해시)으로 저장됩니다.

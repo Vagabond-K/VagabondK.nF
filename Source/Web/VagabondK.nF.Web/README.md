@@ -114,11 +114,11 @@ protected void Handle(WebServerEventArgs e)
 
 ## JSON 응답 만들기 (JsonWriter)
 
-JSON을 직접 만드는 일은 항상 번거롭다. `"{\"ok\":true,\"name\":\"" + WebApi.JsonEscape(s) + "\"}"` 식의
+JSON을 직접 만드는 일은 항상 번거롭습니다. `"{\"ok\":true,\"name\":\"" + WebApi.JsonEscape(s) + "\"}"` 식의
 문자열 연결은 따옴표와 이스케이프를 수작업으로 맞추다 한 군데만 틀려도 응답 전체가 망가지고, 여러 조각을
-`Substring(1)`로 잘어 붙이는 우회까지 부르기 쉽다. 자동 직렬화기는 nanoFramework의 리플렉션·힙 제약 때문에
-의도적으로 제공하지 않는다. 대신 리플렉션 없는 수동 생성기 `JsonWriter`가 그 몫을 대신한다. 키와 값을
-순서대로 적어 넣으면 따옴표·이스케이프·쉼표·중첩을 스스로 관리한다.
+`Substring(1)`로 잘어 붙이는 우회까지 부르기 쉽습니다. 자동 직렬화기는 nanoFramework의 리플렉션·힙 제약 때문에
+의도적으로 제공하지 않습니다. 대신 리플렉션 없는 수동 생성기 `JsonWriter`가 그 몫을 대신합니다. 키와 값을
+순서대로 적어 넣으면 따옴표·이스케이프·쉼표·중첩을 스스로 관리합니다.
 
 ```csharp
 JsonWriter w = new JsonWriter();
@@ -136,22 +136,22 @@ w.BeginObject()
 WebApi.Json(e.Context.Response, 200, w.ToString());
 ```
 
-- `Prop(name, 값)` — 키·값 한 쌍. 값 타입에 따라 `Str`/`Num`/`Bool`이 자동 선택된다.
-- `Prop(name)`만 부르고 `BeginObject/BeginArray/Str/Num/Bool/Raw`로 값을 잇는 체이닝도 된다(중첩·배열용).
+- `Prop(name, 값)` — 키·값 한 쌍. 값 타입에 따라 `Str`/`Num`/`Bool`이 자동 선택됩니다.
+- `Prop(name)`만 부르고 `BeginObject/BeginArray/Str/Num/Bool/Raw`로 값을 잇는 체이닝도 됩니다(중첩·배열용).
 - `PropArr(name, items)` — 문자열 배열 한 번에.
-- `PropRaw(name, json)` — 다른 곳에서 만든 유효 JSON 조각 병합. 이스케이프 없이 그대로 들어간다.
-- `Null()`은 `null`, 빈 배열/객체는 `BeginArray().EndArray()`처럼 바로 닫으면 된다.
-- 값이 아니라 구조가 고정된 단순 응답은 `WebApi.OkJson` 상수(`{"ok":true}`)를 그대로 쓴다.
+- `PropRaw(name, json)` — 다른 곳에서 만든 유효 JSON 조각 병합. 이스케이프 없이 그대로 들어갑니다.
+- `Null()`은 `null`, 빈 배열/객체는 `BeginArray().EndArray()`처럼 바로 닫으면 됩니다.
+- 값이 아니라 구조가 고정된 단순 응답은 `WebApi.OkJson` 상수(`{"ok":true}`)를 그대로 씁니다.
 
 주의: `Prop(name, long)`과 `Prop(name, int)`가 모두 있어 정수 인자는 타입에 맞게 자동 선택되지만,
-`uptimeSec`처럼 `long` 값은 `Num`/`Prop`에 그대로 넣으면 JSON 숫자로 나간다. `MaxDepth`(8)를 넘는
-중첩은 `InvalidOperationException`을 던진다.
+`uptimeSec`처럼 `long` 값은 `Num`/`Prop`에 그대로 넣으면 JSON 숫자로 나갑니다. `MaxDepth`(8)를 넘는
+중첩은 `InvalidOperationException`을 던집니다.
 
 ## 인증 엔드포인트 열기 (AuthController)
 
 로그인 화면(`Pages\login.nf.*`)이 이미 `/api/auth/status`·`/api/auth/login`을 호출하므로,
- 컨트롤러 배열에 `typeof(AuthController)`를 넣고 정적 필드만 배선하면 인증 API가 완성된다.
-수동으로 핸들러를 쓰던 샘플/게이트웨이의 중복 코드는 이 한 클래스로 대체할 수 있다.
+ 컨트롤러 배열에 `typeof(AuthController)`를 넣고 정적 필드만 배선하면 인증 API가 완성됩니다.
+수동으로 핸들러를 쓰던 샘플/게이트웨이의 중복 코드는 이 한 클래스로 대체할 수 있습니다.
 
 ```csharp
 GuardedWebServer server = new GuardedWebServer(80,
@@ -178,16 +178,16 @@ AuthController.LocalAddress = ip;                       // CSRF Host 검사에 �
 | `POST /api/auth/password` | **필요** | 비밀번호 교체(공백이면 해제). 성공 시 현재 브라우저는 새 세션으로 로그인 유지 |
 | `POST /api/auth/apikey` | **필요** | 정적 API 키 교체(공백이면 해제) |
 
-- `password`·`apikey` 변경은 `Persist` 훅을 부르고, 훅이 오류 문자열을 반환하면 `500`으로 응답한다(메모리만 바뀜).
-- 6개 엔드포인트 진입점에서 항상 `OnRequest` 훅이 먼저 불린다(CSRF 검사 이전). 유휴 타이머 갱신·`LocalAddress` 재동기화 같은 앱 고유의 관측 작업에 연결한다.
-- 메시지는 정적 필드라 앱 시작에서 언어별로 바꿀 수 있다(기본값 영어). `{0}`에는 남은 초/시도 횟수가 들어간다.
-- `Server`·`LocalAddress` 미설정 시 각각 `500`(배선 오류 알림)·전 POST 차단으로 드러나 조용히 열리지 않는다.
+- `password`·`apikey` 변경은 `Persist` 훅을 부르고, 훅이 오류 문자열을 반환하면 `500`으로 응답합니다(메모리만 바뀜).
+- 6개 엔드포인트 진입점에서 항상 `OnRequest` 훅이 먼저 불립니다(CSRF 검사 이전). 유휴 타이머 갱신·`LocalAddress` 재동기화 같은 앱 고유의 관측 작업에 연결합니다.
+- 메시지는 정적 필드라 앱 시작에서 언어별로 바꿀 수 있습니다(기본값 영어). `{0}`에는 남은 초/시도 횟수가 들어갑니다.
+- `Server`·`LocalAddress` 미설정 시 각각 `500`(배선 오류 알림)·전 POST 차단으로 드러나 조용히 열리지 않습니다.
 
 ## CredentialFile
 
-`h=<해시>` / `k=<키>` 두 줄 형식 파일로 `LoginGuard` 자격 정보를 옮긴다. 저장은 임시의존 이름(`path.tmp`)에
- 쓴 뒤 기존 파일을 지우고 rename하는 순서라, 전원 단절이 중간에 일어나도 반쪽(잘린) 파일이 남지 않는다.
- 단, 정전 타이밍에 따라 파일이 잠시 없는 상태가 생길 수 있으며 이 경우 다음 저장이 새 파일로 만들어 기본값으로 돌아간다.
+`h=<해시>` / `k=<키>` 두 줄 형식 파일로 `LoginGuard` 자격 정보를 옮깁니다. 저장은 임시의존 이름(`path.tmp`)에
+ 쓴 뒤 기존 파일을 지우고 rename하는 순서라, 전원 단절이 중간에 일어나도 반쪽(잘린) 파일이 남지 않습니다.
+ 단, 정전 타이밍에 따라 파일이 잠시 없는 상태가 생길 수 있으며 이 경우 다음 저장이 새 파일로 만들어 기본값으로 돌아갑니다.
 
 ```csharp
 if (!CredentialFile.Load(guard, "I:\\device.auth"))
@@ -197,5 +197,5 @@ if (!CredentialFile.Load(guard, "I:\\device.auth"))
 }
 ```
 
-`Save`는 성공 시 `null`, 실패 시 사유를 돌려주어 `AuthController.Persist` 훅에 바로 연결할 수 있다.
+`Save`는 성공 시 `null`, 실패 시 사유를 돌려주어 `AuthController.Persist` 훅에 바로 연결할 수 있습니다.
 

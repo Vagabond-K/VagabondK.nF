@@ -1,29 +1,29 @@
 # 컴포넌트 사용 매뉴얼
 
-[README](README.md)의 카탈로그를 속성·이벤트·API 수준으로 벌린 사용 설명서다.
-44종 전 컴포넌트의 실제 소스(`*.nf.{html,js,css}`)를 기준으로 작성했으며, 동작이 바뀌면 이 문서를 함께 고친다.
+[README](README.md)의 카탈로그를 속성·이벤트·API 수준으로 벌린 사용 설명서입니다.
+44종 전 컴포넌트의 실제 소스(`*.nf.{html,js,css}`)를 기준으로 작성했으며, 동작이 바뀌면 이 문서를 함께 고칩니다.
 
 ## 공통 규칙
 
-- **로딩**: `<name/>` 참조 또는 `<wui-name>` 태그로 사용한 컴포넌트만 빌드 결과에 들어간다.
-  미사용 컴포넌트는 0바이트. 프로젝트 로컬 `WebUi\`가 같은 이름을 섀도잉한다.
+- **로딩**: `<name/>` 참조 또는 `<wui-name>` 태그로 사용한 컴포넌트만 빌드 결과에 들어갑니다.
+  미사용 컴포넌트는 0바이트이며, 프로젝트 로컬 `WebUi\`가 같은 이름을 섀도잉합니다.
 - **인스턴스 vs 인라인**: 첫 줄 `@instance` 마커 줄이 있으면 shadow DOM 인스턴스
-  (태그마다 격리된 상태·id). 없으면 참조 자리에 마크업이 그대로 병합되는 정적/단일 조각.
+  (태그마다 격리된 상태·id)이고, 없으면 참조 자리에 마크업이 그대로 병합되는 정적/단일 조각입니다.
   `@instance form`은 폼 연관 사용자 정의 요소 — `<form>` 안에 두면 `form.elements[name]`로
-  잡히고 `.value`가 저장 페이로드로 동기화된다.
+  잡히고 `.value`가 저장 페이로드로 동기화됩니다.
 - **색감**: 전부 테마 `:root` 토큰(`--bg --card --line --tx --mut --acc --ok --bad --fld --in`)
-  사용. 테마 파일 하나로 라이브러리 전체 색이 바뀐다([WebUi 테마](../VagabondK.nF.WebUi/README.md#독립-로그인-페이지-webuilogin)).
+  사용. 테마 파일 하나로 라이브러리 전체 색이 바뀝니다([WebUi 테마](../VagabondK.nF.WebUi/README.md#독립-로그인-페이지-webuilogin)).
 - **포커스 링**: 입력 컴포넌트는 `:host(:focus-within)`으로 컨테이너에
-  `outline: 2px solid var(--acc)`를, 내부 `input`에는 `outline: none`을 준다. 페이지(light DOM)의
-  `input:focus` 규칙도 같은 `--acc` 토큰을 쓰면 전 필드의 포커스 색이 일치한다.
+  `outline: 2px solid var(--acc)`를, 내부 `input`에는 `outline: none`을 줍니다. 페이지(light DOM)의
+  `input:focus` 규칙도 같은 `--acc` 토큰을 쓰면 전 필드의 포커스 색이 일치합니다.
 - **id 충돌 주의**: 페이지 `<style>` 전체가 모든 컴포넌트 shadow에 `adoptedStyleSheets`로
-  삽입되므로, 컴포넌트 내부 id가 페이지 id와 같으면 페이지 규칙이 컴포넌트까지 스타일링한다
-  (pagination의 `#pv` 사고가 실제 사례). 컴포넌트 id는 `pg`류처럼 이름 접두사를 붙인다.
-  CSS 규칙에 미지원 선택자가 하나라도 섞이면 규칙 전체가 버려지는 것도 주의
+  삽입되므로, 컴포넌트 내부 id가 페이지 id와 같으면 페이지 규칙이 컴포넌트까지 스타일링합니다
+  (pagination의 `#pv` 사고가 실제 사례). 컴포넌트 id는 `pg`류처럼 이름 접두사를 붙이십시오.
+  CSS 규칙에 미지원 선택자가 하나라도 섞이면 규칙 전체가 버려지는 것도 주의하십시오
   (네이티브 눈 숨김은 `::-webkit-textfield-decoration-container, ::-ms-reveal { display:none }` 사용).
-- **이벤트 버스**: 컴포넌트 간 결합은 `wui:*` 커스텀 이벤트.
+- **이벤트 버스**: 컴포넌트 간 결합은 `wui:*` 커스텀 이벤트입니다.
   페이지 poller가 `wui:tick`(매 초: age·uptime·heapFree 등)과 `wui:status`(설정보다 무거운 실시간 상태)를
-  발행하고, 스크립트는 `WebUi.on(name, fn)` / `WebUi.fire(name, data)`로 읽고 쓴다.
+  발행하고, 스크립트는 `WebUi.on(name, fn)` / `WebUi.fire(name, data)`로 읽고 씁니다.
 
 | 신호 | 발행자 | 구독자 |
 |---|---|---|
@@ -40,8 +40,8 @@
 ## 입력·폼
 
 ### `<number>` — 인스턴스 · 폼 연관
-숫자 입력. 입력란 좌측, **스테퍼 페어(− +)는 우측**에 몰려 있다(native number 관례).
-버튼이 아닌 직접 입력도 되며 Enter는 폼 제출로 동작한다.
+숫자 입력. 입력란 좌측, **스테퍼 페어(− +)는 우측**에 몰려 있습니다(native number 관례).
+버튼이 아닌 직접 입력도 되며 Enter는 폼 제출로 동작합니다.
 
 | 속성 | 기본값 | 설명 |
 |---|---|---|
@@ -86,11 +86,11 @@ WebUi.autoForm({
 });
 ```
 
-저장/되돌리기 버튼과 dirty 상태(`#wfState`)가 자동 배선된다. `fmt` 종류(`ms·pin·secret·bool·text`…)는
-[WebUi README의 form 자동 유도](../VagabondK.nF.WebUi/README.md#form-자동-유도-data-label--data-fmt) 참고.
+저장/되돌리기 버튼과 dirty 상태(`#wfState`)가 자동 배선됩니다. `fmt` 종류(`ms·pin·secret·bool·text`…)는
+[WebUi README의 form 자동 유도](../VagabondK.nF.WebUi/README.md#form-자동-유도-data-label--data-fmt)를 참고하십시오.
 
 `bool`(토글 스위치)은 트랙의 어느 지점을 클릭해도 값이 반전되며, 포커스 후 Space/Enter 키로도
-토글할 수 있다(`role="switch"`로 접근성 노출). 행의 라벨이나 빈 공간 클릭은 값에 영향을 주지 않는다.
+토글할 수 있습니다(`role="switch"`로 접근성 노출). 행의 라벨이나 빈 공간 클릭은 값에 영향을 주지 않습니다.
 
 ## 배치·내비
 
@@ -105,8 +105,8 @@ WebUi.autoForm({
 |---|---|
 | `title` | legend 문구(테두리를 끊고 얹힘). 없으면 빈 legend |
 - 슬롯: 본문. 예: `<wui-groupbox title="시리얼 통신"><wifi-form/></wui-groupbox>`
-- fieldset/legend를 그대로 써서 브라우저가 테두리 구멍을 자동 관리 — card와 달리 배경 색 맞추기가 불필요.
-- 자식 노드가 하나도 없는 빈 것은 card와 같은 규약으로 자동 숨김(`:host(:empty)`). `hidden` 속성 지원.
+- fieldset/legend를 그대로 써서 브라우저가 테두리 구멍을 자동 관리하므로, card와 달리 배경 색 맞추기가 불필요합니다.
+- 자식 노드가 하나도 없는 빈 것은 card와 같은 규약으로 자동 숨김 처리합니다(`:host(:empty)`). `hidden` 속성도 지원합니다.
 
 ### `<wui-grid>` — 인스턴스
 `cols`(기본 2)열 균등 CSS grid 컨테이너. 자식 배치만 담당, 이벤트 없음.
@@ -200,7 +200,7 @@ var ok = await WebUi.modal({ title: '재부팅', body: '장치를 재시작합�
 ## 장치 연동
 
 ### `<sysinfo>` — 인스턴스
-속성 없음. `wui:tick`을 구독해 가동 시간/남은 힙/요청 수/프로필 id를 `<dl>`로 채운다(IIFE 격리).
+속성 없음. `wui:tick`을 구독해 가동 시간/남은 힙/요청 수/프로필 id를 `<dl>`로 채웁니다(IIFE 격리).
 
 ### `panel` — 인라인 조각
 `wui:status` 구독형 기본 프로필 패널(장치 이름·IP, `WebUi.M.id` 사용). 프로젝트 `WebUi\panel.nf.html`로 섀도잉 예시.
@@ -221,7 +221,7 @@ var ok = await WebUi.modal({ title: '재부팅', body: '장치를 재시작합�
 `key`(기본 `heapFree`)의 최근 40개 값을 canvas 절선으로. `max`로 스케일 고정. **`wui:status` 구독**.
 
 ### `<log-tail>` — 인스턴스
-`api`(기본 `/api/log`) `ms`(폴링 간격) `max`/`lines`(유지 행수) — 새 줄 appended 스트리밍. 장치가 바쁜 틱은 건너뛰고 다음 poll 재시도.
+`api`(기본 `/api/log`) `ms`(폴링 간격) `max`/`lines`(유지 행수) — 새 줄 appended 방식으로 스트리밍하고, 장치가 바쁜 틱은 건너뛰고 다음 poll을 재시도합니다.
 
 ### `<register-view>` — 인스턴스
 `api`(기본 `/api/registers`) `cols`(행당 열, 기본 8) `ms`(기본 2000). `values` 배열을 주소 행두 표로 재렌더.
@@ -246,16 +246,16 @@ var ok = await WebUi.modal({ title: '재부팅', body: '장치를 재시작합�
 
 컴포넌트 소스에는 문구 리터럴이 없고 `uiText(키, {자리표값})`만 씁니다. 기본 언어는 **영어**로,
 빌드가 `texts.resx`의 영어 값을 호출부 두 번째 인자(폴백)에 주입합니다. `uiText`와 언어 결정
-로직은 메인·로그인 공용 파일 `/i18n.js` 한 곳에 있다(페이지가 자동으로 `/texts.js` →
-`/i18n.js` → 코어 순으로 로드한다). `/texts.js`에는 영어를 제외한 언어(ko 등)의 사전만 담긴다 —
-영어는 주입된 폴백으로 이미 배포되므로 중복 실리지 않는다.
+로직은 메인·로그인 공용 파일 `/i18n.js` 한 곳에 있습니다(페이지가 자동으로 `/texts.js` →
+`/i18n.js` → 코어 순으로 로드합니다). `/texts.js`에는 영어를 제외한 언어(ko 등)의 사전만 담깁니다 —
+영어는 주입된 폴백으로 이미 배포되므로 중복 실리지 않습니다.
 
 - **언어 결정**: `localStorage['wui.lang']`(수동 선택) > `navigator.language`(브라우저).
-  `ko` 접두어면 한국어, 아니면 사전에 같은 접두어가 있는 언어를 쓰고 없으면 `en`으로 폴백한다.
-- **전환**: `uiSetLang('ko')` — 저장 후 새로고침한다. 브라우저 감지로 되돌리려면 `removeItem('wui.lang')`.
+  `ko` 접두어면 한국어, 아니면 사전에 같은 접두어가 있는 언어를 쓰고 없으면 `en`으로 폴백합니다.
+- **전환**: `uiSetLang('ko')` — 저장 후 새로고침합니다. 브라우저 감지로 되돌리려면 `removeItem('wui.lang')`을 사용하면 됩니다.
 - **사전 구조**: `window.__wuiTx = { ko: { 'reboot.btn': '재시작', ... }, static: { ko: { 'Reboot': '재시작', ... } } }`.
-  키가 사전에 없으면 그 문장만 영어로 표시된다(부분 번역 허용). `static`은 HTML 정적 영역의 영어→현지어 원문-번역 짝이다.
-- **자리표시자**: `{n}`처럼 문장 전체를 번역해 어순을 바꾼다.
+  키가 사전에 없으면 그 문장만 영어로 표시됩니다(부분 번역 허용). `static`은 HTML 정적 영역의 영어→현지어 원문-번역 짝입니다.
+- **자리표시자**: `{n}`처럼 문장 전체를 번역해 어순을 바꿉니다.
   예: 사전 값 `'Rebooting in {n}s'`(en) / `'{n}초 후 재시작'`(ko)를 호출하는
   `uiText('reboot.count', { n: 5 })` → 영어 `"Rebooting in 5s"`, 한국어 `"5초 후 재시작"`.
 
@@ -265,8 +265,8 @@ var ok = await WebUi.modal({ title: '재부팅', body: '장치를 재시작합�
    Value는 목표 언어 문장입니다. 사전에 없는 Name은 영어로 폴백되므로 부분 번역도 괜찮습니다.
    (정적 영역 번역은 `static.NNN` Name으로 베이스의 영어 원문 항목과 짝을 이룹니다.)
 
-2. 빌드가 자동으로 수집·병합해 `/texts.js`에 포함시킨다(베이스 `texts.resx`를 제외한 `texts.*.resx`).
-3. 장치 서버에 `/texts.js` 공개 라우트를 한 줄 등록한다(아직 없으면 404 후 영어로 동작):
+2. 빌드가 자동으로 수집·병합해 `/texts.js`에 포함시킵니다(베이스 `texts.resx`를 제외한 `texts.*.resx`).
+3. 장치 서버에 `/texts.js` 공개 라우트를 한 줄 등록하십시오(아직 없으면 404 후 영어로 동작합니다):
 
 ```csharp
 [Route("/texts.js")] [Method("GET")] [PublicEndpoint]
@@ -277,29 +277,29 @@ public void TextsAsset(WebServerEventArgs e)
 }
 ```
 
-4. CSP를 사용하는 장치는 `script-src`에 `'self'`를 추가한다.
+4. CSP를 사용하는 장치는 `script-src`에 `'self'`를 추가하면 됩니다.
 
 ### 페이지(셸) 전용 문구
 
-프로젝트의 `index.html`에 직접 쓴 문자열은 라이브러리 사전에 없다. 프로젝트 `WebUi\` 루트에
-`texts.resx`를 두어 영어 원문을 Name별로 등록하고 호출부는 `uiText('mine.title')`로 쓴면 빌드가 라이브러리
-키와 똑같이 폴백을 주입한다(`en` 사전은 키 단위로 병합된다). 런타임에 보강하려면
-`uiAddTexts('ko', { 'mine.title': '대시보드' })`처럼 언어를 지정해 호출한다.
+프로젝트의 `index.html`에 직접 쓴 문자열은 라이브러리 사전에 없습니다. 프로젝트 `WebUi\` 루트에
+`texts.resx`를 두어 영어 원문을 Name별로 등록하고 호출부는 `uiText('mine.title')`로 쓰면 빌드가 라이브러리
+키와 똑같이 폴백을 주입합니다(`en` 사전은 키 단위로 병합됩니다). 런타임에 보강하려면
+`uiAddTexts('ko', { 'mine.title': '대시보드' })`처럼 언어를 지정해 호출하면 됩니다.
 표준 컴포넌트가 쓰는 키(`sys.*`, `form.*`, `reboot.*`, `wifi.*`, `fw.*`, `ei.*`, `conn.*`, `up.*`, `pw.*`,
-`modal.*`, `empty.*`, `login.*` 등 전부는 `Components\texts.resx` 참조)와 겹치지 않게 권장한다.
-라이브러리 키를 덮어쓰고 싶으면 같은 키로 `uiAddTexts`하면 된다(프로젝트 것이 나중에 적용됨).
+`modal.*`, `empty.*`, `login.*` 등 전부는 `Components\texts.resx` 참조)와 겹치지 않게 쓰는 것을 권장합니다.
+라이브러리 키를 덮어쓰고 싶으면 같은 키로 `uiAddTexts`를 호출하면 됩니다(프로젝트 것이 나중에 적용됨).
 
-참고로 장치는 `/i18n.js`도 공개 라우트로 서빙해야 한다(신규 프로젝트면 빌드가 페이지에
-링크를 자동으로 넣으므로 라우트 등록만 — `TryServeI18n`, WebUi README 참조).
+참고로 장치는 `/i18n.js`도 공개 라우트로 서빙해야 합니다(신규 프로젝트면 빌드가 페이지에
+링크를 자동으로 넣으므로 라우트 등록만 하면 됩니다 — `TryServeI18n`, WebUi README 참조).
 
 ---
 
 ## 커스텀 컴포넌트 만들기
 
-1. 프로젝트 `WebUi\`에 `my-widget.nf.html` 작성(인스턴스는 첫 줄 `@instance`).
-2. 필요하면 같은 폴더에 `my-widget.nf.js`(인스턴스당 실행, `$()`는 자기 shadow 한정)·`.nf.css`.
-3. 마크업에서 `<my-widget/>`(또는 인스턴스 태그 `<wui-my-widget>`)로 사용.
-4. 라이브러리 동명 컴포넌트 대체는 같은 이름으로 프로젝트 루트에 두기만 하면 된다.
+1. 프로젝트 `WebUi\`에 `my-widget.nf.html`을 작성하십시오(인스턴스는 첫 줄 `@instance`).
+2. 필요하면 같은 폴더에 `my-widget.nf.js`(인스턴스당 실행, `$()`는 자기 shadow 한정)·`.nf.css`를 두십시오.
+3. 마크업에서 `<my-widget/>`(또는 인스턴스 태그 `<wui-my-widget>`)로 사용합니다.
+4. 라이브러리 동명 컴포넌트 대체는 같은 이름으로 프로젝트 루트에 두기만 하면 됩니다.
 
 컴포넌트 js 상단 주석에도 사용법이 요약돼 있고, 전체 실전 예는
-[Web.Sample](../../../samples/Web/VagabondK.nF.Web.Sample/README.md) index.html의 카탈로그 페이지에 있다.
+[Web.Sample](../../../samples/Web/VagabondK.nF.Web.Sample/README.md) index.html의 카탈로그 페이지에 있습니다.

@@ -28,7 +28,7 @@ NuGet 패키지에서는 `build\Components`)를 **자동으로 `$(WebUiComponent
 | `sysinfo` | html+js | `wui:tick`을 구독해 가동 시간/남은 힙/요청 수/프로필을 `<dl>`로 채움. |
 | `panel` | html+js | `wui:status`를 구독하는 범용 프로필 패널(장치 이름·IP). 프로젝트가 같은 이름으로 대체하기 좋은 예시. |
 | `form` | html+js+css | `<form/>` 한 줄로 설정 페이지 완성. `@manifest`의 `form` 스키마로 컨트롤을 런타임 렌더하고 `WebUi.autoForm({check, save})`가 저장/되돌리기/dirty를 bindForm으로 배선. 필드가 마크업이 아니라 manifest에 있으므로 생성기의 name= 대조 검사는 이 컴포넌트 사용 시 생략. |
-| `tabs` | html+js+css | `<tabs/>`가 `section[data-tab]`을 모아 내비 버튼과 해시 라우팅을 생성. `data-hash`로 URL 키 지정(생략 시 `#t2`…), 탭 전환 시 `wui:tab` 발행. `WebUi.tabs.el(i)`를 bindForm의 `dotEl`로 쓸 수 있다. |
+| `tabs` | html+js+css | `<tabs/>`가 `section[data-tab]`을 모아 내비 버튼과 해시 라우팅을 생성. `data-hash`로 URL 키 지정(생략 시 `#t2`…), 탭 전환 시 `wui:tab` 발행. `WebUi.tabs.el(i)`를 bindForm의 `dotEl`로 쓸 수 있습니다. |
 | `modal` | html+js+css | `WebUi.modal({title, body, ok, cancel})` → `Promise<boolean>`. nanoGate ask(pointdlg) 패턴의 일반화. 확인/취소/바깥 클릭 지원. |
 | `conn-dot` | html+js+css | `<conn-dot timeout="6"/>` Grafana식 연결 점. `wui:tick`의 age가 timeout 이하면 초록 "연결", 초과하면 빨간 점멸 "무응답 Xs". 인스턴스. |
 | `uptime` | html+js+css | `<uptime/>` heartbeat의 일반화(장치 기준 payload 외삽). `long` 속성으로 "X시간 X분 X초" 3단 표시. heartbeat와 병기해 페이지/장치 기준 비교 예시 가능. 인스턴스. |
@@ -38,7 +38,7 @@ NuGet 패키지에서는 `build\Components`)를 **자동으로 `$(WebUiComponent
 | `alert` | html+js+css | `<alert severity="warn" text="…"/>` note의 일반화. severity `info/warn/error/ok` + 아이콘. `wui:alert` 이벤트로 동적 갱신. 인스턴스. |
 | `result` | html+js+css | `<result status="ok" title="전송 완료" sub="…"/>` Ant Result식 성공/실패 안내. `wui:result`의 `{status,title,sub}` 구독. firmware·저장과 짝. 인스턴스. |
 | `card` | html+js+css | `<wui-card title="설정 백업">본문 마크업</wui-card>` 제목+구분선+본문 컨테이너. 본문을 `<slot/>`으로 받아 light DOM을 그대로 렌더. 빈 카드는 자동 숨김(`:host(:empty)`). `<wui-card>` 태그 자체가 참조. 인스턴스. |
-| `groupbox` | html+js+css | `<wui-groupbox title="시리얼 통신">본문 마크업</wui-groupbox>` fieldset/legend식 그룹 박스 — 제목이 테두리를 끊고 얹힌다. 본문을 `<slot/>`으로 받음. 빈 것·`hidden`은 자동 숨김. 인스턴스. |
+| `groupbox` | html+js+css | `<wui-groupbox title="시리얼 통신">본문 마크업</wui-groupbox>` fieldset/legend식 그룹 박스 — 제목이 테두리를 끊고 얹힙니다. 본문을 `<slot/>`으로 받음. 빈 것·`hidden`은 자동 숨김. 인스턴스. |
 | `export-import` | html+js+css | 설정 백업 내보내기/가져오기(phpMyAdmin 스타일). 내보내기: GET `/api/settings` → JSON 다운로드. 가져오기: 파일의 키만 장치 현재 설정에 병합해 POST(부분 백업 허용). 인스턴스. |
 | `firmware` | html+js+css | `<firmware api="/api/firmware" chunk="2048"/>` 파일→base64 청크 POST(seq/total). `wui:progress`/`wui:result` 발행으로 progress·result 인스턴스와 결합. 전송만 담당, 실제 플래싱은 장치 프로젝트 몫. 인스턴스. |
 | `badge` | html+js+css | `<wui-badge variant="ok">12</wui-badge>` 카운트·상태 알약 뱃지. variant `info/ok/warn/bad`(없으면 회색). 본문을 `<slot/>`으로 받음. 태그 자체가 참조. 인스턴스. |
@@ -82,9 +82,9 @@ WebUi.autoForm({ check(v) {...}, save(v) { return WebUi.post('/api/settings', ..
 
 `fmt` 값: `text`(기본)·`ms`/`num`/`int`(숫자 키패드)·`bool`/`switch`(토글 스위치)·`secret`(비밀번호)·
 `seg`(세그먼트 컨트롤. `options` 필수 — 문자열 배열 또는 `{"value":"0","label":"간이"}` 객체 배열.
-장치 값이 숫자 문자열이면 value를 label과 따로 줘야 fill이 맞는다).
-`seg`/`switch`는 라디오 그룹으로 렌더되므로 `form.elements[k].value` 왕복이 네이티브로 동작한다(bindForm 무변경).
-표시는 core.js `showValue`가 같은 `fmt`로 일관되게 처리한다.
+장치 값이 숫자 문자열이면 value를 label과 따로 줘야 fill이 맞습니다).
+`seg`/`switch`는 라디오 그룹으로 렌더되므로 `form.elements[k].value` 왕복이 네이티브로 동작합니다(bindForm 무변경).
+표시는 core.js `showValue`가 같은 `fmt`로 일관되게 처리합니다.
 
 ### ops 컴포넌트 사용 예 (인스턴스 속성 문법)
 
@@ -98,11 +98,11 @@ WebUi.autoForm({ check(v) {...}, save(v) { return WebUi.post('/api/settings', ..
 </p>
 ```
 
-셋 모두 `@instance` 줄이라 같은 페이지에 여러 번 두면 각각 독립 상태가 된다.
+셋 모두 `@instance` 줄이라 같은 페이지에 여러 번 두면 각각 독립 상태가 됩니다.
 속성은 인스턴스 전용 문법이며(`<uptime long/>` → `<wui-uptime long></wui-uptime>`),
-참조 태그는 **독립 줄**에 있어야 인식된다(다른 텍스트와 한 줄 혼입 시 원문이 남는다).
+참조 태그는 **독립 줄**에 있어야 인식됩니다(다른 텍스트와 한 줄 혼입 시 원문이 남습니다).
 `heartbeat`(페이지 기준)와 `uptime`(장치 payload 기준)을 나란히 두면 두 기준 차이를
-화면에서 바로 비교할 수 있다 — 샘플의 `status-card.nf.html`이 그 예시.
+화면에서 바로 비교할 수 있습니다 — 샘플의 `status-card.nf.html`이 그 예시입니다.
 
 ## 규칙
 
@@ -112,8 +112,8 @@ WebUi.autoForm({ check(v) {...}, save(v) { return WebUi.post('/api/settings', ..
 
 ## 다국어 지원
 
-컴포넌트 소스에는 문구 리터럴이 없고 `uiText(키, {자리표값})`만 있다. 기본 언어는 **영어**로,
-빌드가 이 폴더 `texts.resx`의 영어 값을 호출부 두 번째 인자(폴백)로 주입한다(`uiText`는 상용
+컴포넌트 소스에는 문구 리터럴이 없고 `uiText(키, {자리표값})`만 있습니다. 기본 언어는 **영어**로,
+빌드가 이 폴더 `texts.resx`의 영어 값을 호출부 두 번째 인자(폴백)로 주입합니다(`uiText`는 상용
 `/i18n.js`가 제공 — 메인·로그인 페이지가 공용 부분을 한 번 복제하지 않고 같이 참조합니다).
 한국어 등 나머지 언어만 `/texts.js`로 서빙되므로 영어가 페이지에 두 번 실리지 않고, 안 쓰는
 언어가 페이지에 실리지도 않습니다. 언어 감지 순서(`wui.lang` > 브라우저), `uiSetLang`/`uiAddTexts`,
@@ -121,8 +121,8 @@ WebUi.autoForm({ check(v) {...}, save(v) { return WebUi.post('/api/settings', ..
 
 - 새 문구를 추가할 때는 `form.` `modal.` `wifi.` `fw.` `ei.` `reboot.` `conn.` `up.` `heap.`
   `sys.` `apbar.` `pw.` `empty.` `panel.` `login.` `val.` `core.` 같은 접두 키를 쓰고
-  `texts.resx`에 영어 원문(소스의 원본), `texts.ko.resx`에 한국어 번역을 같은 Name으로 넣는다.
-  컴포넌트 코드에는 `uiText('prefix.name')`만 남긴다.
+  `texts.resx`에 영어 원문(소스의 원본), `texts.ko.resx`에 한국어 번역을 같은 Name으로 넣습니다.
+  컴포넌트 코드에는 `uiText('prefix.name')`만 남깁니다.
 - 어순이 다른 언어는 `{자리표}`째 문장 전체를 번역합니다. 영어 어순을 다른 언어에 강제하지 마세요.
 
 ## 테마 토큰 계약 (2026-11 nanoGate 파일럿 검증 완료)
@@ -173,19 +173,19 @@ VagabondK.nF.WebUi.&lt;ver&gt;.nupkg
 ```
 
 - 소비자(nanoGate 등)는 `packages\VagabondK.nF.WebUi.&lt;ver&gt;\build\VagabondK.nF.WebUi.targets`를
-  import하고 끝. targets가 `..\Components`(본 폴더)와 `..\Pages`를 자동으로
+  import하면 끝입니다. targets가 `..\Components`(본 폴더)와 `..\Pages`를 자동으로
   `$(WebUiComponents)` 후미에 추가하고, 생성 태스크 dll도 `build\tools`에서 찾아서
-  **저장소 소스 트리 없이 빌드**된다.
-- 프로젝트 로컬 루트가 앞이므로 섀도잉 규칙 유지. 미사용 컴포넌트는 0바이트.
-  패키지의 자동 추가를 끄려면 `WebUiNoSharedComponents=true`.
+  **저장소 소스 트리 없이 빌드**됩니다.
+- 프로젝트 로컬 루트가 앞이므로 섀도잉 규칙이 유지되고, 미사용 컴포넌트는 0바이트입니다.
+  패키지의 자동 추가를 끄려면 `WebUiNoSharedComponents=true`를 지정하면 됩니다.
 - 저장소 내 프로젝트는 같은 targets를 소스에서 직접 import(repo 모드)하며,
-  이 경우 태스크 dll은 Tasks 프로젝트를 빌드해 만든다(종전 동작).
+  이 경우 태스크 dll은 Tasks 프로젝트를 빌드해 만듭니다(종전 동작).
 - 패키지 업그레이드는 곧 ETag 갱신입니다(해시가 페이지 최종 html 기준이라 자동 무효화).
 
 ## 로드맵 (유명 프레임워크 카탈로그 매핑, 2026-11 검토)
 
 Bootstrap·Material·Ant Design·Fluent/WinUI·IBM Carbon·shadcn·Grafana 컴포넌트 카탈로그를
-MCU 제약(외부 JS/CSS 금지, vanilla + WebUi 버스, 힙 절약)으로 필터링한 결과 45종.
+MCU 제약(외부 JS/CSS 금지, vanilla + WebUi 버스, 힙 절약)으로 필터링한 결과 45종입니다.
 형태 표기: 인라인 = 기존 인라인 병합, 인스턴스 = `@instance` 반복 사용형.
 
 ### A. 표시·정보
@@ -273,17 +273,17 @@ speed-dial·affix/scrollspy·image-lightbox·colorpicker
 ### 인스턴스 컴포넌트 작성 시 주의(scope 문서)
 
 인스턴스 js는 `function (root, document, $)`로 래핑되어 본문 안의 `document`가
-**shadow scope 객체**를 가리킵니다. 따라서 전역 document 멤버를 쓰면 안 되고
+**shadow scope 객체**를 가리킵니다. 따라서 전역 document 멤버는 쓰면 안 되고,
 scope가 제공하는 것만 쓸 수 있습니다: `getElementById/querySelector/querySelectorAll/
 createElement/body/addEventListener`. 실제 document에 이벤트를 발행해야 하면
 `document.dispatchEvent(...)` 대신 **`WebUi.fire(name, detail)`**를 쓰십시오
-(`WebUi.on`은 내부적으로 실제 document에 구독하므로 그대로 호환).
+(`WebUi.on`은 내부적으로 실제 document에 구독하므로 그대로 호환됩니다).
 
-참조 태그 `<name 속성="값"/>`는 **줄 전체가 그 태그일 때만** 컴포넌트 포함을 트리거한다(인라인 컴포넌트).
-`<p><skeleton/></p>`처럼 인라인으로 감싸면 마크업으로 남고 라이브러리는 포함되지 않는다.
+참조 태그 `<name 속성="값"/>`는 **줄 전체가 그 태그일 때만** 컴포넌트 포함을 트리거합니다(인라인 컴포넌트).
+`<p><skeleton/></p>`처럼 인라인으로 감싸면 마크업으로 남고 라이브러리는 포함되지 않습니다.
 인스턴스 컴포넌트는 `<wui-이름>` 태그 자체가 위치와 무관하게 포함을 트리거하므로,
 본문이 필요한 컴포넌트(badge·chip·card)는 `<wui-이름>본문</wui-이름>`을 직접 쓰면 되고
-빈 인스턴스는 css에 `:host(:empty){display:none}`을 두어 숨긴다.
-`@instance` 마커는 html 파일의 **단독 줄**에서만 인식된다(태그·텍스트와 한 줄 혼입 시 원문이 남는다).
+빈 인스턴스는 css에 `:host(:empty){display:none}`을 두어 숨깁니다.
+`@instance` 마커는 html 파일의 **단독 줄**에서만 인식됩니다(태그·텍스트와 한 줄 혼입 시 원문이 남습니다).
 `@instance form`은 폼 연관(Form-associated Custom Element) 선언으로, 생성 시 `def(..., {form:1})`가 붙어
-`form.elements[name]`이 호스트를 반환하고 `.value` 쓰기가 내부 값과 폼 값에 동기 반영된다(number·search·password).
+`form.elements[name]`이 호스트를 반환하고 `.value` 쓰기가 내부 값과 폼 값에 동기 반영됩니다(number·search·password).

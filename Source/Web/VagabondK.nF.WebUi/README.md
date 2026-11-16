@@ -18,7 +18,7 @@ nanoGate 스타일 장치 관리 화면을 빌드 타임에 조립하는 페이�
 | 파일 | 역할 |
 |---|---|
 | `Assets/core.js` | 런타임 라이브러리(`<nf-core/>`에 주입): 매니페스트 접근, 폼 팩토리, 값 포맷, 마이크로 vDOM, 컴포넌트 레지스트리 |
-| `Assets/theme.css` | **기본 테마**(LibreOffice계 토큰). 소비자가 `WebUiTheme`을 지정하지 않으면 이 파일이 `/style.css`가 된다 |
+| `Assets/theme.css` | **기본 테마**(LibreOffice계 토큰). 소비자가 `WebUiTheme`을 지정하지 않으면 이 파일이 `/style.css`가 됩니다 |
 | `Assets/Login/` | 독립 로그인 페이지 자산(login.html/css/js — 빌드TIME 조립) |
 | `VagabondK.nF.WebUi.targets` | MSBuild 배선: `WebUiBuildTask`(작업 어셈블리 빌드) → `WebUiGenerateResources`(`PrepareResources` 직전 실행) → resx/Designer 생성·주입, `CustomAdditionalCompileInputs`로 변경 추적 |
 | `..\VagabondK.nF.WebUi.Tasks\GenerateWebUiResourcesTask.cs` | **생성기 본체**(MSBuild 작업): 머지·매니페스트 검증·축소·gzip·FNV 해시 → `.resx` 바이트 파트 + Designer 소스 출력, WUI000~ 진단 |
@@ -43,7 +43,7 @@ nanoGate 스타일 장치 관리 화면을 빌드 타임에 조립하는 페이�
 미리 `Trim`해 이를 막습니다(`TrimLines`). 즉 들여쓰기 제거는 컴포넌트 내부까지 균일하게 적용됩니다.
 
 여백·주석이 줄어드는 만큼 장치 문자열 힙이 절약되지만, **ETag는 축소 전 원문이 아니라 축소·머지된
-최종 페이지 문자열의 FNV 해시**입니다. 따라서 주석 하나를 지워도 ETag가 바뀌므로, 정적 캐싱 무효화
+최종 페이지 문자열의 FNV 해시입니다**. 따라서 주석 하나를 지워도 ETag가 바뀌므로, 정적 캐싱 무효화
 기준으로 삼을 때는 이 점을 유의하십시오.
 
 ## 마커
@@ -71,7 +71,7 @@ manifest는 페이지가 선언하지 않습니다: `id`는 `<WebUiId>` 속성, 
 
 ## 페이지 마크업 규약
 
-한 장의 `index.nf.html`(또는 여러 페이지)이 루트 아래 `@route:` 첫 줄로 라우팅된다.
+한 장의 `index.nf.html`(또는 여러 페이지)이 루트 아래 `@route:` 첫 줄로 라우팅됩니다.
 페이지는 위 마커를 같은 순서로 담고, 공용 셸 테일(`<nf-views/>`/`<nf-script/>` 이후
 마크업·스크립트)은 페이지가 직접 선언합니다. 페이지 고유의 프로파일 스크립트
 (`profilePoint`/`profileCacheRow` 등 훅)는 `<nf-script/>`보다 앞의 페이지 `<script>`
@@ -85,45 +85,45 @@ manifest는 페이지가 선언하지 않습니다: `id`는 `<WebUiId>` 속성, 
 ## 독립 로그인 페이지
 
 로그인은 라이브러리 표준 페이지 `Pages\login.nf.html`(`@route:/login login`)로,
-`WebUiComponents` 루트에 포함되면 자동으로 조립된다. 축약 UTF-8 단일 항목(gzip 없음 —
+`WebUiComponents` 루트에 포함되면 자동으로 조립됩니다. 축약 UTF-8 단일 항목(gzip 없음 —
 서빙 즉시 사용)으로 저장되고, 로그인 전용 가드(`LoginPagePath`)·텍스트 부분집합 인라인이
-붙는다.
+붙습니다.
 
 색감은 라이브러리 **기본 공유 테마**(`Assets\theme.css`, nanoGate 청록 팔레트 :root 토큰)가
-정한다 — 로그인 css(`login.css`)의 `:root` 기본값과 동일하며, 지정하지 않는 한 프로젝트가
-이 테마를 그대로 쓴다. 자기 색감을 쓰려면 `<WebUiTheme>`에 `:root` 토큰 css 파일을
-지정해 **덮어쓰면** 된다(예: Web.Sample의 slate 테마) — 그러면 **로그인과 메인 페이지가 같은
-테마를 공유**한다. 인라인 모드에서는 두 페이지의 `/*@theme*/`·`<nf-style/>` 자리에 뒤에 주입되어
+정합니다 — 로그인 css(`login.css`)의 `:root` 기본값과 동일하며, 지정하지 않는 한 프로젝트가
+이 테마를 그대로 씁니다. 자기 색감을 쓰려면 `<WebUiTheme>`에 `:root` 토큰 css 파일을
+지정해 **덮어쓰면** 됩니다(예: Web.Sample의 slate 테마) — 그러면 **로그인과 메인 페이지가 같은
+테마를 공유**합니다. 인라인 모드에서는 두 페이지의 `/*@theme*/`·`<nf-style/>` 자리에 뒤에 주입되어
 우선하고(나중에 오는 `:root`가 승리), `WebUiLinkCss` 모드에서는 `/style.css` 자산에 합쳐져
-한 번의 다운로드(304 재검증 포함)로 두 페이지에 적용된다.
+한 번의 다운로드(304 재검증 포함)로 두 페이지에 적용됩니다.
 
 `login.js`는 Web 인증 규약(`/api/auth/status`·`/api/auth/login`, form-urlencoded,
 CSRF 마커 헤더)을 따르며 `lockedOut/lockSec`(샘플)와 `locked/lockSeconds`(nanoGate)
-필드명 둘 다 호환하고, `<form>` native submit이라 Enter 키 로그인이 동작한다.
+필드명 둘 다 호환하고, `<form>` native submit이라 Enter 키 로그인이 동작합니다.
 템플릿 파일 자체를 통째로 바꾸려면 `Pages\login.nf.html`(및 짝 `login.nf.js|css`)을
-프로젝트 루트에 두어 섀도잉한다.
+프로젝트 루트에 두어 섀도잉합니다.
 
 ## css 자산 링크 (WebUiLinkCss)
 
 `<WebUiLinkCss>true</WebUiLinkCss>`(기본 false)로 설정하면 css가 HTML 인라인 대신
-**gzip 정적 자산**으로 분리된다. js는 항상 인라인 유지(외부화 시 src 라우트·타이밍
-의존이 생겨 의도적으로 제외).
+**gzip 정적 자산**으로 분리됩니다. js는 항상 인라인으로 유지합니다(외부화 시 src 라우트·타이밍
+의존이 생겨 의도적으로 제외합니다).
 
-- 메인 페이지: `WebUiTheme` 테마 + 컴포넌트 css(`*.nf.css` 병합분)가 `/style.css`로 빠진다.
+- 메인 페이지: `WebUiTheme` 테마 + 컴포넌트 css(`*.nf.css` 병합분)가 `/style.css`로 빠집니다.
   페이지 고유 css(`<nf-style/>` 섹션의 페이지분)은 마커 앞 자리에 계속 인라인이며, link 태그가
-  그 사이에 샌드위치로 들어가 cascade 순서(테마·컴포넌트 → 프로필 오버라이드)가 보존된다.
+  그 사이에 샌드위치로 들어가 cascade 순서(테마·컴포넌트 → 프로필 오버라이드)가 보존됩니다.
 - 로그인 페이지: `login.css`(레이아웃·기본 토큰)는 `/*@css*/` 자리에 인라인 유지,
-  `/*@theme*/` 자리에 같은 `/style.css` link를 둔다 — 테마가 뒤에 와 기본값을 덮어쓰고,
-  메인 페이지와 파일을 공유하므로 로그인→메인 이동 시 css 재다운로드가 없다.
-  (`WebUiTheme` 미지정 시에는 예전처럼 로그인 css가 `/login.css`로 분리된다.)
+  `/*@theme*/` 자리에 같은 `/style.css` link를 둡니다 — 테마가 뒤에 와 기본값을 덮어쓰고,
+  메인 페이지와 파일을 공유하므로 로그인→메인 이동 시 css 재다운로드가 없습니다.
+  (`WebUiTheme` 미지정 시에는 예전처럼 로그인 css가 `/login.css`로 분리됩니다.)
 - 효과: 페이지 gzip과 로그인 HTML에서 css 중복이 빠져 첫 로드 바이트가 줄고,
-  css는 ETag 재검증(304) 대상으로 분리되어 재방문 시 본문 재전송이 없어진다.
+  css는 ETag 재검증(304) 대상으로 분리되어 재방문 시 본문 재전송이 없어집니다.
 
 서빙은 생성되는 `WebPage.TryServeStyle(ctx)`(공유 테마 모드) / `WebPage.TryServeLoginCss(ctx)`
-(비공유 모드)가 담당한다(if-none-match → 304, gzip 본문 4KB 청크 스트리밍, Content-Type: text/css,
-`Content-Encoding: gzip`). 리소스 미분리 상태(false)면 false를 반환한다.
-소비 프로젝트는 이걸 **`[PublicEndpoint]` 라우트로 붙여야 한다** — 로그인 화면이
-익명 상태에서 스타일을 받아야 하기 때문. 401 JSON 가드에 가려지지 않게 예:
+(비공유 모드)가 담당합니다(if-none-match → 304, gzip 본문 4KB 청크 스트리밍, Content-Type: text/css,
+`Content-Encoding: gzip`). 리소스 미분리 상태(false)면 false를 반환합니다.
+소비 프로젝트는 이걸 **`[PublicEndpoint]` 라우트로 붙여야 합니다** — 로그인 화면이
+익명 상태에서 스타일을 받아야 하기 때문입니다. 401 JSON 가드에 가려지지 않게 예:
 
 ```csharp
 [Route("/style.css")] [Method("GET")] [PublicEndpoint]
@@ -135,11 +135,11 @@ public void StyleAsset(WebServerEventArgs e)
 ```
 
 ETag는 gzip 바이트가 아니라 **gzip 전 텍스트**의 FNV-1a 해시로, deflate 출력의
-비결정성과 무관하게 재현된다(페이지 HTML과 동일 규칙). 공용 자산(css/js)의 ETag에는 내용
+비결정성과 무관하게 재현됩니다(페이지 HTML과 동일 규칙). 공용 자산(css/js)의 ETag에는 내용
 해시에 더해 **빌드 스탬프**(`"<해시>-<stamp>"`)가 병합되고 헤더는 `Cache-Control: no-cache`로
-서빙된다 — 자산 내용이 그대로여도 생성 로직 변경으로 남은 낡은(파손) 브라우저 캐시를
-무효화하기 위함이다. 재현성 유지: 스탬프는 bin 리소스 파일에 들어가지 않고 생성 코드(const)에만
-쓴다. 페이지 본문 ETag에는 병합하지 않아 304 효율을 지킨다.
+서빙됩니다 — 자산 내용이 그대로여도 생성 로직 변경으로 남은 낡은(파손) 브라우저 캐시를
+무효화하기 위함입니다. 재현성 유지: 스탬프는 bin 리소스 파일에 들어가지 않고 생성 코드(const)에만
+씁니다. 페이지 본문 ETag에는 병합하지 않아 304 효율을 지킵니다.
 
 ## 컴포넌트 번들링
 
@@ -214,31 +214,31 @@ WebUi\counter\           ← 폴더는 보관용, 이름은 파일 stem이 결�
   셸이 id로 직접 만지는 DOM(`$('v-…')` 등)과는 격리되므로 **기존 셸 결합 컴포넌트는
   마커 없이 인라인 유지**가 맞습니다. 마커는 옵트인입니다.
 * **인라인/인스턴스 판별 기준(설계 규칙).** 인스턴스 여부는 사용법이 아니라 컴포넌트
-  코드의 계약 속성이므로 구현 단계에서 결정한다. 전제: 인스턴스 JS는 요소별 스코프
+  코드의 계약 속성이므로 구현 단계에서 결정합니다. 전제: 인스턴스 JS는 요소별 스코프
   (`this`, shadow 안의 `$`)를, 인라인 JS는 페이지 전역 단일톤을 가정해 작성되므로
-  소비 시점에 두 형태를 오갈 수 없다(필요하면 섀도잉으로 파일을 재작성).
+  소비 시점에 두 형태를 오갈 수 없습니다(필요하면 섀도잉으로 파일을 재작성).
   - 반복 사용 또는 요소별 속성 설정이 필요 → `@instance` (상태가 없어도 속성이
-    요소별이면 인스턴스가 맞다. 예: card, divider)
+    요소별이면 인스턴스가 맞습니다. 예: card, divider)
   - 페이지당 1개이고 전역 API(`WebUi.modal`, `WebUi.autoForm`)나 페이지 마크업
     규약(`section[data-tab]`)으로 노출 → 인라인 (예: modal, tabs, form)
 * init은 엘리먼트가 DOM에 붙는 시점에 실행되므로 페이지 JS의 함수를 호출하면
   안 됩니다(초기화 순서). 이벤트 핸들러 안에서 참조는 안전합니다.
 * 인스턴스 안의 정적 확장 지점은 빌드타임 `<name/>` 섀도잉으로, 인스턴스별 내용은
-  네이티브 shadow `<slot>`(마크업에 자리 예약)으로 표현한다.
-* 인스턴스는 자기종결 태그에 속성을 붙일 수 있다: `<conn-dot timeout="6"/>`, `<uptime long/>`.
+  네이티브 shadow `<slot>`(마크업에 자리 예약)으로 표현합니다.
+* 인스턴스는 자기종결 태그에 속성을 붙일 수 있습니다: `<conn-dot timeout="6"/>`, `<uptime long/>`.
   `<wui-conn-dot timeout="6"></wui-conn-dot>`로 치환되어 init에서 `this.getAttribute('timeout')`,
-  `this.hasAttribute('long')`으로 읽는다. 속성은 **인스턴스 전용**이며 인라인 컴포넌트
-  `<name attr/>`는 빌드 오류다. `<name/>` 참조 인식은 줄 전체일 때만 성립하므로 인라인 컴포넌트
-  참조는 독립 줄에 두어야 한다(인라인 혼입 시 조용히 원문이 남는다). 인스턴스 컴포넌트는
-  자리에 `<wui-name attr>` 태그를 직접 쓰면 어디든(같은 줄 혼입 포함) 참조가 된다.
-* 인스턴스 안의 다른 컴포넌트 참조는 중첩 가능: 인스턴스는 `<wui-name>` 태그, 레거시는 `<name/>`.
+  `this.hasAttribute('long')`으로 읽습니다. 속성은 **인스턴스 전용**이며 인라인 컴포넌트
+  `<name attr/>`는 빌드 오류입니다. `<name/>` 참조 인식은 줄 전체일 때만 성립하므로 인라인 컴포넌트
+  참조는 독립 줄에 두어야 합니다(인라인 혼입 시 조용히 원문이 남습니다). 인스턴스 컴포넌트는
+  자리에 `<wui-name attr>` 태그를 직접 쓰면 어디든(같은 줄 혼입 포함) 참조가 됩니다.
+* 인스턴스 안의 다른 컴포넌트 참조는 중첩 가능합니다: 인스턴스는 `<wui-name>` 태그, 레거시는 `<name/>`.
 * `WUI` 런타임(core.js 끝 블록)은 페이지에 `@instance` 컴포넌트가 실제로 있을 때만
   주입됩니다. 하나도 없으면 센티널(`// ---- WUI:`) 이후가 잘려 나가 nanoFramework
   문자열 힙을 아낍니다.
 
 ## 컴포넌트와 슬롯
 
-셸이 프로필을 미리 알지 못한 채로 자기 UI를 놓는 방식. Blazor의 레이아웃/컴포넌트 개념을
+셸이 프로필을 미리 알지 못한 채로 자기 UI를 놓는 방식입니다. Blazor의 레이아웃/컴포넌트 개념을
 정적 페이지에 맞게 축소한 것입니다.
 
 **런타임 함수 컴포넌트** (`Assets/core.js`) — 컴포넌트는 `(props) -> vnode | 배열 | 문자열 | null` 함수입니다.
@@ -289,13 +289,13 @@ WebUi\counter\           ← 폴더는 보관용, 이름은 파일 stem이 결�
 ```
 
 * `label`은 `data-label`, 없으면 `name`으로 결정되고, `fmt`는 `data-fmt` 값입니다.
-* 수동 `manifest.form`과 병존할 수 있습니다. 같은 `name`이 양쪽에 있으면 빌드 실패
+* 수동 `manifest.form`과 병존할 수 있습니다. 같은 `name`이 양쪽에 있으면 빌드가 실패합니다
   ("keep one source"). 수동 항목이 먼저, 유도 항목이 문서 순서로 뒤에 배치됩니다.
 * 유도된 항목은 빌드 결과의 MANIFEST에 기존 form과 구분 없이 합쳐져 주입되므로
   런타임(core.js)은 차이를 모릅니다.
 * Components 라이브러리의 `<form/>` 컴포넌트를 사용하면 컨트롤이 마크업이 아니라
   `manifest.form`으로 런타임에 렌더되므로 "views에 없는 form 이름" 검사는 자동 생략됩니다
-  (사용 중인 컴포넌트에 `form`이 있으면 빌드 작업이 건너뜀).
+  (사용 중인 컴포넌트에 `form`이 있으면 빌드 작업이 건너뜁니다).
 
 빌드 타임 검증은 다음에서 컴파일을 실패시킵니다: 알 수 없는 매니페스트 키, 잘못된 id/schema,
 WebUiId·manifest.id 충돌, form 이름 중복·누락, views에 없는 form 이름(`<form/>` 컴포넌트 사용 시 생략), 수동 form과 data-*의 이름 충돌,
@@ -307,7 +307,7 @@ WebUiId·manifest.id 충돌, form 이름 중복·누락, views에 없는 form �
 필수: `profileRender(status)`, `profileTick(uptimeSeconds)`, `checkSettings(values)`,
 `syncForm()`. 선택: `profilePoint()`(새 포인트 기본값), `profileCacheRow(p)`
 (`features.cacheCols`와 함께. 기본 `cacheRow` 컴포넌트가 브리지 — 대신
-`WebUi.component('cacheRow', ...)`를 등록해도 됨), `mapDirty()`(프로필 소유 편집기,
+`WebUi.component('cacheRow', ...)`를 등록해도 됩니다), `mapDirty()`(프로필 소유 편집기,
 예: DNP3 범위 규칙). `profileExport/profileImport`는 셸이 제공합니다.
 
 셸은 매니페스트 기반 공용 헬퍼를 노출합니다: `formValues()`, `fillForm(s)`,
@@ -329,7 +329,7 @@ WebUiId·manifest.id 충돌, form 이름 중복·누락, views에 없는 form �
 ```xml
 <PropertyGroup>
   <!-- 라우팅은 마커 기반: WebUiComponents 루트(기본 프로젝트 WebUi\ + 라이브러리
-       Components\·Pages\) 아래의 *.nf.html 첫 줄 @route:가 라우트 선언이다.
+       Components\·Pages\) 아래의 *.nf.html 첫 줄 @route:가 라우트 선언입니다.
        구 WebUiPage/Shell/Profile/Login 속성은 폐기(설정 시 빌드 오류). -->
   <WebUiId>my-gateway</WebUiId>            <!-- 선택: MANIFEST.id -->
   <WebUiBrand>My Gateway</WebUiBrand>      <!-- 선택: {{BRAND}} 치환 -->
@@ -357,12 +357,12 @@ nuget install VagabondK.nF.WebUi -Version 0.1.0-preview.5   # 저장소 릴리�
 <Import Project="$(MSBuildThisFileDirectory)..\packages\VagabondK.nF.WebUi.0.1.0-preview.5\build\VagabondK.nF.WebUi.targets" />
 ```
 
-- targets가 있는 위치가 곧 자산 루트입니다(`build\` 아래 Assets/Components를 그 상대에서 찾는다).
+- targets가 있는 위치가 곧 자산 루트입니다(`build\` 아래 Assets/Components를 그 상대에서 찾습니다).
 - 작업 어셈블리도 같은 순서로 해석합니다: `build\tools` 동봉 dll(패키지) → 저장소 Tasks 빌드 산출물(repo).
-  저장소 밖이면 Tasks 프로젝트 빌드(target)는 자동 건너뜀.
+  저장소 밖이면 Tasks 프로젝트 빌드(target)는 자동 건너뜁니다.
 - 표준 컴포넌트(`Components`)와 생성 resx는 `WebUi` 폴더 복사 없이 **in-memory로 조립·gzip 후
   PE에 박히고**, 패키지/저장소 어디에도 소비자 트리에 컴포넌트 사본이 생기지 않습니다.
-- 참고 소비 예: nanoGate(본 저장소 바깥) — `nanoGate.Management.targets`가 패키지→소스 순으로 해석.
+- 참고 소비 예: nanoGate(본 저장소 바깥) — `nanoGate.Management.targets`가 패키지→소스 순으로 해석합니다.
 
 ## 배포·서빙 원리
 
@@ -384,12 +384,12 @@ GenerateWebUiResourcesTask
 
 - **왜 문자열이 아니라 바이트인가**: 한때 페이지를 C# 문자열 리터럴(Pack7)로 생성했으나,
   64KB 힙 장치에서 분해에만 15초 이상, 어셈블리 팽창·GC 압박이 커 2026-11에 이진 리소스로 전환했습니다.
-  런타임은 `ResourceUtility.GetObject`로 **플래시(PE)에서 해당 오프셋만 직접 자른다** —
-  문자열 힙도 디코딩도 없다.
-- **32KB 파트**: nanoFramework의 단일 리소스/버퍼 크기 상한을 겸손하게 잡은 값.
-  페이지가 커도 `WebPage.Read(offset, count)`가 파트 경계를 넘어 이어 읽는다.
+  런타임은 `ResourceUtility.GetObject`로 **플래시(PE)에서 해당 오프셋만 직접 자릅니다** —
+  문자열 힙도 디코딩도 없습니다.
+- **32KB 파트**: nanoFramework의 단일 리소스/버퍼 크기 상한을 겸손하게 잡은 값입니다.
+  페이지가 커도 `WebPage.Read(offset, count)`가 파트 경계를 넘어 이어 읽습니다.
 - **증분 빌드**: 셸·프로필·페이지·코어·테마·컴포넌트 전체가 `CustomAdditionalCompileInputs`에
-  잡히므로 무엇이든 바뀌면 재생성, 안 바뀌면 `WriteIfChanged`가 타임스탬프를 보존해 재컴파일을 건너뛴다.
+  잡히므로 무엇이든 바뀌면 재생성, 안 바뀌면 `WriteIfChanged`가 타임스탬프를 보존해 재컴파일을 건너뜁니다.
 
 ### 런타임: 장치 HTTP 서버가 내는 것
 
@@ -419,44 +419,45 @@ int off = 0, n; byte[] buf = new byte[4096];
 while ((n = WebPage.Read(off, buf.Length)) > 0) { context.Response.SendBody(buf, n); off += n; }
 ```
 
-- **ETag = 축소·머지된 최종 페이지의 FNV 해시.** 동일하면 304로 본문 전송을 생략한다.
-  주석만 지워도 해시가 바뀌니 "의미 있는 변경" 기준으로는 쓰지 말 것.
-- **gzip을 미리 쪼갠 바이트를 그대로 흘린다** — 장치에서 압축 CPU가 들는 일은 없다.
-  브라우저는 `Content-Encoding: gzip` 헤더로 해석한다.
+- **ETag = 축소·머지된 최종 페이지의 FNV 해시.** 동일하면 304로 본문 전송을 생략합니다.
+  주석만 지워도 해시가 바뀌니 "의미 있는 변경" 기준으로는 쓰지 마십시오.
+- **gzip을 미리 쪼갠 바이트를 그대로 흘립니다** — 장치에서 압축 CPU가 들는 일은 없습니다.
+  브라우저는 `Content-Encoding: gzip` 헤더로 해석합니다.
 - **`/login`은 공개 페이지**로 로그인 페이지의 gzip 바이트 원본을 그대로 보내고(`WebPage.Login`),
-  `#legal`(법적 고지)은 로그인 후와 같은 셸 경로를 탄다.
-- **`/style.css`는 공개** — 로그인 화면이 CSS 때문에 인증에 걸리지 않는다. `TryServeStyle`이
-  같은 ETag/304/gzip 처리를 담당하므로 컨트롤러는 `if (WebPage.TryServeStyle(ctx)) return true;` 한 줄.
+  `#legal`(법적 고지)은 로그인 후와 같은 셸 경로를 탑니다.
+- **`/style.css`는 공개**입니다 — 로그인 화면이 CSS 때문에 인증에 걸리지 않습니다. `TryServeStyle`이
+  같은 ETag/304/gzip 처리를 담당하므로 컨트롤러는 `if (WebPage.TryServeStyle(ctx)) return true;` 한 줄입니다.
 
 ### 다국어 사전(/texts.js)
 
-라이브러리 컴포넌트의 기본 언어는 **영어**다. 영어 원문은 `texts.resx`(베이스 resx)에만 있고, 빌드가 호출부
-`uiText('key', {자리표:값})`의 두 번째 인자로 주입한다. 나머지 언어 사전(`texts.<컬처>.resx`)은 `/texts.js` 한 파일로
-따로 서빙된다(베이스 값과 미사용 언어의 사전은 페이지에 전혀 실리지 않는다).
+라이브러리 컴포넌트의 기본 언어는 **영어**입니다. 영어 원문은 `texts.resx`(베이스 resx)에만 있고, 빌드가 호출부
+`uiText('key', {자리표:값})`의 두 번째 인자로 주입합니다. 나머지 언어 사전(`texts.<컬처>.resx`)은 `/texts.js` 한 파일로
+따로 서빙됩니다(베이스 값과 미사용 언어의 사전은 페이지에 전혀 실리지 않습니다).
 
-- **빌드**: 컴포넌트 루트에서 `texts.resx` + `texts.<컬처>.resx`를 수집해 JS로 병합·축소하고 gzip 자산 `tx`로 임베드.
-  베이스의 이름 있는 항목(uiText 키)은 `/texts.js`에 넣지 않고 `uiText` 폴백 주입에만 쓴다.
+- **빌드**: 컴포넌트 루트에서 `texts.resx` + `texts.<컬처>.resx`를 수집해 JS로 병합·축소하고, gzip 자산 `tx`로
+  임베드합니다.
+  베이스의 이름 있는 항목(uiText 키)은 `/texts.js`에 넣지 않고 `uiText` 폴백 주입에만 씁니다.
   `static.NNN` 이름 항목은 정적 영역의 영어 원문(value = 원문 텍스트)이며, 컬처 resx의 같은 Name과 짝지어
-  `t.static.<컬처>`(영어→현지어)로 방출된다(`static.nf.js`의 `localizeStatic()` 사용).
-  루트 여러 개의 사전은 **역순(라이브러리→공유→프로젝트) 키 단위 병합** — 프로젝트 resx가 같은 Name을 덮어쓴다.
+  `t.static.<컬처>`(영어→현지어)로 방출됩니다(`static.nf.js`의 `localizeStatic()` 사용).
+  루트 여러 개의 사전은 **역순(라이브러리→공유→프로젝트) 키 단위 병합** — 프로젝트 resx가 같은 Name을 덮어씁니다.
   머지된 메인 페이지는 `<script src="/texts.js"></script>` → `<script src="/i18n.js"></script>`
-  순으로 코어보다 먼저 실행되도록 삽입된다.
+  순으로 코어보다 먼저 실행되도록 삽입됩니다.
 - **로그인 페이지는 예외(인라인 사전)**: `login.js`가 부르는 `uiText` 키만 사전에서 골라
-  부분집합을 페이지 본문에 인라인하고 i18n 런타임(`i18n.js` 전문)도 함께 넣는다 — 첫 페인트부터
-  모국어로 그려져 `/texts.js`·`/i18n.js` 왕복이 0회이고 영어 깜빡임 구조가 사라진다.
-  부분집합이 비어 있으면(다국어 resx 없음) 메인처럼 링크 방식으로 후퇴한다.
+  부분집합을 페이지 본문에 인라인하고 i18n 런타임(`i18n.js` 전문)도 함께 넣습니다 — 첫 페인트부터
+  모국어로 그려져 `/texts.js`·`/i18n.js` 왕복이 0회이고 영어 깜빡임 구조가 사라집니다.
+  부분집합이 비어 있으면(다국어 resx 없음) 메인처럼 링크 방식으로 후퇴합니다.
   이에 더해 `login.html`은 `html:not(.wui-i18n) body{visibility:hidden}` 홀드를 걸고
-  `login.js`가 번역을 마치는 즉시 클래스를 붙여 해제한다(시간 기반이 아닌 이벤트 기반;
-  예외 시 800ms 안전 타이머가 원문으로 드러낸다).
-- **런타임**: i18n 로직은 메인/로그인 공용 파일 `/i18n.js` 한 곳에 있다(`uiText`, `uiSetLang`,
+  `login.js`가 번역을 마치는 즉시 클래스를 붙여 해제합니다(시간 기반이 아닌 이벤트 기반;
+  예외 시 800ms 안전 타이머가 원문으로 드러냅니다).
+- **런타임**: i18n 로직은 메인/로그인 공용 파일 `/i18n.js` 한 곳에 있습니다(`uiText`, `uiSetLang`,
   `uiAddTexts` 전역 함수 제공). `uiText(key, 'English', {자리표:값})`가 활성 언어 사전에서 키를
-  찾고, 없으면 폴백 영어로 되돌린다(두 번째 인자는 빌드가 `texts.resx`에서 주입). 언어 결정은 `localStorage('wui.lang')` >
-  `navigator.language`(ko 접두면 한국어, 그 외엔 사전에서 일치 언어, 없으면 en)이며
-  `<html lang>`도 여기서 설정한다. 프로젝트가 전용 문구를 추가하려면 `uiAddTexts(lang, map)`을
-  페이지 스크립트에서 호출하면 된다.
-- **서버 배선**: `/texts.js`와 `/i18n.js` 모두 공개 라우트로 미러링한다. **`/i18n.js`는 필수**
-  (404 시 모든 페이지가 `uiText` 참조로 파손되므로 빌드가 자산 생성을 강제한다).
-  `/texts.js`는 사전이 없을 때 404 후 영어 폴백이라 선택 사항:
+  찾고, 없으면 폴백 영어로 되돌립니다(두 번째 인자는 빌드가 `texts.resx`에서 주입). 언어 결정은 `localStorage('wui.lang')` >
+  `navigator.language` 순입니다(ko 접두면 한국어이고, 그 외엔 사전에서 일치 언어를 찾으며, 없으면 en입니다).
+  `<html lang>`도 여기서 설정합니다. 프로젝트가 전용 문구를 추가하려면 `uiAddTexts(lang, map)`을
+  페이지 스크립트에서 호출하면 됩니다.
+- **서버 배선**: `/texts.js`와 `/i18n.js` 모두 공개 라우트로 미러링합니다. **`/i18n.js`는 필수**입니다
+  (404 시 모든 페이지가 `uiText` 참조로 파손되므로 빌드가 자산 생성을 강제합니다).
+  `/texts.js`는 사전이 없을 때 404 후 영어 폴백이라 선택입니다:
 
 ```csharp
 [Route("/texts.js")] [Method("GET")] [PublicEndpoint]
@@ -475,11 +476,11 @@ public void I18nAsset(WebServerEventArgs e)
 ```
 
 - **RAM 영향 없음**: 사전과 런타임은 페이지와 같은 gzip 리소스 바이트로만 존재하고, 브라우저가
-  선택된 언어 하나만 해석한다. 장치 힙에는 `uiText()` 호출 순간의 문자열만 잠깐 오른다.
+  선택된 언어 하나만 해석합니다. 장치 힙에는 `uiText()` 호출 순간의 문자열만 잠깐 오릅니다.
 
-CSP를 쓰는 장치는 `script-src`에 `'self'`가 있어야 `/texts.js`·`/i18n.js`가 로드된다
-(`'unsafe-inline'`만 있으면 외부 파일 스크립트가 차단되어 영어로 폴백한다. 단 로그인 페이지의
-인라인 사전·런타임은 본문 스크립트이므로 `'unsafe-inline'`만으로 충분하다).
+CSP를 쓰는 장치는 `script-src`에 `'self'`가 있어야 `/texts.js`·`/i18n.js`가 로드됩니다
+(`'unsafe-inline'`만 있으면 외부 파일 스크립트가 차단되어 영어로 폴백합니다. 단 로그인 페이지의
+인라인 사전·런타임은 본문 스크립트이므로 `'unsafe-inline'`만으로 충분합니다).
 
 ### 장치에 올리기
 
@@ -492,4 +493,4 @@ nanoff --nanodevice --serialport COM3 --deploy --image bin\Release\<이름>.bin 
 Invoke-WebRequest http://<장치IP>/login   # 200이면 기동 완료
 ```
 
-장비에 올린 후에도 브라우저가 구버전을 띄운 상태라면 no-cache 조건부 요청에서 ETag가 달라져 자동 갱신된다.
+장비에 올린 후에도 브라우저가 구버전을 띄운 상태라면 no-cache 조건부 요청에서 ETag가 달라져 자동 갱신됩니다.
