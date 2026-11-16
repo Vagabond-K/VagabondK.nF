@@ -287,17 +287,20 @@ namespace VagabondK.nF.WebUi
 
             var merged = new List<string>();
             bool textsDone = false;
+            bool inCommentShell = false;
             // 판정(DiscoverUses)과 같은 줄 보기를 봐야 하므로 여러 줄 참조도 여기서 병합됩니다.
             foreach (string raw in MergeRefs(shellLines))
             {
+                bool cont = inCommentShell;
+                List<InlineHit> shellHits = VisibleHits(raw, ref inCommentShell);
                 string m = MarkerOf(raw);
                 if (m == null)
                 {
                     // @instance 줄은 판정 전용 마커: 출력에서 사라집니다(구 주석형은 Minify가 지웠던 자리).
                     if (InstanceRe.IsMatch(raw.Trim())) continue;
-                    string uref = UseRef(raw.Trim());
+                    string uref = cont ? null : UseRef(raw.Trim());
                     if (uref != null) { merged.AddRange(ExpandRef(uref, raw.Trim(), expanded) ?? expanded[uref]); continue; }
-                    merged.Add(raw); continue;
+                    merged.Add(ApplyInline(raw, shellHits, expanded)); continue;
                 }
                 if (m == "<nf-core/>")
                 {
@@ -593,7 +596,8 @@ namespace VagabondK.nF.WebUi
             return r;
         }
 
-        // 컴포넌트 참조 판정: 줄 전체가 <name/>(비-void)면 이름 반환.
+        // 컴포넌트 참조 판정(전체 줄 형태): 줄 전체가 <name/>(비-void)면 이름 반환.
+        // 줄 한가운데 참조는 ApplyInline/VisibleHits가 별도 처리(주석 안은 참조가 아님).
         // void 요소(<br/> 등)는 HTML 그대로이므로 null(=참조 아님).
         // wui- 접두 이름은 제외: <wui-name .../>는 자기종결 태그 금지 대상(아래 가드)이며,
         // <wui-name> 여는 태그 참조는 WuiTag 루프가 이미 처리합니다(이 함수가 가로채면 이름에
@@ -613,6 +617,66 @@ namespace VagabondK.nF.WebUi
         {
             Match sc = SelfCloseTag.Match(trimmed);
             return sc.Success && !VoidNames.Contains(sc.Groups[1].Value) ? sc.Groups[2].Value.Trim() : "";
+        }
+
+        // 줄 한가운데 있는 자기종결 태그 발견 결과(주석 밖만).
+        struct InlineHit { public int Index; public int Length; public string Name; public string Args; }
+
+        // 줄에서 주석 밖의 InlineRef 매칭을 수집합니다. <!-- -->는 여러 줄에 걸릴 수 있어
+        // 상태를 인자로 넘겨 줄 순서 그대로 추적합니다(같은 파일의 줄은 항상 순회 순서가 일치).
+        static List<InlineHit> VisibleHits(string line, ref bool inComment)
+        {
+            var list = new List<InlineHit>();
+            int pos = 0;
+            while (pos < line.Length)
+            {
+                if (inComment)
+                {
+                    int end = line.IndexOf("-->", pos, StringComparison.Ordinal);
+                    if (end < 0) return list;
+                    inComment = false;
+                    pos = end + 3;
+                    continue;
+                }
+                int start = line.IndexOf("<!--", pos, StringComparison.Ordinal);
+                int limit = start < 0 ? line.Length : start;
+                foreach (Match m in InlineRef.Matches(line, pos))
+                {
+                    if (m.Index >= limit) break;
+                    list.Add(new InlineHit { Index = m.Index, Length = m.Length, Name = m.Groups[1].Value, Args = m.Groups[2].Value.Trim() });
+                }
+                if (start < 0) return list;
+                inComment = true;
+                pos = start + 4;
+            }
+            return list;
+        }
+
+        // 줄 안의 컴포넌트 인라인 참조를 조각으로 치환한 문자열을 돌려줍니다(없으면 원문 그대로).
+        // 치환 대상은 components에 등록된 이름뿐이라 일반 HTML(<br/> 등)과 unknown 태그는 건드리지 않습니다.
+        // 판정(DiscoverUses)과 확장(ExpandTokens/ExpandComponent/병합 루프)이 같은 상태를 봐야 하므로
+        // 호출 측이 루프 맨 앞에서 VisibleHits로 inComment를 진행시키고, 결과 hits를 그대로 넘깁니다
+        // (주석 안의 전체 줄 태그도 참조로 오인되지 않도록 줄마다 상태를 반드시 advancement).
+        string ApplyInline(string raw, List<InlineHit> hits, Dictionary<string, string[]> expanded)
+        {
+            if (hits.Count == 0) return raw;
+            string result = raw;
+            for (int i = hits.Count - 1; i >= 0; i--) // 앞 인덱스 보존을 위해 뒤에서 치환
+            {
+                InlineHit h = hits[i];
+                if (VoidNames.Contains(h.Name) || !components.ContainsKey(h.Name)) continue;
+                string[] e;
+                string rep;
+                string tag;
+                if (h.Args.Length > 0 && instTag.TryGetValue(h.Name, out tag))
+                    rep = "<" + tag + " " + h.Args + "></" + tag + ">";
+                else if (expanded.TryGetValue(h.Name, out e))
+                    rep = string.Join("\n", e);
+                else
+                    rep = ""; // 미해결은 조용히 드롭(whole-line과 동일 정책, 발견 단계가 이미 검증)
+                result = result.Remove(h.Index, h.Length).Insert(h.Index, rep);
+            }
+            return result;
         }
 
         // 여러 줄 자기종결 참조를 한 줄로 합칩니다: <name\n attr="v"\n/> → <name attr="v" />.
@@ -658,25 +722,28 @@ namespace VagabondK.nF.WebUi
 
         bool DiscoverUses(IEnumerable<string> lines, string origin)
         {
+            bool inComment = false;
             foreach (string raw in MergeRefs(lines))
             {
+                // 주석 상태는 모든 줄에서 먼저 진행(여러 줄 주석 안의 전체 줄 태그도 무시).
+                bool cont = inComment;
+                List<InlineHit> hits = VisibleHits(raw, ref inComment);
                 if (IsSlotToken(raw)) { Fail(origin, SlotRemovedMsg); return false; }
                 Match wsc = WuiSelfClose.Match(raw);
                 if (wsc.Success)
                 { Fail(origin, "<wui-name .../> cannot be self-closed in HTML: write " + wsc.Groups[1].Value + wsc.Groups[2].Value + "></" + wsc.Groups[1].Value.Substring(1) + ">"); return false; }
                 if (UseMarkerGone.IsMatch(raw))
-                { Fail(origin, "@use markers were removed: reference a component as <name/> (alone on its line) or use its <wui-name> tag directly"); return false; }
+                { Fail(origin, "@use markers were removed: reference a component as <name/> or use its <wui-name> tag directly"); return false; }
                 if (LegacyMarker.IsMatch(raw)) { Fail(origin, MarkerMigrationMsg); return false; }
                 string trimmed = raw.Trim();
-                string name = UseRef(trimmed);
+                string name = cont ? null : UseRef(trimmed);
                 if (name != null)
                 {
                     if (!Include(name, UseArgs(trimmed), origin)) return false;
                     continue;
                 }
-                foreach (Match im in InlineRef.Matches(raw))
-                    if (!VoidNames.Contains(im.Groups[1].Value) && components.ContainsKey(im.Groups[1].Value))
-                    { Fail(origin, "component reference <" + im.Groups[1].Value + "/> must be alone on its line (inline use is emitted as raw HTML and never expands)"); return false; }
+                foreach (InlineHit h in hits)
+                    if (!VoidNames.Contains(h.Name) && components.ContainsKey(h.Name) && !Include(h.Name, h.Args, origin)) return false;
                 // <wui-name> 여는 태그 자체가 인스턴스 참조: 위치와 무관하게 컴포넌트를 번들에 포함합니다.
                 foreach (Match wm in WuiTag.Matches(raw))
                 {
@@ -730,13 +797,16 @@ namespace VagabondK.nF.WebUi
         List<string> ExpandTokens(IEnumerable<string> lines, Dictionary<string, string[]> expanded)
         {
             var outLines = new List<string>();
+            bool inComment = false;
             foreach (string raw in MergeRefs(lines))
             {
+                bool cont = inComment;
+                List<InlineHit> hits = VisibleHits(raw, ref inComment);
                 string trimmed = raw.Trim();
-                string uref = UseRef(trimmed);
+                string uref = cont ? null : UseRef(trimmed);
                 string[] e = uref != null ? ExpandRef(uref, trimmed, expanded) : null;
                 if (e != null) outLines.AddRange(e);
-                else outLines.Add(raw);
+                else outLines.Add(ApplyInline(raw, hits, expanded));
             }
             return outLines;
         }
@@ -745,18 +815,21 @@ namespace VagabondK.nF.WebUi
         string[] ExpandComponent(string[] html, Dictionary<string, string[]> expanded)
         {
             var outLines = new List<string>();
+            bool inComment = false;
             foreach (string raw in MergeRefs(html))
             {
+                bool cont = inComment;
+                List<InlineHit> hits = VisibleHits(raw, ref inComment);
                 string trimmed = raw.Trim();
                 if (InstanceRe.IsMatch(trimmed)) continue; // @instance 마커는 판정 전용, 출력에서 제거.
-                string uref = UseRef(trimmed);
+                string uref = cont ? null : UseRef(trimmed);
                 if (uref != null)
                 {
                     string[] e = ExpandRef(uref, trimmed, expanded);
                     if (e != null) { outLines.AddRange(e); continue; }
                     continue; // 미해결 참조는 기존처럼 조용히 드롭(발견은 DiscoverUses가 이미 검증).
                 }
-                outLines.Add(raw);
+                outLines.Add(ApplyInline(raw, hits, expanded));
             }
             return outLines.ToArray();
         }
