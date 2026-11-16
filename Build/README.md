@@ -97,7 +97,7 @@ MQTT 두 샘플의 이전 `.DataSharing` 폴더·프로젝트·네임스페이�
 이 명령은 NuGet.org 업로드·GitHub 푸시·보드 배포를 수행하지 않습니다.
 온라인 저장소의 공개 여부와 문서 링크 접근성은 별도로 확인해야 합니다.
 
-평가 버전은 **`0.1.0-preview.1`**, 어셈블리 버전은 `0.1.0.0`입니다.
+평가 버전은 **`0.1.0-preview.2`**, 어셈블리 버전은 `0.1.0.0`입니다.
 API 호환성·공개 패키지 피드 지원 정책은 확정되지 않았습니다. 패키지의 외부 게시·업로드·서명이나 산업 인증은 수행하지 않았습니다.
 프로젝트 라이선스는 [MIT](../LICENSE)이며 타사 의존성의 라이선스는 원본 패키지를 따릅니다.
 
@@ -136,7 +136,7 @@ Trusted Publishing 정책에 임시 활성 기간이 표시되는 경우 최초 
 1. 변경 파일을 커밋·푸시합니다. 기본 브랜치에 워크플로 파일이 있어야 **Run workflow**가 표시됩니다.
 2. Actions → **NuGet release → Run workflow**에서 기본값 `publish=false`로 실행합니다.
    이 실행은 게시하지 않고 검증된 패키지·SHA256 및 진단 로그를 artifact로 보관합니다.
-3. 배포할 커밋에 `v0.1.0-preview.1`과 같이 실제 패키지 버전과 같은 태그를 생성·푸시합니다.
+3. 배포할 커밋에 `v0.1.0-preview.2`과 같이 실제 패키지 버전과 같은 태그를 생성·푸시합니다.
    태그 푸시도 검증만 수행하며 자동 게시하지 않습니다.
 4. **Run workflow**에서 해당 **태그**를 선택하고 `publish=true`로 실행합니다.
    브랜치에서는 게시할 수 없고, 태그와 소스 버전이 다르면 중단됩니다.
@@ -370,6 +370,47 @@ MMS/IEC의 실제 생성 Client/Server 상호운용은 `Test-MappingInteropHardw
 PC 전용 `Test-MappingInterop.ps1`과 구분하며 libiec61850 빌드 도구·고정 실행 파일의 방화벽 허용이 필요합니다.
 수신 콜백의 처리 시간도 통신 기한을 소모할 수 있으므로 느린 검증·예외 경로는 독립 스냅샷을 보관한 뒤
 통신 작업 밖에서 처리합니다. 사용자 콜백을 강제로 중단하거나 작업 기한을 늘려 성공으로 간주하지 않습니다.
+
+### Geekble Mini(ESP32-C3) 실물 결과
+
+2026-11-02, Geekble Mini(`ESP32_C3` 1.18.0.30, COM7, Wi-Fi `192.168.0.171`)에서 Nano용 실물 시험을 다시 실행했습니다.
+저장소 스크립트는 COM3·`192.168.0.187`·Nano 복원 이미지를 고정하므로 포트·주소·복원 이미지만 바꾼
+임시 사본으로 실행했고, 저장소 스크립트는 변경하지 않았습니다. 복원 이미지는 `/p:Board=GeekbleMini`로
+빌드한 Modbus SerialServer(`bin\hardware\restore-Mini.SerialServer.bin`)이며, 모든 실행 뒤
+COM6에서 `123,456,65535` 읽기를 확인했습니다. 수동 실행·캡처 로그는 `bin\mini-hardware-20261102`에 있습니다.
+Modbus RTU/ASCII/TCP 결과는 [SerialServer 문서](../Samples/Modbus/VagabondK.nF.Modbus.SerialServer/README.md)에 있습니다.
+
+| 시험 | 결과 | 증거(`bin` 아래) |
+|---|---|---|
+| BACnet IPHost | PASS: 독립 BACnet 4.0.0, 256회 float32/BOOL 왕복, 손상 WriteProperty 32종 | `mini-hardware-20261102\mini-bacnet.log` |
+| SNMP UDPHost | PASS: 6,314개 검증, BER 손상 10종 거절. 초과 UDP 2종은 Nano와 같이 `TRANSPORT ONLY` | `mini-hardware-20261102\mini-snmp.log` |
+| MQTT 진단 | PASS: 603검사, 적용 68회/거절 65회 | `mqtt-sharing-20261102-135049` |
+| MQTT Sparkplug·일반·Sparkplug 일반·Tahu | PASS: Sparkplug 2,370검사, 일반 239검사, Sparkplug 일반 nativeData 30, Tahu 3.2.4 | `mqtt-sharing-20261102-135209`·`-135344`·`-135535`·`-135749` |
+| Modbus 매핑 | PASS: 경계 37종, Master 고장 5종, 8/32/128포인트 60초 이상 안정성 보존 힙 증가 0 B | `mapping-hardware-20261102-150739` |
+| BACnet 매핑 | PASS: 샘플 128회, 8/32/64객체 견고성, 보존 힙 증가 0 B. 64객체 읽기/쓰기 중앙값 9.18/8.39 ms | `bacnet-mapping-hardware-20261102-141410` |
+| SNMP 매핑 | PASS: 기본 128라운드, `-Robustness` 보존 힙 증가 144 B(허용 256 B, Nano와 같음) | `snmp-mapping-hardware-20261102-142024`·`-142224` |
+| DNP3 매핑 | 최적화 후 샘플 128라운드, 8/16·8/128·32/16 각 100라운드 PASS(보존 힙 증가 0 B). 8/128 여유 힙 4,980 B, 32/16 11,520 B; 32/16은 의도한 Overflow 103회. 32/128은 TCP 준비 시간 초과(MCU 로그 미수집으로 원인 미확인), 128/16·128/128은 미실행 | `dnp3-mapping-hardware-20261102-155345` |
+| IEC61850 매핑 Client | PASS: 앱 2회 기동, Association 32회, 요청 1,648·리포트 1,040, 고장 0, 힙 최저값 = 기준값 | `mapping-hardware-Client-20261102-145004` |
+| IEC61850 리포트 장기 실행 | PASS(`-DurationMinutes 6`): MCU 세션 24·리포트 616, 힙 최저값 = 기준값 16,464 B | `iec61850-report-soak-20261102-144201` |
+| DNP3 TCPHost 양 역할 | 실행 불가: 검증 저장소 `SerialValidation` 생성 중 OOM(SerialHost와 같은 원인). 진단 빌드로 시작 직후 가용 힙 26,796 B에서 `System.OutOfMemoryException`을 확인했고, 측정값/Event를 56개로 줄인 변형도 같은 지점에서 실패 | `mini-hardware-20261102\mini-dnp3tcp.log`·`dnp3-risk-20261102\diag-mcu-2.log` |
+| DNP3 MasterMapping | 실행 불가: 7포인트 샘플에서 MCU OOM | `dnp3-master-mapping-20261102-142612` |
+| IEC61850 Server 시험기 | 실행 불가: 정적 초기화의 `MmsServerControl` 생성 중 OOM | `iec61850-server-hardware-20261102-142943` |
+| IEC61850 매핑 Server | 실패: 시작 시 여유 힙 약 9.9KB, MMS 세션 중 OOM | `mapping-hardware-Server-20261102-143734` |
+| IEC61850 리포트 `-TypedControls` | 실행 불가: `TypedControlModel` 생성자의 `MmsServerControl` 초기화 중 OOM | `iec61850-report-soak-20261102-150224` |
+| IEC61850 MCU Client, MMS/IEC 상호운용 | 미실행: 작업 트리 경로의 `VagabondKMmsPeer.exe`에 인바운드 허용 규칙이 없음. 두 MCU 이미지가 OOM 없이 `Ready.`까지 기동하는 것만 확인 | `mapping-interop-hardware-20261102-142823` |
+
+실패·실행 불가 항목의 PC 측 검증(DNP3 매핑 31,231개, IEC61850 기반 289,613개·MMS Server 7,057개)은 통과했습니다.
+원인은 C3의 작은 관리 힙(작은 앱 시작 시 약 37KB, TCP 앱 약 24KB)입니다. 구조체 배열 요소마다 약 130B가 할당됩니다.
+DNP3는 `Snapshot` 결과와 요청 병합 버퍼, 제어 명령 배열을 실제 개수에 맞춰 할당하도록 개선했지만,
+8/128 뒤의 GC 여유는 4,980 B뿐이며 128 Point급 구성과 꽉 찬 대형 Event 큐는 여전히 한계입니다.
+MMS Server 제어 객체는 초기화 시 인코딩 버퍼를 할당합니다.
+Client 역할과 리포트 장기 실행 이미지는 Mini에서 동작합니다. 미실행 구성을 성공으로 간주하지 마십시오.
+
+리포트 장기 실행은 MCU 6번째 세션에서 힙 기준값을 정하고 7세션 이상을 요구하므로
+`-DurationMinutes 2`(측정 60초)는 판정 조건을 채우지 못했습니다(`iec61850-report-soak-20261102-143902`).
+Mini는 `nanoff --deploy` 직후 앱 시작이 약 60~70초 늦어 준비 기한을 넘길 수 있습니다.
+배포 뒤 디버거로 CLR만 재시작하면 6~9초 안에 시작하므로 임시 사본은 배포마다 이 재시작을 수행했습니다.
+첫 MQTT 실행(`mqtt-sharing-20261102-134249`)은 이 지연 때문에 RTU 응답 시간 초과로 실패했습니다.
 
 ## 기존 사전 릴리스 참조를 갱신할 때
 

@@ -185,30 +185,39 @@ namespace VagabondK.nF.DNP3
         {
             lock (_gate)
             {
-                var items = new Dnp3Record[_points.Length + _count];
                 int count = 0;
                 if (statics)
                     for (int i = 0; i < _points.Length && count < maximum; i++)
                         if ((group == 0 || Dnp3Objects.Group(_points[i].Type, false) == group) &&
                             _points[i].Index >= start && _points[i].Index <= stop)
-                            items[count++] = new Dnp3Record
+                            count++;
+                for (int i = 0; i < _count && count < maximum; i++)
+                    if ((classes & (1 << _events[i].Point.EventClass)) != 0 &&
+                        (group == 0 || Dnp3Objects.Group(_events[i].Point.Type, true) == group) &&
+                        _events[i].Point.Index >= start && _events[i].Point.Index <= stop)
+                        count++;
+                var result = new Dnp3Record[count];
+                count = 0;
+                if (statics)
+                    for (int i = 0; i < _points.Length && count < result.Length; i++)
+                        if ((group == 0 || Dnp3Objects.Group(_points[i].Type, false) == group) &&
+                            _points[i].Index >= start && _points[i].Index <= stop)
+                            result[count++] = new Dnp3Record
                             {
                                 Point = _points[i],
                                 Value = _values[i],
                                 Variation = variation == 0 ? _points[i].StaticVariation : (byte)variation
                             };
-                for (int i = 0; i < _count && count < maximum; i++)
+                for (int i = 0; i < _count && count < result.Length; i++)
                     if ((classes & (1 << _events[i].Point.EventClass)) != 0 &&
                         (group == 0 || Dnp3Objects.Group(_events[i].Point.Type, true) == group) &&
                         _events[i].Point.Index >= start && _events[i].Point.Index <= stop)
                     {
-                        items[count] = _events[i];
+                        result[count] = _events[i];
                         if (variation != 0)
-                            items[count].Variation = (byte)variation;
+                            result[count].Variation = (byte)variation;
                         count++;
                     }
-                var result = new Dnp3Record[count];
-                Array.Copy(items, result, count);
                 return result;
             }
         }

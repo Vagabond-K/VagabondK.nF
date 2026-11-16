@@ -24,6 +24,10 @@ PC READY/완료 마커뿐 아니라 MCU의 `DNP3 MCU TCP MASTER PASS`를 확인�
 
 `bin\protocol-tools\master-build\Release\VagabondKDnp3Outstation.exe`
 
+Geekble Mini(ESP32-C3)에서는 두 역할 모두 실행할 수 없습니다. 시작 시 검증 저장소 `SerialValidation`을
+만드는 중 관리 힙이 부족해 `OutOfMemoryException`으로 종료됩니다. 원인은
+[SerialHost 문서](../VagabondK.nF.DNP3.SerialHost/README.md)의 Mini 제약과 같습니다.
+
 시리얼 독립 시험은 양방향 모두 통과했으며 [시리얼 문서](../VagabondK.nF.DNP3.SerialHost/README.md)에 있습니다.
 같은 문서의 확대 정합성 절에 PC 코덱 92,160개 품질/시간 조합과 수치 경계 516개,
 실물 48비트 시각 최소/최대·역행·동일 포인트/동일 시각 이벤트 순서 검사의 범위를 기록했습니다.

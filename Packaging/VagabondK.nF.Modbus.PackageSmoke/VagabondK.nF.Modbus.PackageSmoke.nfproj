@@ -30,13 +30,13 @@
     <Reference Include="System.IO.Streams"><HintPath>$(SmokePackagesPath)nanoFramework.System.IO.Streams.1.1.96\lib\System.IO.Streams.dll</HintPath><Private>true</Private></Reference>
     <Reference Include="System.Threading"><HintPath>$(SmokePackagesPath)nanoFramework.System.Threading.1.1.52\lib\System.Threading.dll</HintPath><Private>true</Private></Reference>
     <Reference Include="System.Net"><HintPath>$(SmokePackagesPath)nanoFramework.System.Net.1.11.66\lib\System.Net.dll</HintPath><Private>true</Private></Reference>
-    <Reference Include="VagabondK.nF.Modbus"><HintPath>$(SmokePackagesPath)VagabondK.nF.Modbus.0.1.0-preview.1\lib\VagabondK.nF.Modbus.dll</HintPath><Private>true</Private></Reference>
-    <Reference Include="VagabondK.nF.Modbus.Client"><HintPath>$(SmokePackagesPath)VagabondK.nF.Modbus.Client.0.1.0-preview.1\lib\VagabondK.nF.Modbus.Client.dll</HintPath><Private>true</Private></Reference>
-    <Reference Include="VagabondK.nF.Modbus.Server"><HintPath>$(SmokePackagesPath)VagabondK.nF.Modbus.Server.0.1.0-preview.1\lib\VagabondK.nF.Modbus.Server.dll</HintPath><Private>true</Private></Reference>
-    <Reference Include="VagabondK.nF.Modbus.RTU"><HintPath>$(SmokePackagesPath)VagabondK.nF.Modbus.RTU.0.1.0-preview.1\lib\VagabondK.nF.Modbus.RTU.dll</HintPath><Private>true</Private></Reference>
-    <Reference Include="VagabondK.nF.Modbus.ASCII"><HintPath>$(SmokePackagesPath)VagabondK.nF.Modbus.ASCII.0.1.0-preview.1\lib\VagabondK.nF.Modbus.ASCII.dll</HintPath><Private>true</Private></Reference>
-    <Reference Include="VagabondK.nF.Modbus.Serial"><HintPath>$(SmokePackagesPath)VagabondK.nF.Modbus.Serial.0.1.0-preview.1\lib\VagabondK.nF.Modbus.Serial.dll</HintPath><Private>true</Private></Reference>
-    <Reference Include="VagabondK.nF.Modbus.TCP"><HintPath>$(SmokePackagesPath)VagabondK.nF.Modbus.TCP.0.1.0-preview.1\lib\VagabondK.nF.Modbus.TCP.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="VagabondK.nF.Modbus"><HintPath>$(SmokePackagesPath)VagabondK.nF.Modbus.0.1.0-preview.2\lib\VagabondK.nF.Modbus.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="VagabondK.nF.Modbus.Client"><HintPath>$(SmokePackagesPath)VagabondK.nF.Modbus.Client.0.1.0-preview.2\lib\VagabondK.nF.Modbus.Client.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="VagabondK.nF.Modbus.Server"><HintPath>$(SmokePackagesPath)VagabondK.nF.Modbus.Server.0.1.0-preview.2\lib\VagabondK.nF.Modbus.Server.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="VagabondK.nF.Modbus.RTU"><HintPath>$(SmokePackagesPath)VagabondK.nF.Modbus.RTU.0.1.0-preview.2\lib\VagabondK.nF.Modbus.RTU.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="VagabondK.nF.Modbus.ASCII"><HintPath>$(SmokePackagesPath)VagabondK.nF.Modbus.ASCII.0.1.0-preview.2\lib\VagabondK.nF.Modbus.ASCII.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="VagabondK.nF.Modbus.Serial"><HintPath>$(SmokePackagesPath)VagabondK.nF.Modbus.Serial.0.1.0-preview.2\lib\VagabondK.nF.Modbus.Serial.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="VagabondK.nF.Modbus.TCP"><HintPath>$(SmokePackagesPath)VagabondK.nF.Modbus.TCP.0.1.0-preview.2\lib\VagabondK.nF.Modbus.TCP.dll</HintPath><Private>true</Private></Reference>
     <Compile Include="Program.cs" />
   </ItemGroup>
   <Import Project="$(NanoFrameworkProjectSystemPath)NFProjectSystem.CSharp.targets" />

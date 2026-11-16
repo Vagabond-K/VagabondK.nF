@@ -12,18 +12,25 @@ using VagabondK.nF.Modbus.Serial;
 namespace VagabondK.nF.Samples.SerialClient
 {
     /// <summary>PC SerialClientFixture와 정상·오류·복구 요청을 교환하는 보드 측 Client입니다.</summary>
-    /// <remarks>GPIO17/18, COM2 및 9600 통신 설정을 보드와 어댑터에 맞춰 확인합니다.
+    /// <remarks>COM2 TX/RX(Geekble Nano GPIO17/18, GEEKBLE_MINI 빌드는 GPIO6/7) 및 9600 통신 설정을 보드와 어댑터에 맞춰 확인합니다.
     /// 다량의 쓰기와 Broadcast를 수행하므로 운영 장치를 연결하지 않습니다. MODBUS_ASCII 사용 시 상대도 7E1 ASCII로 맞춥니다.</remarks>
     public static class Program
     {
         private const int Iterations = 500;
+#if GEEKBLE_MINI
+        private const int TxPin = 6;
+        private const int RxPin = 7;
+#else
+        private const int TxPin = 17;
+        private const int RxPin = 18;
+#endif
         private static readonly byte[] Discard = new byte[256];
 
         /// <summary>UART를 연 뒤 정상 요청과 주소별 오류 주입을 검사하고 완료 표식을 PC에 보냅니다.</summary>
         public static void Main()
         {
-            Configuration.SetPinFunction(17, DeviceFunction.COM2_TX);
-            Configuration.SetPinFunction(18, DeviceFunction.COM2_RX);
+            Configuration.SetPinFunction(TxPin, DeviceFunction.COM2_TX);
+            Configuration.SetPinFunction(RxPin, DeviceFunction.COM2_RX);
 #if MODBUS_ASCII
             const int dataBits = 7;
             const ushort lastFault = 60012;

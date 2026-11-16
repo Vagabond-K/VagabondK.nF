@@ -3,7 +3,7 @@
 `VagabondK.nF.DNP3.Mapping`은 PC 빌드에서만 실행되는 선택형 Roslyn 4.12
 소스 생성기입니다. 리플렉션, 동적 검색 또는 추가 MCU 런타임 DLL 없이
 Outstation 모델을 기존 `Dnp3Database`에 게시하거나 Master의 수신을 모델에 반영합니다.
-로컬 평가 버전은 `0.1.0-preview.1`입니다.
+로컬 평가 버전은 `0.1.0-preview.2`입니다.
 
 ## Master 수신 매핑
 

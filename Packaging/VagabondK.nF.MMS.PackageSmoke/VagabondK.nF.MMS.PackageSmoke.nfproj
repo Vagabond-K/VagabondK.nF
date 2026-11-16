@@ -23,16 +23,16 @@
     <Compile Include="Program.cs" />
     <Reference Include="mscorlib"><HintPath>$(SmokePackagesPath)nanoFramework.CoreLibrary.1.17.11\lib\mscorlib.dll</HintPath><Private>true</Private></Reference>
     <Reference Include="nanoFramework.Runtime.Native"><HintPath>$(SmokePackagesPath)nanoFramework.Runtime.Native.1.7.11\lib\nanoFramework.Runtime.Native.dll</HintPath></Reference>
-    <Reference Include="VagabondK.nF.MMS"><HintPath>$(SmokePackagesPath)VagabondK.nF.MMS.0.1.0-preview.1\lib\VagabondK.nF.MMS.dll</HintPath></Reference>
+    <Reference Include="VagabondK.nF.MMS"><HintPath>$(SmokePackagesPath)VagabondK.nF.MMS.0.1.0-preview.2\lib\VagabondK.nF.MMS.dll</HintPath></Reference>
   </ItemGroup>
   <ItemGroup Condition="'$(SmokeRole)' == 'Client' Or '$(SmokeRole)' == 'All'">
-    <Reference Include="VagabondK.nF.MMS.Client"><HintPath>$(SmokePackagesPath)VagabondK.nF.MMS.Client.0.1.0-preview.1\lib\VagabondK.nF.MMS.Client.dll</HintPath></Reference>
+    <Reference Include="VagabondK.nF.MMS.Client"><HintPath>$(SmokePackagesPath)VagabondK.nF.MMS.Client.0.1.0-preview.2\lib\VagabondK.nF.MMS.Client.dll</HintPath></Reference>
   </ItemGroup>
   <ItemGroup Condition="'$(SmokeRole)' == 'Server' Or '$(SmokeRole)' == 'ServerTcp' Or '$(SmokeRole)' == 'All'">
-    <Reference Include="VagabondK.nF.MMS.Server"><HintPath>$(SmokePackagesPath)VagabondK.nF.MMS.Server.0.1.0-preview.1\lib\VagabondK.nF.MMS.Server.dll</HintPath></Reference>
+    <Reference Include="VagabondK.nF.MMS.Server"><HintPath>$(SmokePackagesPath)VagabondK.nF.MMS.Server.0.1.0-preview.2\lib\VagabondK.nF.MMS.Server.dll</HintPath></Reference>
   </ItemGroup>
   <ItemGroup Condition="'$(SmokeRole)' == 'Tcp' Or '$(SmokeRole)' == 'ServerTcp' Or '$(SmokeRole)' == 'All'">
-    <Reference Include="VagabondK.nF.MMS.TCP"><HintPath>$(SmokePackagesPath)VagabondK.nF.MMS.TCP.0.1.0-preview.1\lib\VagabondK.nF.MMS.TCP.dll</HintPath></Reference>
+    <Reference Include="VagabondK.nF.MMS.TCP"><HintPath>$(SmokePackagesPath)VagabondK.nF.MMS.TCP.0.1.0-preview.2\lib\VagabondK.nF.MMS.TCP.dll</HintPath></Reference>
     <Reference Include="System.Net"><HintPath>$(SmokePackagesPath)nanoFramework.System.Net.1.11.66\lib\System.Net.dll</HintPath></Reference>
     <Reference Include="System.Threading"><HintPath>$(SmokePackagesPath)nanoFramework.System.Threading.1.1.52\lib\System.Threading.dll</HintPath></Reference>
     <Reference Include="System.IO.Streams"><HintPath>$(SmokePackagesPath)nanoFramework.System.IO.Streams.1.1.96\lib\System.IO.Streams.dll</HintPath></Reference>

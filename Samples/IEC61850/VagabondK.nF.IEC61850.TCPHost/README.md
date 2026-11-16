@@ -18,7 +18,7 @@ UTC의 기본 시간 품질은 **동기화되지 않음**입니다. 이 예제�
 MSBuild Samples\IEC61850\VagabondK.nF.IEC61850.TCPHost\VagabondK.nF.IEC61850.TCPHost.nfproj /t:Rebuild /p:Configuration=Release
 ```
 
-로컬 NuGet 사용 시 MMS 코어·Server·TCP와 IEC 코어·Server 패키지 `0.1.0-preview.1`로 ProjectReference를 대체하십시오.
+로컬 NuGet 사용 시 MMS 코어·Server·TCP와 IEC 코어·Server 패키지 `0.1.0-preview.2`로 ProjectReference를 대체하십시오.
 MMS.Client·IEC61850.Client DLL은 필요하지 않습니다.
 `Build\Test-Packages.ps1 -LibrarySet IEC61850`은 저장소 소스 참조 없이
 각 역할의 패키지 소비자 이미지를 생성합니다. 원본 libiec61850 검증 피어는 제품/패키지에 포함하지 않습니다.
@@ -52,3 +52,8 @@ Faulted 뒤 재호출 송신 0회를 확인합니다. 물리 네트워크 유실
 730,140 B로 유지됐고 원래 Modbus 복원·COM6 읽기도 성공했습니다.
 `-MalformedRecovery`를 생략하면 기존 전체 Server 시험을 실행합니다.
 역할별 남은 범위와 선행 실패 기록은 `Tests\FaultRecovery.md`를 참조하십시오.
+
+Geekble Mini(ESP32-C3)에서는 이 Server 시험기가 정적 초기화의 `MmsServerControl` 생성 중
+`OutOfMemoryException`으로 시작하지 못했습니다. 생성 매핑 Server도 MMS 세션 중 힙이 부족했습니다.
+같은 보드에서 IEC61850 매핑 Client와 리포트 장기 실행은 통과했습니다.
+[Mini 실물 결과](../../../Build/README.md#geekble-miniesp32-c3-실물-결과)를 참조하십시오.

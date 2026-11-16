@@ -130,6 +130,12 @@ libiec61850의 domain별 항목 리포트 송신 길이 계산 제약 때문에 
 힙 수치는 정해진 유한 반복 구간의 최저 GC 여유 메모리를 초기값과 비교한 값이며,
 며칠간의 누수 부재나 모든 소켓·큐·지연 한계를 증명하지 않습니다.
 
+2026-11-02 Geekble Mini(ESP32-C3)에서는 Modbus·BACnet·SNMP 매핑, IEC61850 매핑 Client,
+MQTT/Sparkplug/Tahu와 리포트 장기 실행이 통과했습니다. DNP3 Outstation은 8 Point·이벤트 16까지만 동작했고,
+DNP3 Master 매핑과 MMS/IEC Server 역할은 관리 힙 부족으로 실행하지 못했습니다.
+MMS/IEC 상호운용은 피어 방화벽 허용이 없어 실행하지 않았습니다.
+조건과 증거 폴더는 [Mini 실물 결과](../Build/README.md#geekble-miniesp32-c3-실물-결과)를 참조하십시오.
+
 재실행 명령은 다음과 같습니다. 보드 작업은 병렬 실행하지 마십시오.
 `Test-Dnp3MasterMappingSoak.ps1`의 CRC 모드는 PC 어셈블리를 로드하므로
 모드마다 새 PowerShell 프로세스를 사용해야 다음 빌드 시 DLL 잠금을 남기지 않습니다.

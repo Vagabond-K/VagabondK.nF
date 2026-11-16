@@ -4,4 +4,8 @@
   <PropertyGroup Condition="'$(OutputType)' == 'Library'">
     <DocumentationFile>$(OutputPath)$(AssemblyName).xml</DocumentationFile>
   </PropertyGroup>
+  <Target Name="ValidateBoard" BeforeTargets="CoreCompile"
+          Condition="'$(Board)' != '' and '$(Board)' != 'GeekbleNano' and '$(Board)' != 'GeekbleMini'">
+    <Error Text="Board '$(Board)' is not supported. Use GeekbleNano or GeekbleMini." />
+  </Target>
 </Project>

@@ -23,9 +23,9 @@
     <Reference Include="mscorlib"><HintPath>$(SmokePackagesPath)nanoFramework.CoreLibrary.1.17.11\lib\mscorlib.dll</HintPath><Private>true</Private></Reference>
     <Reference Include="nanoFramework.Runtime.Native"><HintPath>$(SmokePackagesPath)nanoFramework.Runtime.Native.1.7.11\lib\nanoFramework.Runtime.Native.dll</HintPath><Private>true</Private></Reference>
     <Reference Include="nanoFramework.System.Text"><HintPath>$(SmokePackagesPath)nanoFramework.System.Text.1.3.42\lib\nanoFramework.System.Text.dll</HintPath><Private>true</Private></Reference>
-    <Reference Include="VagabondK.nF.SNMP"><HintPath>$(SmokePackagesPath)VagabondK.nF.SNMP.0.1.0-preview.1\lib\VagabondK.nF.SNMP.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="VagabondK.nF.SNMP"><HintPath>$(SmokePackagesPath)VagabondK.nF.SNMP.0.1.0-preview.2\lib\VagabondK.nF.SNMP.dll</HintPath><Private>true</Private></Reference>
     <Compile Include="Program.cs" />
   </ItemGroup>
   <Import Project="$(NanoFrameworkProjectSystemPath)NFProjectSystem.CSharp.targets" />
-  <Import Project="$(SmokePackagesPath)VagabondK.nF.SNMP.Mapping.0.1.0-preview.1\build\VagabondK.nF.SNMP.Mapping.targets" />
+  <Import Project="$(SmokePackagesPath)VagabondK.nF.SNMP.Mapping.0.1.0-preview.2\build\VagabondK.nF.SNMP.Mapping.targets" />
 </Project>

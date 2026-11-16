@@ -6,9 +6,17 @@ using System.Text;
 using VagabondK.nF.DNP3;
 
 // UDP 20002의 명령으로 반복 수신·오프라인 시간 초과·재시작 후 복구를 수행하는 보드용 장시간 검증기입니다.
-// Serial 조건에서는 GPIO17/18의 COM2 9600 8E1을 사용합니다. 제어 포트와 통신 상대는 격리된 테스트망에 둡니다.
+// Serial 조건에서는 COM2 9600 8E1(Geekble Nano GPIO17/18, GEEKBLE_MINI 빌드는 GPIO6/7)을 사용합니다.
+// 제어 포트와 통신 상대는 격리된 테스트망에 둡니다.
 internal static class MasterSoak
 {
+#if GEEKBLE_MINI
+    private const int TxPin = 6;
+    private const int RxPin = 7;
+#else
+    private const int TxPin = 17;
+    private const int RxPin = 18;
+#endif
     private static readonly MasterValidation validation = new MasterValidation();
     private static readonly uint[] metrics = new uint[18];
     private static readonly byte[] response = new byte[88];
@@ -23,8 +31,8 @@ internal static class MasterSoak
     internal static void Run()
     {
 #if DNP3_MASTER_MAPPING_SERIAL
-        nanoFramework.Hardware.Esp32.Configuration.SetPinFunction(17, nanoFramework.Hardware.Esp32.DeviceFunction.COM2_TX);
-        nanoFramework.Hardware.Esp32.Configuration.SetPinFunction(18, nanoFramework.Hardware.Esp32.DeviceFunction.COM2_RX);
+        nanoFramework.Hardware.Esp32.Configuration.SetPinFunction(TxPin, nanoFramework.Hardware.Esp32.DeviceFunction.COM2_TX);
+        nanoFramework.Hardware.Esp32.Configuration.SetPinFunction(RxPin, nanoFramework.Hardware.Esp32.DeviceFunction.COM2_RX);
         using (var port = new System.IO.Ports.SerialPort("COM2", 9600, System.IO.Ports.Parity.Even, 8, System.IO.Ports.StopBits.One))
         {
             port.Open();
