@@ -12,13 +12,15 @@ $output = [IO.Path]::GetFullPath($Path)
 $names = @($projects.Project.ItemGroup.ChildNodes |
     Where-Object { $_.LocalName -like '*Library' -or $_.LocalName -eq 'BuildTool' } |
     ForEach-Object { [IO.Path]::GetFileNameWithoutExtension($_.Include) } | Sort-Object -Unique)
+# WebUi는 메타 프로젝트에 없는 빌드 도구 패키지라 목록에 직접 추가합니다.
+$names = @($names) + 'VagabondK.nF.WebUi'
 $expected = @($names | ForEach-Object { "$_.$Version.nupkg" })
 $packages = @(Get-ChildItem -LiteralPath (Join-Path $output 'packages') -File)
 $inventory = @(Import-Csv -LiteralPath (Join-Path $output 'sha256.csv'))
-if ($names.Count -ne 34 -or $packages.Count -ne $names.Count -or $inventory.Count -ne $names.Count -or
+if ($names.Count -ne 36 -or $packages.Count -ne $names.Count -or $inventory.Count -ne $names.Count -or
     @(Compare-Object $expected @($packages.Name)).Count -ne 0 -or
     @(Compare-Object $expected @($inventory.Package)).Count -ne 0) {
-    throw 'Release artifact must contain exactly the expected 34 versioned packages and checksum rows.'
+    throw 'Release artifact must contain exactly the expected 36 versioned packages and checksum rows.'
 }
 foreach ($name in $names) {
     $fileName = "$name.$Version.nupkg"

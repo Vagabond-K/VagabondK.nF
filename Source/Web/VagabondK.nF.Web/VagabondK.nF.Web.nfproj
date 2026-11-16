@@ -4,6 +4,9 @@
   <Import Project="..\..\..\Build\Library.props" />
   <Import Project="..\..\..\Build\Network.props" />
   <PropertyGroup><DefineConstants>$(DefineConstants);NANOFRAMEWORK</DefineConstants></PropertyGroup>
+  <!-- nanoFramework.WebServer 1.2.162는 System.Net 1.11.64 기준으로 컴파일되어 repo의 1.11.66과
+       버전만 다릅니다(nanoFramework는 이름 기반 바인딩이라 실행에 지장 없음). CS1702만 억제합니다. -->
+  <PropertyGroup><NoWarn>$(NoWarn);1702</NoWarn></PropertyGroup>
   <ItemGroup>
     <Reference Include="nanoFramework.System.Security.Cryptography">
       <HintPath>$(PackagesPath)nanoFramework.System.Security.Cryptography.1.0.43\lib\nanoFramework.System.Security.Cryptography.dll</HintPath>

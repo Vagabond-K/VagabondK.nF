@@ -1,7 +1,7 @@
 param(
     [Parameter(Mandatory = $true)][string]$PackageId,
     [Parameter(Mandatory = $true)][string]$OutputPath,
-    [string]$Version = '0.1.0-preview.3'
+    [string]$Version = '0.1.0-preview.4'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -19,6 +19,8 @@ $summary = $entry.Groups[2].Value.Trim()
 $group = $PackageId.Split('.')[2]
 $mapping = $PackageId.EndsWith('.Mapping')
 $tool = $PackageId.EndsWith('.SCL')
+$webui = $PackageId -eq 'VagabondK.nF.WebUi'
+if ($webui) { $group = 'Web' }  # WebUi는 그룹명 파생 규칙과 다른 Source\Web 폴더에 있습니다.
 $introductions = @{
     'Modbus' = '이 패키지는 .NET nanoFramework용 Modbus 공통 라이브러리입니다. 요청을 보내려면 `VagabondK.nF.Modbus.Client`, 요청에 응답하려면 `VagabondK.nF.Modbus.Server`를 선택하고, 사용할 전송 방식에 맞는 RTU·ASCII·TCP 패키지를 추가합니다.'
     'Modbus.Client' = '이 패키지는 Modbus Master 요청을 보내는 .NET nanoFramework용 클라이언트입니다. TCP 통신에는 `VagabondK.nF.Modbus.TCP`를, UART 통신에는 RTU 또는 ASCII 패키지와 `VagabondK.nF.Modbus.Serial`을 함께 사용합니다.'
@@ -54,11 +56,13 @@ $introductions = @{
     'MQTT.Sparkplug' = '이 패키지는 제한된 Sparkplug B 스칼라 메시지와 Birth/Data/Death 세션을 처리합니다. MQTT 전송은 포함하지 않으므로 `VagabondK.nF.MQTT` 또는 별도 MQTT 클라이언트와 연결합니다. 모델 연결 코드는 `VagabondK.nF.MQTT.Sparkplug.Mapping`으로 생성할 수 있습니다.'
     'MQTT.Mapping' = '이 패키지는 빌드할 때 사용자 모델과 명시한 토픽의 평면 JSON 계약 사이의 변환 코드를 생성합니다. 실제 송수신에는 `VagabondK.nF.MQTT` 또는 앱에서 선택한 MQTT 클라이언트를 연결합니다.'
     'MQTT.Sparkplug.Mapping' = '이 패키지는 빌드할 때 사용자 모델과 Sparkplug 스칼라 메트릭의 송신·수신 연결 코드를 생성합니다. 메시지 처리는 `VagabondK.nF.MQTT.Sparkplug`가 담당하며, 전송에는 `VagabondK.nF.MQTT` 또는 별도 MQTT 클라이언트를 연결합니다.'
+    'Web' = '이 패키지는 .NET nanoFramework 앱에 임베드되는 웹 인증 레이어입니다. `GuardedWebServer`가 인증되지 않은 요청을 차단(fail-closed)하고, `LoginGuard`·세션·토큰 저장소와 표준 인증 API(`AuthController`)를 제공합니다. 정적 페이지와 리소스는 `VagabondK.nF.WebUi`로 빌드 타임에 생성합니다.'
+    'WebUi' = '이 패키지는 빌드할 때 HTML·JS·CSS 조각과 다국어 사전을 MCU용 이진 리소스로 조립·축소하는 MSBuild 빌드 도구입니다. 가져오기(import) 대상인 `build\VagabondK.nF.WebUi.targets`가 생성 작업을 실행하며, 런타임 인증과 요청 처리는 `VagabondK.nF.Web` 패키지가 담당합니다.'
 }
 $introduction = $introductions[$PackageId.Substring('VagabondK.nF.'.Length)]
 if (-not $introduction) { throw "Missing package-specific introduction: $PackageId" }
 $projectFolder = Join-Path $root "Source\$group\$PackageId"
-$extension = if ($mapping -or $tool) { 'csproj' } else { 'nfproj' }
+$extension = if ($mapping -or $tool -or $webui) { 'csproj' } else { 'nfproj' }
 [xml]$project = Get-Content -LiteralPath (Join-Path $projectFolder "$PackageId.$extension") -Encoding UTF8
 $dependencies = @($project.SelectNodes("//*[local-name()='ProjectReference']") |
     Where-Object { $_.OutputItemType -ne 'Analyzer' } |
@@ -76,6 +80,7 @@ $notes = @{
     MMS = '일반 MMS Client/Server 기능 중 명시된 범위만 제공합니다. 역할에 맞는 패키지를 선택하고, TCP 통신이 필요하면 TCP 패키지를 추가하십시오. IMmsChannel을 직접 구현해 사용할 수도 있습니다. IEC 61850 패키지에는 의존하지 않습니다.'
     IEC61850 = 'MMS 기반 제한형 IEC 61850 Client/Server입니다. 해당 역할의 MMS 패키지도 필요하며 TCP는 MMS.TCP를 사용합니다. DataSet·URCB와 SPC/DPC/APC 제어를 제공하지만 전체 IEC 61850 적합성 인증 구현은 아닙니다.'
     MQTT = 'MQTT 런타임은 3.1/3.1.1/5 클라이언트이며 브로커를 제공하지 않습니다. Sparkplug는 별도 제한형 스칼라 프로파일입니다. Sparkplug 런타임은 MQTT DLL에 직접 의존하지 않으므로 전송 클라이언트를 별도로 선택해야 합니다.'
+    Web = 'Web 계열은 장치에서 실행되는 인증 레이어(Web)와 PC 빌드 때 페이지 리소스를 만드는 생성기(WebUi)로 구성됩니다. 하나만 설치하면 다른 쪽 기능이 자동으로 추가되지 않으며, 브라우저 페이지를 제공하려면 두 패키지를 함께 사용합니다.'
 }
 $combinations = @{
     Modbus = @('RTU Master: Modbus.Client + Modbus.RTU + Modbus.Serial', 'RTU Slave: Modbus.Server + Modbus.RTU + Modbus.Serial', 'ASCII: RTU 대신 Modbus.ASCII 선택', 'TCP: Modbus.Client 또는 Modbus.Server + Modbus.TCP')
@@ -85,6 +90,7 @@ $combinations = @{
     MMS = @('MMS.Client 또는 MMS.Server + MMS.TCP', '사용자 채널: 역할 패키지 + IMmsChannel 구현')
     IEC61850 = @('Client: IEC61850.Client + MMS.Client + MMS.TCP', 'Server: IEC61850.Server + MMS.Server + MMS.TCP')
     MQTT = @('MQTT: MQTT 클라이언트 단독 사용', 'JSON 매핑: MQTT.Mapping + 선택한 MQTT 전송 클라이언트', 'Sparkplug 매핑: MQTT.Sparkplug.Mapping + 선택한 MQTT 전송 클라이언트')
+    Web = @('관리 화면: Web + WebUi', '인증 API만 사용: Web 단독(직접 만든 컨트롤러 연결)', '페이지 리소스만 생성: WebUi + 임의의 HTTP 서버')
 }
 $compositionText = ($combinations[$group] | ForEach-Object { '- ' + $_ }) -join "`n"
 $groupNotes = $notes[$group]
@@ -117,6 +123,20 @@ dotnet tool install $PackageId --version $Version --tool-path .\tools
 ``````
 "@
     $requirements = 'PC 전용 .NET 10 명령줄 도구입니다. MCU에 설치하거나 배포하지 않습니다. 제한된 SCL을 C# 7.3 정적 Server 모델로 변환하며 전체 SCL 가져오기·의미 검증·IEC 61850-6 적합성 검증 도구는 아닙니다.'
+}
+if ($webui) {
+    $groupNotes = '이 패키지는 빌드 타임 Web UI 리소스 생성기입니다. targets 파일과 생성 작업 어셈블리, 표준 컴포넌트·페이지·다국어 사전이 들어 있으며 MCU에 배포하는 어셈블리는 포함하지 않습니다.'
+    $compositionIntro = '생성한 리소스를 사용하는 MCU 앱에는 다음 패키지가 필요합니다. 이름에는 `VagabondK.nF.` 접두사를 붙이십시오.'
+    $compositionText = '- Web (인증·API 런타임, 의존성으로 nanoFramework.WebServer 설치)' + "`n" + '- 앱 프로젝트의 `.nfproj`에서 `build\VagabondK.nF.WebUi.targets` 가져오기'
+    $dependencyNote = 'NuGet은 이 패키지의 직접 의존성을 설치하지 않으며 빌드 시 `targets`가 지정된 어셈블리를 PC에서 실행합니다. 런타임 의존성은 `VagabondK.nF.Web` 패키지가 가져옵니다.'
+    $install = @"
+nanoFramework 프로젝트의 `packages.config`에 패키지를 추가한 뒤 프로젝트 파일에서 `build\VagabondK.nF.WebUi.targets`를 가져오기 합니다.
+
+``````powershell
+nuget install VagabondK.nF.WebUi -Version $Version
+``````
+"@
+    $requirements = 'PC 빌드 타임 도구입니다. 작업 어셈블리는 `build\tools`에 있으며 MCU 배포 대상이 아닙니다. 빌드에는 Visual Studio의 .NET nanoFramework MSBuild 도구와 Windows .NET Framework(또는 호환 .NET)이 필요합니다.'
 }
 $projectDoc = if (Test-Path -LiteralPath (Join-Path $projectFolder 'README.md')) { "Source\$group\$PackageId\README.md" } else { "Source\$group\README.md" }
 $documentation = & (Join-Path $PSScriptRoot 'Get-PackageDocumentation.ps1') -PackageId $PackageId

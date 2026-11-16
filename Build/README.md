@@ -78,7 +78,7 @@ MQTT 두 샘플의 이전 `.DataSharing` 폴더·프로젝트·네임스페이�
 ```powershell
 .\Build\Pack.ps1 -LibrarySet Modbus `
   -PackageIds VagabondK.nF.Modbus.Client,VagabondK.nF.Modbus.Server `
-  -PackageVersion 0.1.0-preview.3.gateway.1 -ProjectReferenceVersion 0.1.0-preview.3 `
+  -PackageVersion 0.1.0-preview.4.gateway.1 -ProjectReferenceVersion 0.1.0-preview.4 `
   -OutputPath .\bin\nuget\modbus-gateway-1
 ```
 
@@ -90,14 +90,14 @@ MQTT 두 샘플의 이전 `.DataSharing` 폴더·프로젝트·네임스페이�
 
 새 `bin\release-candidate-<시각>` 폴더에 패키지를 생성하고, 소스 참조 없이 복원한
 런타임·매핑 프로젝트의 MCU 빌드와 SCL 도구 설치·실행을 확인합니다.
-검증을 통과한 34개 패키지는 `packages`에 모으며, 메타데이터·README·아이콘을 검사한 뒤
+검증을 통과한 36개 패키지는 `packages`에 모으며, 메타데이터·README·아이콘을 검사한 뒤
 루트 `sha256.csv`에 해시와 설명을 기록합니다. 세부 로그는 `logs`에 남습니다.
 각 패키지에 실제로 포함한 README가 검토용 `readmes\<패키지>\README.md`와 같은지도 확인합니다.
 실패하면 즉시 중단하며 성공한 배포 후보로 표시하지 않습니다.
 이 명령은 NuGet.org 업로드·GitHub 푸시·보드 배포를 수행하지 않습니다.
 온라인 저장소의 공개 여부와 문서 링크 접근성은 별도로 확인해야 합니다.
 
-평가 버전은 **`0.1.0-preview.3`**, 어셈블리 버전은 `0.1.0.0`입니다.
+평가 버전은 **`0.1.0-preview.4`**, 어셈블리 버전은 `0.1.0.0`입니다.
 API 호환성·공개 패키지 피드 지원 정책은 확정되지 않았습니다. 패키지의 외부 게시·업로드·서명이나 산업 인증은 수행하지 않았습니다.
 프로젝트 라이선스는 [MIT](../LICENSE)이며 타사 의존성의 라이선스는 원본 패키지를 따릅니다.
 
@@ -105,7 +105,7 @@ API 호환성·공개 패키지 피드 지원 정책은 확정되지 않았습�
 
 [NuGet release 워크플로](../.github/workflows/publish-nuget.yml)는 Windows Server 2025·VS 2026,
 .NET 10 SDK와 공식 `nanoframework/nanobuild`를 사용합니다. PC 회귀 시험 후
-`Prepare-Packages.ps1`로 34개 패키지와 패키지 소비 프로젝트를 검증합니다.
+`Prepare-Packages.ps1`로 36개 패키지와 패키지 소비 프로젝트를 검증합니다.
 PC 회귀 전에 고정 revision의 원본 OpenDNP3 피어도 CMake·Visual C++로 빌드합니다.
 보드 시험·장치 배포는 실행하지 않습니다. 외부 액션은 커밋 SHA로 고정했습니다.
 비공개 저장소의 GitHub-hosted runner 사용량은 계정의 Actions 사용량·과금 정책을 확인하십시오.
@@ -136,14 +136,14 @@ Trusted Publishing 정책에 임시 활성 기간이 표시되는 경우 최초 
 1. 변경 파일을 커밋·푸시합니다. 기본 브랜치에 워크플로 파일이 있어야 **Run workflow**가 표시됩니다.
 2. Actions → **NuGet release → Run workflow**에서 기본값 `publish=false`로 실행합니다.
    이 실행은 게시하지 않고 검증된 패키지·SHA256 및 진단 로그를 artifact로 보관합니다.
-3. 배포할 커밋에 `v0.1.0-preview.3`과 같이 실제 패키지 버전과 같은 태그를 생성·푸시합니다.
+3. 배포할 커밋에 `v0.1.0-preview.4`과 같이 실제 패키지 버전과 같은 태그를 생성·푸시합니다.
    태그 푸시도 검증만 수행하며 자동 게시하지 않습니다.
 4. **Run workflow**에서 해당 **태그**를 선택하고 `publish=true`로 실행합니다.
    브랜치에서는 게시할 수 없고, 태그와 소스 버전이 다르면 중단됩니다.
    보호된 Environment를 설정했다면 이때 승인 후 게시합니다.
 
 게시 작업은 빌드 작업의 artifact ID로 동일한 패키지를 내려받고,
-`Test-ReleaseArtifact.ps1`로 34개 이름·버전·내부 의존성·README·SHA256을 다시 확인합니다.
+`Test-ReleaseArtifact.ps1`로 36개 이름·버전·내부 의존성·README·SHA256을 다시 확인합니다.
 그 후에만 `NuGet/login`으로 1시간 유효 임시 키를 받아 게시하며 다시 빌드하지 않습니다.
 OIDC `id-token: write` 권한은 게시 작업에만 부여합니다. 병렬 릴리스는 직렬화하며
 진행 중인 배포를 새 실행이 자동 취소하지 않습니다.
@@ -152,7 +152,7 @@ OIDC `id-token: write` 권한은 게시 작업에만 부여합니다. 병렬 릴
 태그만 바꿔 버전을 자동 치환하지 않습니다. 다음 릴리스에서는 이 버전 선언들을 함께 변경해야 하며,
 다른 버전 산출물이나 일부 패키지 누락은 최종 artifact 검증에서 거절됩니다.
 NuGet.org에는 동일 ID·버전을 덮어쓸 수 없습니다.
-34개 게시 전체는 원자적이지 않으므로 도중에 실패하면 앞선 패키지는 이미 공개되었을 수 있습니다.
+36개 게시 전체는 원자적이지 않으므로 도중에 실패하면 앞선 패키지는 이미 공개되었을 수 있습니다.
 중복을 성공으로 숨기는 `--skip-duplicate`는 사용하지 않습니다. 실패 시 로그와 NuGet.org 상태를 먼저 확인하고,
 누락 패키지만 검증된 artifact에서 별도 게시하거나 수정 사항에 새 버전을 부여하십시오.
 
@@ -207,7 +207,7 @@ Sparkplug DLL은 MQTT DLL을 직접 참조하지 않으므로 필요한 전송 �
 개발·시험·과거 성능 기록은 제외하고, 상대경로 링크는 저장소의 절대 URL로 바꿉니다.
 DNP3·BACnet·SNMP와 일부 공통·전송 패키지에는 실제 API를 사용하는 시작 예제도 추가합니다.
 다른 문서를 열지 않아도 기본 사용법을 이해할 수 있도록 패키지 안에 본문과 코드 예제를 함께 담습니다.
-`Test-PackageReadmes.ps1`은 34개 문서의 상세 설명·코드 예제·API 이름·링크 형식을 검사합니다.
+`Test-PackageReadmes.ps1`은 36개 문서의 상세 설명·코드 예제·API 이름·링크 형식을 검사합니다.
 README만 먼저 생성·검토하려면 다음처럼 새 출력 경로를 지정합니다.
 
 ```powershell
@@ -216,7 +216,7 @@ README만 먼저 생성·검토하려면 다음처럼 새 출력 경로를 지�
 
 원본 README나 생성 템플릿을 수정해도 기존 `.nupkg` 안의 문서는 바뀌지 않습니다.
 현재 문서를 포함한 배포 후보가 필요하면 `Prepare-Packages.ps1`로 새 경로에 다시 생성하십시오.
-이 스크립트는 생성한 34개 문서와 패키지 내부 README의 본문 일치도 검사합니다.
+이 스크립트는 생성한 36개 문서와 패키지 내부 README의 본문 일치도 검사합니다.
 기존 피드·과거 검증 패키지를 덮어쓰거나 외부에 업로드하지 않습니다.
 SDK 패키징에도 PowerShell 7의 `pwsh` 명령이 필요합니다.
 런타임 문서는 출력 폴더의 `specs\readmes\<패키지>\README.md`, 생성기와 도구 문서는 프로젝트 `obj` 아래에 남습니다.

@@ -3,6 +3,7 @@ param([Parameter(Mandatory = $true)][string]$PackageId)
 $ErrorActionPreference = 'Stop'
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $group = $PackageId.Split('.')[2]
+if ($PackageId -eq 'VagabondK.nF.WebUi') { $group = 'Web' }  # WebUi는 Source\Web 폴더에 있습니다.
 $projectDoc = Join-Path $root "Source\$group\$PackageId\README.md"
 $source = if (Test-Path -LiteralPath $projectDoc) { $projectDoc } else { Join-Path $root "Source\$group\README.md" }
 [xml]$metadata = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'PackageMetadata.props')

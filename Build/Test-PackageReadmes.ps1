@@ -11,7 +11,9 @@ $projectIntroduction = $overview.Groups['text'].Value.Trim()
 $names = @($projects.Project.ItemGroup.ChildNodes |
     Where-Object { $_.LocalName -like '*Library' -or $_.LocalName -eq 'BuildTool' } |
     ForEach-Object { [IO.Path]::GetFileNameWithoutExtension($_.Include) } | Sort-Object -Unique)
-if ($names.Count -ne 34) { throw 'Update the package documentation inventory for the changed package set.' }
+# WebUi는 메타 프로젝트에 없는 빌드 도구 패키지라 목록에 직접 추가합니다.
+$names = @($names) + 'VagabondK.nF.WebUi'
+if ($names.Count -ne 36) { throw 'Update the package documentation inventory for the changed package set.' }
 foreach ($name in $names) {
     $file = Join-Path $OutputPath "$name\README.md"
     & (Join-Path $PSScriptRoot 'New-PackageReadme.ps1') -PackageId $name -OutputPath $file
@@ -40,6 +42,8 @@ foreach ($name in $names) {
         'MMS' { 'MmsClient|MmsServer|MmsBinding' }
         'IEC61850' { 'Iec61850|GeneratedIec61850Model' }
         'MQTT' { 'MqttBinding|MqttConnection|Sparkplug' }
+        'Web' { 'GuardedWebServer|GenerateWebUiResourcesTask' }
+        'WebUi' { 'GuardedWebServer|GenerateWebUiResourcesTask' }
     }
     if ($details -notmatch $expected) { throw "Missing protocol-specific API guidance: $name" }
     if ($text -match 'Samples[/\\]MQTT[/\\]VagabondK\.nF\.MQTT(?:\.Sparkplug)?\.DataSharing') {

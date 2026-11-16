@@ -17,8 +17,8 @@ $null = New-Item -ItemType Directory -Path $output
 $logs = Join-Path $output 'logs'
 $null = New-Item -ItemType Directory -Path $logs
 $env:MSBUILDDISABLENODEREUSE = '1'
-$version = '0.1.0-preview.3'
-$sets = @('Modbus', 'DNP3', 'BACnet', 'SNMP', 'MMS', 'IEC61850', 'MQTT', 'Sparkplug')
+$version = '0.1.0-preview.4'
+$sets = @('Modbus', 'DNP3', 'BACnet', 'SNMP', 'MMS', 'IEC61850', 'MQTT', 'Sparkplug', 'Web')
 
 & (Join-Path $PSScriptRoot 'Test-PackageReadmes.ps1') -OutputPath (Join-Path $output 'readmes') `
     *> (Join-Path $logs 'readmes.log')
@@ -29,15 +29,22 @@ foreach ($set in $sets) {
     $feed = Join-Path $output $set
     & (Join-Path $PSScriptRoot 'Pack.ps1') -LibrarySet $set -OutputPath $feed `
         -MSBuildPath $MSBuildPath -NuGetPath $NuGetPath -NoBuild *> (Join-Path $logs "pack-$set.log")
-    $group = if ($set -eq 'Sparkplug') { 'MQTT' } else { $set }
-    $mapping = if ($set -eq 'Sparkplug') { 'VagabondK.nF.MQTT.Sparkplug.Mapping' } else { "VagabondK.nF.$set.Mapping" }
-    & dotnet pack (Join-Path $root "Source\$group\$mapping\$mapping.csproj") -c Release -o $feed --nologo -v quiet `
-        *> (Join-Path $logs "pack-$set-mapping.log")
-    if ($LASTEXITCODE -ne 0) { throw "Mapping pack failed; see logs: $set" }
+    if ($set -ne 'Web') {
+        # Web 계열에는 PC 생성기(매핑) 패키지가 없고 WebUi 빌드 도구가 별도 경로로-pack됩니다.
+        $group = if ($set -eq 'Sparkplug') { 'MQTT' } else { $set }
+        $mapping = if ($set -eq 'Sparkplug') { 'VagabondK.nF.MQTT.Sparkplug.Mapping' } else { "VagabondK.nF.$set.Mapping" }
+        & dotnet pack (Join-Path $root "Source\$group\$mapping\$mapping.csproj") -c Release -o $feed --nologo -v quiet `
+            *> (Join-Path $logs "pack-$set-mapping.log")
+        if ($LASTEXITCODE -ne 0) { throw "Mapping pack failed; see logs: $set" }
+    }
     Write-Output "PACKED: $set"
 }
 $scl = Join-Path $output 'SCL'
 & (Join-Path $PSScriptRoot 'Pack-Iec61850SclTool.ps1') -OutputPath $scl *> (Join-Path $logs 'scl-install.log')
+$webui = Join-Path $output 'WebUi'
+& (Join-Path $PSScriptRoot 'Pack-WebUi.ps1') -PackageVersion $version -OutputPath $webui -NuGetPath $NuGetPath *> (Join-Path $logs 'pack-webui.log')
+if (-not (Test-Path -LiteralPath (Join-Path $webui "VagabondK.nF.WebUi.$version.nupkg"))) { throw 'WebUi pack failed; see logs/pack-webui.log.' }
+Write-Output 'PACKED: WebUi'
 
 foreach ($set in $sets) {
     & (Join-Path $PSScriptRoot 'Test-Packages.ps1') -LibrarySet $set -FeedPath (Join-Path $output $set) `
@@ -60,13 +67,13 @@ foreach ($set in @('Modbus', 'DNP3', 'BACnet', 'SNMP', 'IEC61850', 'MQTT', 'Spar
 
 $packages = Join-Path $output 'packages'
 $null = New-Item -ItemType Directory -Path $packages
-foreach ($set in @('Modbus', 'DNP3', 'BACnet', 'SNMP', 'IEC61850', 'MQTT', 'Sparkplug', 'SCL')) {
+foreach ($set in @('Modbus', 'DNP3', 'BACnet', 'SNMP', 'IEC61850', 'MQTT', 'Sparkplug', 'Web', 'SCL', 'WebUi')) {
     foreach ($file in Get-ChildItem -LiteralPath (Join-Path $output $set) -File -Filter '*.nupkg') {
         Copy-Item -LiteralPath $file.FullName -Destination $packages
     }
 }
 $files = @(Get-ChildItem -LiteralPath $packages -File -Filter '*.nupkg')
-if ($files.Count -ne 34) { throw "Expected 34 packages, got $($files.Count)." }
+if ($files.Count -ne 36) { throw "Expected 36 packages, got $($files.Count)." }
 [xml]$settings = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'PackageMetadata.props')
 $iconHash = (Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'nugetIcon.png')).Hash
 $inventory = foreach ($file in $files) {
@@ -106,4 +113,4 @@ $inventory = foreach ($file in $files) {
     finally { $zip.Dispose() }
 }
 $inventory | Export-Csv -LiteralPath (Join-Path $output 'sha256.csv') -NoTypeInformation -Encoding utf8
-Write-Output "LOCAL RELEASE CANDIDATE PASS: 34 packages; runtime, mapping and SCL installation verified. No upload or device changes: $packages"
+Write-Output "LOCAL RELEASE CANDIDATE PASS: 36 packages; runtime, mapping, SCL and WebUi installation verified. No upload or device changes: $packages"

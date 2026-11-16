@@ -344,13 +344,17 @@ ProjectReference가 필요 없습니다(이전의 Roslyn 생성기 방식의 잔
 
 ### NuGet 패키지 모드 (`VagabondK.nF.WebUi`)
 
-저장소 클론 없이 빌드하려면 패키지를 씁니다. `Build\Pack-WebUi.ps1`이
+저장소 클론 없이 빌드하려면 패키지를 씁니다. 릴리스 파이프라인(`Build\Prepare-Packages.ps1` → `Pack-WebUi.ps1`)이
 targets + Assets + Components(표준 컴포넌트·공용 `texts*.resx`) + Tasks dll
-(`build\tools\{net472,netstandard2.0}`)을 `bin\nuget\webui\`에 패키징합니다(lib\ 없음 — 순수 빌드 도구).
+(`build\tools\{net472,netstandard2.0}`)을 저장소 릴리스와 같은 버전의 `VagabondK.nF.WebUi` 패키지로 만듭니다(lib\ 없음 — 순수 빌드 도구).
+
+```powershell
+nuget install VagabondK.nF.WebUi -Version 0.1.0-preview.4   # 저장소 릴리스와 lockstep
+```
 
 ```xml
 <!-- 소비자 nfproj/공유 targets에서: -->
-<Import Project="$(MSBuildThisFileDirectory)..\packages\VagabondK.nF.WebUi.0.1.0-preview.1\build\VagabondK.nF.WebUi.targets" />
+<Import Project="$(MSBuildThisFileDirectory)..\packages\VagabondK.nF.WebUi.0.1.0-preview.4\build\VagabondK.nF.WebUi.targets" />
 ```
 
 - targets가 있는 위치가 곧 자산 루트입니다(`build\` 아래 Assets/Components를 그 상대에서 찾는다).

@@ -196,4 +196,4 @@ Visual Studio에서 [VagabondK.nF.sln](VagabondK.nF.sln)을 엽니다.
 동명의 `.xml` 문서를 출력합니다. 그룹별 안내는 구성 선택과 사용법을, 개별 README는 세부 사용 조건과 검증 기록을 설명합니다.
 NuGet용 README도 그룹·개별 문서와 공통 템플릿에서 패키지별로 생성합니다.
 설치·직접 의존성·사용 API·제약을 포함하고 개발용 성능·과거 시험 기록은 제외합니다.
-문서 변경 후 34개 README의 생성과 실제 패키지 포함 여부는 [패키징 안내](Build/README.md)를 따릅니다.
+문서 변경 후 36개 README의 생성과 실제 패키지 포함 여부는 [패키징 안내](Build/README.md)를 따릅니다.

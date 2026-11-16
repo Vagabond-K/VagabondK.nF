@@ -20,7 +20,7 @@
 | `GuardedWebServer` | `WebServer` 파생 클래스. 라우팅 전에 `LoginGuard`를 연결해 fail-closed 인증을 적용 |
 | `WebApi` | JSON/텍스트 응답·본문 읽기·JSON 이스케이프·보안 헤더 헬퍼 (`WebApi.OkJson` = `{"ok":true}` 상수) |
 | `JsonWriter` | 리플렉션 없는 수동 JSON 생성기. 따옴표·이스케이프·쉼표·중첩을 대신 관리 |
-| `FormReader` | urlencoded 본문을 1회만 읽어 필드를 여러 개 파싱(이중 읽기 행업 방지) |
+| `FormReader` | urlencoded 본문을 1회만 읽어 필드를 여러 개 파싱(이중 읽기 멈춤 방지) |
 | `CsrfGuard` | 커스텀 헤더 + Host 검사로 크로스사이트 POST·DNS rebinding 차단 |
 | `AuthController` | `/api/auth/*` 표준 인증 엔드포인트 6종(status·login·logout·token·password·apikey). 훅과 메시지 필드로 앱에 맞춤 |
 | `CredentialFile` | `LoginGuard` 해시·API 키를 `h=`/`k=` 파일에 원자적(load/save) 영속화 |
@@ -40,7 +40,7 @@
 - **클라이언트 단절 흡수**: 응답 도중 브라우저가 연결을 끊으면(fetch 취소·타임아웃)
   쓰기에서 `SocketException`/`IOException`이 날 수 있습니다. `GuardedWebServer.InvokeRoute`
   와 `WebApi` 쓰기 경로가 이 계열만 잡아 연결을 닫고, 나머지 예외는 그대로 전파합니다.
-  덕분에 VS 디버거 첨 중에도 요청 스레드가 앱 전체를 멈추지 않습니다.
+  덕분에 VS 디버거 첨부 중에도 요청 스레드가 앱 전체를 멈추지 않습니다.
 - **토큰 전달 경로**: `GuardedWebServer.ReadSessionToken`은 세션 헤더 →
   `Authorization: Bearer` → 세션 쿠키 순으로 찾습니다. 헤더·쿠키 이름은 속성으로
   바꿀 수 있습니다(기본값 `x-auth-session` / `x-auth-key` / `auth`).

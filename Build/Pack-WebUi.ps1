@@ -6,7 +6,7 @@
   - Consumers (nanoGate, etc.) build WebUi resources with this package without needing the repo.
 
 .PARAMETER PackageVersion
-  Package version (default: 0.1.0-preview.1)
+  Package version (lockstep with the release, default below)
 .PARAMETER OutputPath
   Output folder for .nupkg (default: bin\nuget\webui)
 .PARAMETER NuGetPath
@@ -22,7 +22,7 @@
   .\Pack-WebUi.ps1 -PackageVersion 0.1.0-preview.2
 #>
 param(
-    [string]$PackageVersion = '0.1.0-preview.1',
+    [string]$PackageVersion = '0.1.0-preview.4',
     [string]$OutputPath = '',
     [string]$NuGetPath = 'nuget'
 )
@@ -60,19 +60,20 @@ if (-not (Test-Path (Join-Path $OutputPath "VagabondK.nF.WebUi.$PackageVersion.n
         Copy-Item $dll (Join-Path $stage "build\tools\$tfm") -Force
     }
 
-    # ---- 3. nuspec ----
-    $metaPath = Join-Path $root 'Build\PackageMetadata.props'
-    $meta = @{}
-    if (Test-Path $metaPath) {
-        [xml]$metaXml = Get-Content $metaPath -Raw
-        foreach ($n in $metaXml.Project.PropertyGroup.MSBuild.PackagingMetadata) {
-            $meta[$n.Attributes['key'].Value] = $n.Attributes['value'].Value
-        }
-    }
-    if (-not $meta['author']) { $meta['author'] = 'KuJune MOON' }
-    if (-not $meta['url'])    { $meta['url'] = 'https://github.com/vagabondking/VagabondK.nF' }
+    # ---- 3. Generate README/icon and nuspec ----
+    & (Join-Path $PSScriptRoot 'New-PackageReadme.ps1') -PackageId VagabondK.nF.WebUi -OutputPath (Join-Path $stage 'docs\README.md') -Version $PackageVersion
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'nugetIcon.png') -Destination (Join-Path $stage 'nugetIcon.png') -Force
+    [xml]$props = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'PackageMetadata.props') -Encoding UTF8
+    $pg = $props.Project.PropertyGroup
+    $authors = [Security.SecurityElement]::Escape([string]$pg.Authors)
+    $projectUrl = [Security.SecurityElement]::Escape([string]$pg.PackageProjectUrl)
+    $repositoryUrl = [Security.SecurityElement]::Escape([string]$pg.RepositoryUrl)
+    $releaseNotes = [Security.SecurityElement]::Escape([string]$pg.PackageReleaseNotes)
 
-    $description = 'Web UI resource generator (build-time MSBuild task): standard components (*.nf.html/css/js), library pages (Pages\login.nf.*), common i18n dictionaries (texts*.resx), core.js/i18n.js/theme.css assets, and the gzip resource generation task dll. Import build\VagabondK.nF.WebUi.targets to embed the admin page into the device image without needing the repository source.'
+    $catalog = Get-Content -LiteralPath (Join-Path $root 'README.md') -Raw -Encoding UTF8
+    $entry = [regex]::Match($catalog, '(?m)^\| \[VagabondK\.nF\.WebUi\]\([^)]+\) \| ([^|]+) \| ([^|]+) \|')
+    if (-not $entry.Success) { throw 'Missing package description: VagabondK.nF.WebUi' }
+    $description = [Security.SecurityElement]::Escape('.NET nanoFramework용 평가 패키지입니다. 주요 기능: ' + $entry.Groups[2].Value.Trim())
 
     @"
 <?xml version="1.0" encoding="utf-8"?>
@@ -81,15 +82,21 @@ if (-not (Test-Path (Join-Path $OutputPath "VagabondK.nF.WebUi.$PackageVersion.n
     <id>VagabondK.nF.WebUi</id>
     <version>$PackageVersion</version>
     <title>VagabondK.nF.WebUi</title>
-    <authors>$($meta['author'])</authors>
+    <authors>$authors</authors>
     <license type="expression">MIT</license>
-    <projectUrl>$($meta['url'])</projectUrl>
+    <projectUrl>$projectUrl</projectUrl>
+    <repository type="git" url="$repositoryUrl" />
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>$description</description>
     <tags>nanoFramework webui components i18n build-tools</tags>
+    <releaseNotes>$releaseNotes</releaseNotes>
+    <icon>nugetIcon.png</icon>
+    <readme>docs\README.md</readme>
   </metadata>
   <files>
     <file src="$stage\build\**" target="build" />
+    <file src="$stage\docs\README.md" target="docs" />
+    <file src="$stage\nugetIcon.png" target="" />
   </files>
 </package>
 "@ | Out-File (Join-Path $stage 'package.nuspec') -Encoding UTF8
@@ -104,7 +111,7 @@ if (-not (Test-Path (Join-Path $OutputPath "VagabondK.nF.WebUi.$PackageVersion.n
 $nupkg = Join-Path $OutputPath "VagabondK.nF.WebUi.$PackageVersion.nupkg"
 if (Test-Path $nupkg) {
     Write-Host "  OK : $nupkg" -ForegroundColor Green
-    Write-Host "  nanoGate: add 'nuget install VagabondK.nF.WebUi -Version $PackageVersion -Source $OutputPath -OutputDirectory packages' to the packages feed." -ForegroundColor DarkGray
+    Write-Host "  consumers: 'nuget install VagabondK.nF.WebUi -Version $PackageVersion' (nuget.org after release)." -ForegroundColor DarkGray
 } else {
     Write-Warning "  ?? Package not found: $nupkg"
 }
