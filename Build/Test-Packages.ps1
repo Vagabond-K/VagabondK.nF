@@ -45,12 +45,11 @@ foreach ($name in $names) {
 $consumerName = if ($LibrarySet -eq 'Sparkplug') { 'VagabondK.nF.MQTT.Sparkplug.PackageSmoke' } else { "VagabondK.nF.$LibrarySet.PackageSmoke" }
 $consumer = Join-Path $root "Packaging\$consumerName"
 $packages = Join-Path $consumer ('bin\restore-' + [Guid]::NewGuid().ToString('N'))
-$sources = $feed + ';' + (Join-Path $root 'packages')
+$sources = $feed + ';' + (Join-Path $root 'packages') + ';https://api.nuget.org/v3/index.json'
 foreach ($name in $names) {
-    New-Item -ItemType Directory -Force -Path $packages | Out-Null
-    $installLog = Join-Path $packages "$name.install.log"
-    & $NuGetPath install $name -Version $version -Source $sources -OutputDirectory $packages -NonInteractive -NoHttpCache -DirectDownload *> $installLog
-    if ($LASTEXITCODE -ne 0) { Get-Content -LiteralPath $installLog; throw "Package dependency restore failed: $name" }
+    Write-Host "== nuget install $name $version (sources: $sources)"
+    & $NuGetPath install $name -Version $version -Source $sources -OutputDirectory $packages -NonInteractive -NoHttpCache -DirectDownload
+    if ($LASTEXITCODE -ne 0) { throw "Package dependency restore failed: $name" }
 }
 if (-not $MSBuildPath) {
     $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
