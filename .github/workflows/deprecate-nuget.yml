@@ -1,0 +1,68 @@
+name: NuGet deprecate
+
+# One-off maintenance workflow: mark a bad lockstep release as deprecated on nuget.org.
+# v0.1.0-preview.4 shipped 35 of 36 packages (VagabondK.nF.WebUi was rejected for a
+# corrupted generated README), so that version is inconsistent and should not be used.
+# Uses the NuGetGallery deprecation API (PUT api/v2/package/{id}/deprecations), which
+# requires an API key with the Package Publish & Unlist scope.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Package version to deprecate (e.g. 0.1.0-preview.4)'
+        type: string
+        required: true
+        default: '0.1.0-preview.4'
+      alternate:
+        description: 'Alternate version to recommend (may be empty)'
+        type: string
+        required: false
+        default: '0.1.0-preview.5'
+
+permissions:
+  contents: read
+
+jobs:
+  deprecate:
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 15
+    environment: nuget
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Obtain short-lived NuGet credentials
+        id: login
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1
+        with:
+          user: ${{ vars.NUGET_USER }}
+
+      - name: Deprecate inconsistent preview.4 packages
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+          VERSION: ${{ inputs.version }}
+          ALTERNATE: ${{ inputs.alternate }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $ids = @(
+            'VagabondK.nF.BACnet','VagabondK.nF.BACnet.IP','VagabondK.nF.BACnet.Mapping',
+            'VagabondK.nF.DNP3','VagabondK.nF.DNP3.Mapping','VagabondK.nF.DNP3.Master','VagabondK.nF.DNP3.Outstation','VagabondK.nF.DNP3.Serial','VagabondK.nF.DNP3.TCP',
+            'VagabondK.nF.IEC61850','VagabondK.nF.IEC61850.Client','VagabondK.nF.IEC61850.Mapping','VagabondK.nF.IEC61850.SCL','VagabondK.nF.IEC61850.Server',
+            'VagabondK.nF.MMS','VagabondK.nF.MMS.Client','VagabondK.nF.MMS.Mapping','VagabondK.nF.MMS.Server','VagabondK.nF.MMS.TCP',
+            'VagabondK.nF.Modbus','VagabondK.nF.Modbus.ASCII','VagabondK.nF.Modbus.Client','VagabondK.nF.Modbus.Mapping','VagabondK.nF.Modbus.RTU','VagabondK.nF.Modbus.Serial','VagabondK.nF.Modbus.Server','VagabondK.nF.Modbus.TCP',
+            'VagabondK.nF.MQTT','VagabondK.nF.MQTT.Mapping','VagabondK.nF.MQTT.Sparkplug','VagabondK.nF.MQTT.Sparkplug.Mapping',
+            'VagabondK.nF.SNMP','VagabondK.nF.SNMP.Mapping','VagabondK.nF.SNMP.UDP',
+            'VagabondK.nF.Web'
+          )
+          $failed = @()
+          foreach ($id in $ids) {
+            $arglist = @('nuget','add','deprecation',$id,'--version',$env:VERSION,'--source','https://api.nuget.org/v3/index.json','--reason','Other','--message','Incomplete lockstep release: VagabondK.nF.WebUi was rejected at publish, so this version mixes incompatible packages. Use the next preview release instead.')
+            if ($env:ALTERNATE) { $arglist += @('--alternate-package-version', $env:ALTERNATE) }
+            & dotnet $arglist
+            if ($LASTEXITCODE -ne 0) { $failed += $id }
+          }
+          if ($failed.Count -gt 0) {
+            throw ("Deprecation failed for: " + ($failed -join ', '))
+          }
+          Write-Host ("Deprecated {0} packages at {1}." -f $ids.Count, $env:VERSION)
