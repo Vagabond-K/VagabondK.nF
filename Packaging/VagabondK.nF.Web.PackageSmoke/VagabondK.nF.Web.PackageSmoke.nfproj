@@ -27,7 +27,7 @@
     <Reference Include="nanoFramework.WebServer"><HintPath>$(SmokePackagesPath)nanoFramework.WebServer.1.2.162\lib\nanoFramework.WebServer.dll</HintPath></Reference>
     <Reference Include="nanoFramework.System.Security.Cryptography"><HintPath>$(SmokePackagesPath)nanoFramework.System.Security.Cryptography.1.0.43\lib\nanoFramework.System.Security.Cryptography.dll</HintPath></Reference>
     <Reference Include="System.IO.FileSystem"><HintPath>$(SmokePackagesPath)nanoFramework.System.IO.FileSystem.1.1.96\lib\System.IO.FileSystem.dll</HintPath></Reference>
-    <Reference Include="VagabondK.nF.Web"><HintPath>$(SmokePackagesPath)VagabondK.nF.Web.0.1.0-preview.4\lib\VagabondK.nF.Web.dll</HintPath></Reference>
+    <Reference Include="VagabondK.nF.Web"><HintPath>$(SmokePackagesPath)VagabondK.nF.Web.0.1.0-preview.5\lib\VagabondK.nF.Web.dll</HintPath></Reference>
   </ItemGroup>
   <Import Project="$(NanoFrameworkProjectSystemPath)NFProjectSystem.CSharp.targets" />
 </Project>

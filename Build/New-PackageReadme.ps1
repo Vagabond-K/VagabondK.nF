@@ -1,7 +1,7 @@
 param(
     [Parameter(Mandatory = $true)][string]$PackageId,
     [Parameter(Mandatory = $true)][string]$OutputPath,
-    [string]$Version = '0.1.0-preview.4'
+    [string]$Version = '0.1.0-preview.5'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -130,7 +130,7 @@ if ($webui) {
     $compositionText = '- Web (인증·API 런타임, 의존성으로 nanoFramework.WebServer 설치)' + "`n" + '- 앱 프로젝트의 `.nfproj`에서 `build\VagabondK.nF.WebUi.targets` 가져오기'
     $dependencyNote = 'NuGet은 이 패키지의 직접 의존성을 설치하지 않으며 빌드 시 `targets`가 지정된 어셈블리를 PC에서 실행합니다. 런타임 의존성은 `VagabondK.nF.Web` 패키지가 가져옵니다.'
     $install = @"
-nanoFramework 프로젝트의 `packages.config`에 패키지를 추가한 뒤 프로젝트 파일에서 `build\VagabondK.nF.WebUi.targets`를 가져오기 합니다.
+nanoFramework 프로젝트의 ``packages.config``에 패키지를 추가한 뒤 프로젝트 파일에서 ``build\VagabondK.nF.WebUi.targets``를 가져오기 합니다.
 
 ``````powershell
 nuget install VagabondK.nF.WebUi -Version $Version

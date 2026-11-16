@@ -349,12 +349,12 @@ targets + Assets + Components(표준 컴포넌트·공용 `texts*.resx`) + Tasks
 (`build\tools\{net472,netstandard2.0}`)을 저장소 릴리스와 같은 버전의 `VagabondK.nF.WebUi` 패키지로 만듭니다(lib\ 없음 — 순수 빌드 도구).
 
 ```powershell
-nuget install VagabondK.nF.WebUi -Version 0.1.0-preview.4   # 저장소 릴리스와 lockstep
+nuget install VagabondK.nF.WebUi -Version 0.1.0-preview.5   # 저장소 릴리스와 lockstep
 ```
 
 ```xml
 <!-- 소비자 nfproj/공유 targets에서: -->
-<Import Project="$(MSBuildThisFileDirectory)..\packages\VagabondK.nF.WebUi.0.1.0-preview.4\build\VagabondK.nF.WebUi.targets" />
+<Import Project="$(MSBuildThisFileDirectory)..\packages\VagabondK.nF.WebUi.0.1.0-preview.5\build\VagabondK.nF.WebUi.targets" />
 ```
 
 - targets가 있는 위치가 곧 자산 루트입니다(`build\` 아래 Assets/Components를 그 상대에서 찾는다).
