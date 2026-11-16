@@ -47,8 +47,10 @@ $consumer = Join-Path $root "Packaging\$consumerName"
 $packages = Join-Path $consumer ('bin\restore-' + [Guid]::NewGuid().ToString('N'))
 $sources = $feed + ';' + (Join-Path $root 'packages')
 foreach ($name in $names) {
-    & $NuGetPath install $name -Version $version -Source $sources -OutputDirectory $packages -NonInteractive -NoHttpCache -DirectDownload -Verbosity quiet
-    if ($LASTEXITCODE -ne 0) { throw "Package dependency restore failed: $name" }
+    New-Item -ItemType Directory -Force -Path $packages | Out-Null
+    $installLog = Join-Path $packages "$name.install.log"
+    & $NuGetPath install $name -Version $version -Source $sources -OutputDirectory $packages -NonInteractive -NoHttpCache -DirectDownload *> $installLog
+    if ($LASTEXITCODE -ne 0) { Get-Content -LiteralPath $installLog; throw "Package dependency restore failed: $name" }
 }
 if (-not $MSBuildPath) {
     $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
