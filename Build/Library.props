@@ -16,7 +16,10 @@
     <OutputPath>bin\$(Configuration)\</OutputPath>
     <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
     <DebugSymbols>true</DebugSymbols>
-    <DebugType>portable</DebugType>
+    <!-- nanoFramework VS debugging requires classic (full) PDB in Debug to generate
+         pdbx with sequence points; portable pdb breaks breakpoint binding. -->
+    <DebugType Condition="'$(Configuration)' == 'Debug'">full</DebugType>
+    <DebugType Condition="'$(Configuration)' != 'Debug'">portable</DebugType>
     <Optimize Condition="'$(Configuration)' == 'Release'">true</Optimize>
     <LangVersion>7.3</LangVersion>
     <NoStdLib>true</NoStdLib>
