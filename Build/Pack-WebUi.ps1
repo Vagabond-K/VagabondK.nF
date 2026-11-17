@@ -22,7 +22,7 @@
   .\Pack-WebUi.ps1 -PackageVersion 0.1.0-preview.2
 #>
 param(
-    [string]$PackageVersion = '0.1.0-preview.6',
+    [string]$PackageVersion = '0.1.0-preview.7',
     [string]$OutputPath = '',
     [string]$NuGetPath = 'nuget'
 )
