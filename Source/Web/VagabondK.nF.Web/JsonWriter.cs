@@ -182,8 +182,51 @@ namespace VagabondK.nF.Web
         {
             _sb.Append('"');
             if (value != null && value.Length > 0)
-                _sb.Append(WebApi.JsonEscape(value));
+                _sb.Append(Escape(value));
             _sb.Append('"');
+        }
+
+        /// <summary>
+        /// JSON 문자열 값을 안전한 형태로 변환합니다. "와 \는 backslash,
+        /// \b \f \n \r \t는 이름 있는 이스케이프로, 나머지 제어문자는 공백으로 바꿉니다.
+        /// special 문자가 없으면 원본을 그대로 돌려줍니다(복사·할당 없음).
+        /// </summary>
+        public static string Escape(string value)
+        {
+            if (value == null || value.Length == 0)
+                return string.Empty;
+
+            StringBuilder builder = null;
+            for (int i = 0; i < value.Length; i++)
+            {
+                char c = value[i];
+                if (c >= ' ' && c != '"' && c != '\\')
+                {
+                    if (builder != null)
+                        builder.Append(c);
+                    continue;
+                }
+
+                if (builder == null)
+                {
+                    builder = new StringBuilder(value.Length + 8);
+                    builder.Append(value.Substring(0, i));
+                }
+
+                switch (c)
+                {
+                    case '"': builder.Append("\\\""); break;
+                    case '\\': builder.Append("\\\\"); break;
+                    case '\b': builder.Append("\\b"); break;
+                    case '\f': builder.Append("\\f"); break;
+                    case '\n': builder.Append("\\n"); break;
+                    case '\r': builder.Append("\\r"); break;
+                    case '\t': builder.Append("\\t"); break;
+                    default: builder.Append(' '); break;
+                }
+            }
+
+            return builder == null ? value : builder.ToString();
         }
 
         private void Push()

@@ -161,6 +161,16 @@
     </ItemGroup>
   </Target>
 
+  <!-- Self-heal: 생성 파일이 실제로 디스크에 없으면(코어 빌드가 up-to-date로
+       스킵되어도) CallTarget으로 생성만 따로 실행한다. VS가 WebUiRoutes를
+       미충족(빨간 줄)으로 표시하는 재발 경로를 원천 차단한다.
+       DependsOnTargets와 달리 CallTarget은 대상 타깃을 명시 실행하므로
+       WebUiBuildTask를 함께 적어 repo/패키지 두 모드 모두 안전하다. -->
+  <Target Name="WebUiSelfHealGeneratedSources" BeforeTargets="WebUiAddGeneratedSources">
+    <CallTarget Condition="!Exists('$(WebUiOutDir)WebUiRoutes.g.cs') Or !Exists('$(WebUiOutDir)WebPage.resources.cs')"
+                Targets="WebUiBuildTask;WebUiGenerateResources" />
+  </Target>
+
   <!-- 생성 소스를 컴파일 직전에 주입: 평가 시점 항목에 두면 VS 트리에 obj\Debug\webui
        폴더(폴더만)가 표시되고 삭제 경고까지 유발한다. design-time 빌드는 CoreCompile
        체인을 실행하므로 이 지점이 IntelliSense에 정확하고 트리도 깨끗하다.

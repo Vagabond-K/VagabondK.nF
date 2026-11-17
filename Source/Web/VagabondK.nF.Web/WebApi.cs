@@ -137,41 +137,10 @@ namespace VagabondK.nF.Web
             return new string(characters);
         }
 
-        /// <summary>문자열을 JSON 문자 값으로 안전하게 만듭니다(따옴표·역슬래시 이스케이프, 제어문자 공백 치환).</summary>
+        /// <summary>문자열을 JSON 문자 값으로 안전하게 만듭니다(따옴표·역슬래시·이름 있는 제어문자 이스케이프, 나머지 제어문자 공백 치환). JsonWriter.Escape에 위임합니다(단일 구현).</summary>
         public static string JsonEscape(string value)
         {
-            if (value == null || value.Length == 0)
-                return string.Empty;
-
-            StringBuilder builder = null;
-            for (int i = 0; i < value.Length; i++)
-            {
-                char c = value[i];
-                if (c != '"' && c != '\\' && c >= ' ')
-                {
-                    if (builder != null)
-                        builder.Append(c);
-                    continue;
-                }
-
-                if (builder == null)
-                {
-                    builder = new StringBuilder(value.Length + 8);
-                    builder.Append(value.Substring(0, i));
-                }
-
-                if (c == '"' || c == '\\')
-                {
-                    builder.Append('\\');
-                    builder.Append(c);
-                }
-                else
-                {
-                    builder.Append(' ');
-                }
-            }
-
-            return builder == null ? value : builder.ToString();
+            return JsonWriter.Escape(value);
         }
 
         private static void Write(HttpListenerResponse response, int status, string contentType, string body)

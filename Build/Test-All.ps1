@@ -22,7 +22,8 @@ $projects = @(
     'SNMP.Tests', 'SNMP.Mapping.Tests',
     'MMS.Tests', 'MMS.Mapping.Tests',
     'IEC61850.Tests', 'Soak.Tests',
-    'MQTT.Mapping.Tests', 'MQTT.Sparkplug.Mapping.Tests', 'MQTT.DataSharing.Tests'
+    'MQTT.Mapping.Tests', 'MQTT.Sparkplug.Mapping.Tests', 'MQTT.DataSharing.Tests',
+    'Web.Tests'
 ) | ForEach-Object { "VagabondK.nF.$_" } | Where-Object { $_ -like $Filter }
 if ($projects.Count -eq 0) { throw "No test project matches '$Filter'." }
 
