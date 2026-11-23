@@ -50,8 +50,9 @@ Object.defineProperty(self, "value", {
     return inp.value;
   },
   set: function (v) {
+    var old = inp.value;
     inp.value = v == null ? "" : String(v);
-    fv();
+    if (inp.value !== old) fv();
   },
 });
 Object.defineProperty(self, "disabled", {

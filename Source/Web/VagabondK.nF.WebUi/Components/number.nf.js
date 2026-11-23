@@ -58,8 +58,11 @@ Object.defineProperty(self, "value", {
     return inp.value;
   },
   set: function (v) {
+    // 값이 실제 변경될 때만 input을 발행: 무변경 쓰기가 폼 리스너를 재진입해
+    // 자기 필드를 다시 쓰는 루프(예: 규칙 다이얼로그 클리어)를 원천 차단.
+    var old = inp.value;
     inp.value = v == null ? "" : String(v);
-    fv();
+    if (inp.value !== old) fv();
   },
 });
 Object.defineProperty(self, "disabled", {
