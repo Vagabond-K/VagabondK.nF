@@ -3,7 +3,7 @@ param(
     [string]$NuGetPath = 'nuget',
     [string]$OutputPath = '',
     [switch]$NoBuild,
-    [string]$PackageVersion = '0.1.0-preview.7',
+    [string]$PackageVersion = '0.1.0-preview.8',
     [string]$ProjectReferenceVersion = '',
     [string[]]$PackageIds = @(),
     [ValidateSet('Modbus','DNP3','BACnet','SNMP','MMS','IEC61850','MQTT','Sparkplug','Web')][string]$LibrarySet = 'Modbus'
